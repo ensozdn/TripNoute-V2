@@ -47,10 +47,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
       const placesRef = collection(db, 'places');
       const newPlaceRef = doc(placesRef);
 
-      const placeData: Omit<Place, 'id' | 'createdAt' | 'updatedAt'> & {
-        createdAt: any;
-        updatedAt: any;
-      } = {
+      const placeData: any = {
         userId,
         title: input.title,
         description: input.description,
@@ -60,13 +57,19 @@ export class FirebaseDatabaseService implements IDatabaseService {
         },
         visitDate: FirestoreTimestamp.fromDate(input.visitDate),
         photos: [],
-        category: input.category,
-        rating: input.rating,
         isPublic: input.isPublic,
         tags: input.tags || [],
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
+
+      // Only add optional fields if they are defined
+      if (input.category !== undefined) {
+        placeData.category = input.category;
+      }
+      if (input.rating !== undefined) {
+        placeData.rating = input.rating;
+      }
 
       await setDoc(newPlaceRef, placeData);
 
