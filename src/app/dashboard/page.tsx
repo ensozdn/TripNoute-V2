@@ -246,18 +246,16 @@ export default function DashboardPage() {
                       <div className="absolute right-0 mt-2 w-48 rounded-xl bg-slate-800 border border-white/20 shadow-xl overflow-hidden z-10">
                         <button
                           onClick={() => handleEditPlace(place.id)}
-                          className="w-full px-4 py-3 text-left text-sm text-white hover:bg-white/10 transition-colors flex items-center gap-3"
+                          className="w-full px-4 py-3 text-left text-sm text-white hover:bg-white/10 transition-colors"
                         >
-                          <span>✏️</span>
-                          <span>Edit Place</span>
+                          Edit Place
                         </button>
                         <button
                           onClick={() => handleDeletePlace(place.id)}
                           disabled={deletingId === place.id}
-                          className="w-full px-4 py-3 text-left text-sm text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-3 disabled:opacity-50"
+                          className="w-full px-4 py-3 text-left text-sm text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
                         >
-                          <span>🗑️</span>
-                          <span>{deletingId === place.id ? 'Deleting...' : 'Delete Place'}</span>
+                          {deletingId === place.id ? 'Deleting...' : 'Delete Place'}
                         </button>
                       </div>
                     )}
