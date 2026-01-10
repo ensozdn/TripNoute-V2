@@ -354,8 +354,8 @@ export class FirebaseDatabaseService implements IDatabaseService {
    */
   async updateUserStats(userId: string): Promise<void> {
     try {
-      // Get all user places
-      const userPlaces = await this.getUserPlaces(userId, undefined, { limit: 10000 });
+      // Get user places with a reasonable limit for stats calculation
+      const userPlaces = await this.getUserPlaces(userId, undefined, { limit: 1000 });
       const places = userPlaces.items;
 
       // Calculate stats
