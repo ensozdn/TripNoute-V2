@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { addPlaceSchema } from '@/utils/validators';
@@ -18,8 +18,8 @@ type AddPlaceFormData = z.infer<typeof addPlaceSchema>;
 
 export default function AddPlacePage() {
   const router = useRouter();
-  const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const { user, loading } = useAuth();
+  const [loadingForm, setLoadingForm] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
@@ -31,10 +31,16 @@ export default function AddPlacePage() {
     notes: '',
   });
 
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
+    setLoadingForm(true);
 
     try {
       // Validate form data
@@ -42,13 +48,13 @@ export default function AddPlacePage() {
       
       if (!validation.success) {
         setError(validation.error.issues[0].message);
-        setLoading(false);
+        setLoadingForm(false);
         return;
       }
 
       if (!user) {
         setError('You must be logged in to add a place');
-        setLoading(false);
+        setLoadingForm(false);
         return;
       }
 
@@ -82,7 +88,7 @@ export default function AddPlacePage() {
     } catch (err) {
       console.error('Error adding place:', err);
       setError(err instanceof Error ? err.message : 'Failed to add place');
-      setLoading(false);
+      setLoadingForm(false);
     }
   };
 
@@ -94,8 +100,15 @@ export default function AddPlacePage() {
     }));
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-900">
+        <div className="text-xl text-white">Loading...</div>
+      </div>
+    );
+  }
+
   if (!user) {
-    router.push('/login');
     return null;
   }
 
@@ -234,10 +247,10 @@ export default function AddPlacePage() {
               <div className="flex gap-4 pt-4">
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loadingForm}
                   className="flex-1 py-4 px-6 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:bg-blue-500/50 text-white font-medium transition-all"
                 >
-                  {loading ? 'Adding Place...' : 'Add Place'}
+                  {loadingForm ? 'Adding Place...' : 'Add Place'}
                 </button>
                 <Link
                   href="/dashboard"
