@@ -100,6 +100,9 @@ export default function DashboardPage() {
               <span className="text-xl font-semibold text-white">TripNoute</span>
             </div>
             <div className="flex items-center gap-6">
+              <Link href="/map" className="text-slate-400 hover:text-white text-sm transition-colors">
+                Map
+              </Link>
               <span className="text-slate-400 text-sm">Welcome, {user?.displayName}!</span>
               <button onClick={handleLogout} className="text-slate-400 hover:text-white text-sm transition-colors">
                 Logout
@@ -179,9 +182,9 @@ export default function DashboardPage() {
             <p className="text-slate-300 mb-8 leading-relaxed">
               See all your visited places on an interactive world map.
             </p>
-            <button className="w-full py-4 px-6 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 font-medium transition-all">
+            <Link href="/map" className="block w-full py-4 px-6 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 font-medium transition-all text-center">
               Open Map
-            </button>
+            </Link>
           </div>
         </div>
 
