@@ -19,6 +19,8 @@ export default function DashboardPage() {
   const { user, loading, logout } = useAuth();
   const [places, setPlaces] = useState<Place[]>([]);
   const [loadingPlaces, setLoadingPlaces] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -43,9 +45,44 @@ export default function DashboardPage() {
     loadPlaces();
   }, [user]);
 
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (openMenuId) {
+        setOpenMenuId(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [openMenuId]);
+
   const handleLogout = async () => {
     await logout();
     router.push('/');
+  };
+
+  const handleDeletePlace = async (placeId: string) => {
+    if (!confirm('Are you sure you want to delete this place?')) {
+      return;
+    }
+
+    setDeletingId(placeId);
+    try {
+      await databaseService.deletePlace(placeId);
+      // Remove from local state
+      setPlaces(places.filter(p => p.id !== placeId));
+      setOpenMenuId(null);
+    } catch (error) {
+      console.error('Error deleting place:', error);
+      alert('Failed to delete place. Please try again.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleEditPlace = (placeId: string) => {
+    router.push(`/places/edit/${placeId}`);
   };
 
   if (loading) {
@@ -185,10 +222,49 @@ export default function DashboardPage() {
               {places.slice(0, 6).map((place) => (
                 <div
                   key={place.id}
-                  className="p-6 rounded-2xl bg-white/10 border border-white/20 hover:bg-white/[0.12] transition-all cursor-pointer"
+                  className="p-6 rounded-2xl bg-white/10 border border-white/20 hover:bg-white/[0.12] transition-all relative"
                 >
+                  {/* Actions Menu */}
+                  <div className="absolute top-4 right-4">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenMenuId(openMenuId === place.id ? null : place.id);
+                      }}
+                      className="p-2 rounded-lg hover:bg-white/10 transition-colors text-slate-400 hover:text-white"
+                      disabled={deletingId === place.id}
+                    >
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="5" r="2" />
+                        <circle cx="12" cy="12" r="2" />
+                        <circle cx="12" cy="19" r="2" />
+                      </svg>
+                    </button>
+                    
+                    {/* Dropdown Menu */}
+                    {openMenuId === place.id && (
+                      <div className="absolute right-0 mt-2 w-48 rounded-xl bg-slate-800 border border-white/20 shadow-xl overflow-hidden z-10">
+                        <button
+                          onClick={() => handleEditPlace(place.id)}
+                          className="w-full px-4 py-3 text-left text-sm text-white hover:bg-white/10 transition-colors flex items-center gap-3"
+                        >
+                          <span>✏️</span>
+                          <span>Edit Place</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeletePlace(place.id)}
+                          disabled={deletingId === place.id}
+                          className="w-full px-4 py-3 text-left text-sm text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-3 disabled:opacity-50"
+                        >
+                          <span>🗑️</span>
+                          <span>{deletingId === place.id ? 'Deleting...' : 'Delete Place'}</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Place Header */}
-                  <div className="mb-4">
+                  <div className="mb-4 pr-8">
                     <h3 className="text-xl font-bold text-white mb-2">{place.title}</h3>
                     <p className="text-slate-300 text-sm flex items-center gap-2">
                       <span>📍</span>
