@@ -58,7 +58,6 @@ export const addPlaceSchema = z.object({
     .max(50, 'City name must be less than 50 characters'),
   visitDate: z.string().min(1, 'Visit date is required'),
   notes: z.string().max(1000, 'Notes must be less than 1000 characters').optional(),
-  rating: z.number().min(1).max(5).default(5),
 });
 
 export const createPlaceSchema = z.object({

@@ -7,20 +7,41 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { databaseService } from '@/lib/database';
+import { Place } from '@/types';
 
 export default function DashboardPage() {
   const router = useRouter();
   const { user, loading, logout } = useAuth();
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [loadingPlaces, setLoadingPlaces] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) {
       router.push('/login');
     }
   }, [user, loading, router]);
+
+  useEffect(() => {
+    const loadPlaces = async () => {
+      if (user) {
+        try {
+          const response = await databaseService.getUserPlaces(user.uid);
+          setPlaces(response.items);
+        } catch (error) {
+          console.error('Error loading places:', error);
+        } finally {
+          setLoadingPlaces(false);
+        }
+      }
+    };
+
+    loadPlaces();
+  }, [user]);
 
   const handleLogout = async () => {
     await logout();
@@ -84,7 +105,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="text-4xl font-bold text-white mb-1">
-                  {user.stats?.totalPlaces || 0}
+                  {places.length}
                 </p>
                 <p className="text-slate-300 text-sm">Places Visited</p>
               </div>
@@ -98,7 +119,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="text-4xl font-bold text-white mb-1">
-                  {user.stats?.countriesVisited || 0}
+                  {new Set(places.map(p => p.address.country)).size}
                 </p>
                 <p className="text-slate-300 text-sm">Countries</p>
               </div>
@@ -112,7 +133,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="text-4xl font-bold text-white mb-1">
-                  {user.stats?.totalPhotos || 0}
+                  {places.reduce((total, place) => total + place.photos.length, 0)}
                 </p>
                 <p className="text-slate-300 text-sm">Photos</p>
               </div>
@@ -146,13 +167,57 @@ export default function DashboardPage() {
         {/* Recent Places */}
         <div>
           <h2 className="text-2xl font-bold mb-8 text-white">Recent Places</h2>
-          <div className="p-16 rounded-2xl bg-white/10 border border-white/20 text-center">
-            <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6">
-              <span className="text-4xl">🗺️</span>
+          
+          {loadingPlaces ? (
+            <div className="p-16 rounded-2xl bg-white/10 border border-white/20 text-center">
+              <p className="text-slate-300">Loading places...</p>
             </div>
-            <p className="text-xl text-white font-medium mb-2">No places yet!</p>
-            <p className="text-slate-300">Start your journey by adding your first place.</p>
-          </div>
+          ) : places.length === 0 ? (
+            <div className="p-16 rounded-2xl bg-white/10 border border-white/20 text-center">
+              <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                <span className="text-4xl">🗺️</span>
+              </div>
+              <p className="text-xl text-white font-medium mb-2">No places yet!</p>
+              <p className="text-slate-300">Start your journey by adding your first place.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {places.slice(0, 6).map((place) => (
+                <div
+                  key={place.id}
+                  className="p-6 rounded-2xl bg-white/10 border border-white/20 hover:bg-white/[0.12] transition-all cursor-pointer"
+                >
+                  {/* Place Header */}
+                  <div className="mb-4">
+                    <h3 className="text-xl font-bold text-white mb-2">{place.title}</h3>
+                    <p className="text-slate-300 text-sm flex items-center gap-2">
+                      <span>📍</span>
+                      {place.address.city}, {place.address.country}
+                    </p>
+                  </div>
+
+                  {/* Place Description */}
+                  {place.description && (
+                    <p className="text-slate-400 text-sm mb-4 line-clamp-2">
+                      {place.description}
+                    </p>
+                  )}
+
+                  {/* Place Footer */}
+                  <div className="flex items-center justify-between pt-4 border-t border-white/10">
+                    <span className="text-slate-500 text-xs">
+                      {new Date(place.visitDate.seconds * 1000).toLocaleDateString()}
+                    </span>
+                    {place.photos.length > 0 && (
+                      <span className="text-slate-500 text-xs flex items-center gap-1">
+                        📸 {place.photos.length}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
       </div>

@@ -29,7 +29,6 @@ export default function AddPlacePage() {
     city: '',
     visitDate: '',
     notes: '',
-    rating: 5,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,7 +66,6 @@ export default function AddPlacePage() {
         },
         visitDate,
         photos: [],
-        rating: validation.data.rating,
         isPublic: false,
         tags: [],
       };
@@ -92,7 +90,7 @@ export default function AddPlacePage() {
     const { name, value } = e.target;
     setFormData((prev: AddPlaceFormData) => ({
       ...prev,
-      [name]: name === 'rating' ? parseInt(value) : value
+      [name]: value
     }));
   };
 
@@ -214,26 +212,6 @@ export default function AddPlacePage() {
                   className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   required
                 />
-              </div>
-
-              {/* Rating */}
-              <div>
-                <label htmlFor="rating" className="block text-sm font-medium text-slate-300 mb-2">
-                  Rating
-                </label>
-                <select
-                  id="rating"
-                  name="rating"
-                  value={formData.rating}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                >
-                  <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
-                  <option value="4">⭐⭐⭐⭐ Very Good</option>
-                  <option value="3">⭐⭐⭐ Good</option>
-                  <option value="2">⭐⭐ Fair</option>
-                  <option value="1">⭐ Poor</option>
-                </select>
               </div>
 
               {/* Notes */}
