@@ -6,19 +6,20 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { addPlaceSchema } from '@/utils/validators';
 import { databaseService } from '@/lib/database';
 import { z } from 'zod';
 import Link from 'next/link';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 type AddPlaceFormData = z.infer<typeof addPlaceSchema>;
 
 export default function AddPlacePage() {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const [loadingForm, setLoadingForm] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -30,12 +31,6 @@ export default function AddPlacePage() {
     visitDate: '',
     notes: '',
   });
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    }
-  }, [user, loading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,20 +95,9 @@ export default function AddPlacePage() {
     }));
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-900">
-        <div className="text-xl text-white">Loading...</div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return null;
-  }
-
   return (
-    <div className="min-h-screen relative bg-slate-900">
+    <ProtectedRoute>
+      <div className="min-h-screen relative bg-slate-900">
       {/* Background Gradients */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-transparent to-transparent"></div>
       <div className="absolute inset-0 bg-gradient-to-tl from-blue-600/20 via-transparent to-transparent"></div>
@@ -264,5 +248,6 @@ export default function AddPlacePage() {
         </main>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }

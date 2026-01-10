@@ -12,12 +12,13 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { databaseService } from '@/lib/database';
 import { addPlaceSchema } from '@/utils/validators';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 export default function EditPlacePage() {
   const router = useRouter();
   const params = useParams();
   const placeId = params.id as string;
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   
   const [loadingPlace, setLoadingPlace] = useState(true);
   const [loadingForm, setLoadingForm] = useState(false);
@@ -33,13 +34,6 @@ export default function EditPlacePage() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login');
-    }
-  }, [user, authLoading, router]);
 
   // Load place data
   useEffect(() => {
@@ -140,21 +134,20 @@ export default function EditPlacePage() {
     }
   };
 
-  if (authLoading || loadingPlace) {
+  if (loadingPlace) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-900">
-        <div className="text-xl text-white">Loading...</div>
-      </div>
+      <ProtectedRoute>
+        <div className="min-h-screen flex items-center justify-center bg-slate-900">
+          <div className="text-xl text-white">Loading place...</div>
+        </div>
+      </ProtectedRoute>
     );
-  }
-
-  if (!user) {
-    return null;
   }
 
   if (error && !loadingPlace) {
     return (
-      <div className="min-h-screen relative bg-slate-900">
+      <ProtectedRoute>
+        <div className="min-h-screen relative bg-slate-900">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-transparent to-transparent"></div>
         <div className="absolute inset-0 bg-gradient-to-tl from-blue-600/20 via-transparent to-transparent"></div>
         
@@ -189,11 +182,13 @@ export default function EditPlacePage() {
           </main>
         </div>
       </div>
+      </ProtectedRoute>
     );
   }
 
   return (
-    <div className="min-h-screen relative bg-slate-900">
+    <ProtectedRoute>
+      <div className="min-h-screen relative bg-slate-900">
       {/* Background Gradients */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-transparent to-transparent"></div>
       <div className="absolute inset-0 bg-gradient-to-tl from-blue-600/20 via-transparent to-transparent"></div>
@@ -347,5 +342,6 @@ export default function EditPlacePage() {
         </main>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }

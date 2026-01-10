@@ -13,20 +13,15 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { databaseService } from '@/lib/database';
 import { Place } from '@/types';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, loading, logout } = useAuth();
+  const { user, logout } = useAuth();
   const [places, setPlaces] = useState<Place[]>([]);
   const [loadingPlaces, setLoadingPlaces] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    }
-  }, [user, loading, router]);
 
   useEffect(() => {
     const loadPlaces = async () => {
@@ -85,20 +80,9 @@ export default function DashboardPage() {
     router.push(`/places/edit/${placeId}`);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return null;
-  }
-
   return (
-    <div className="min-h-screen relative bg-slate-900">
+    <ProtectedRoute>
+      <div className="min-h-screen relative bg-slate-900">
       {/* Background Gradients */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-transparent to-transparent"></div>
       <div className="absolute inset-0 bg-gradient-to-tl from-blue-600/20 via-transparent to-transparent"></div>
@@ -116,7 +100,7 @@ export default function DashboardPage() {
               <span className="text-xl font-semibold text-white">TripNoute</span>
             </div>
             <div className="flex items-center gap-6">
-              <span className="text-slate-400 text-sm">Welcome, {user.displayName}!</span>
+              <span className="text-slate-400 text-sm">Welcome, {user?.displayName}!</span>
               <button onClick={handleLogout} className="text-slate-400 hover:text-white text-sm transition-colors">
                 Logout
               </button>
@@ -296,5 +280,6 @@ export default function DashboardPage() {
       </main>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }
