@@ -43,6 +43,24 @@ export const forgotPasswordSchema = z.object({
 // PLACE SCHEMAS
 // ============================================
 
+export const addPlaceSchema = z.object({
+  name: z
+    .string()
+    .min(2, 'Place name must be at least 2 characters')
+    .max(100, 'Place name must be less than 100 characters'),
+  country: z
+    .string()
+    .min(2, 'Country name must be at least 2 characters')
+    .max(50, 'Country name must be less than 50 characters'),
+  city: z
+    .string()
+    .min(2, 'City name must be at least 2 characters')
+    .max(50, 'City name must be less than 50 characters'),
+  visitDate: z.string().min(1, 'Visit date is required'),
+  notes: z.string().max(1000, 'Notes must be less than 1000 characters').optional(),
+  rating: z.number().min(1).max(5).default(5),
+});
+
 export const createPlaceSchema = z.object({
   title: z
     .string()
@@ -117,6 +135,7 @@ export const fileSchema = z.object({
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type AddPlaceInput = z.infer<typeof addPlaceSchema>;
 export type CreatePlaceInput = z.infer<typeof createPlaceSchema>;
 export type UpdatePlaceInput = z.infer<typeof updatePlaceSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
