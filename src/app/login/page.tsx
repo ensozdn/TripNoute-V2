@@ -4,23 +4,81 @@
  * User authentication page with email/password and Google login.
  */
 
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { useAuth } from '@/contexts/AuthContext';
+import { loginSchema } from '@/utils/validators';
 
 export default function LoginPage() {
+  const router = useRouter();
+  const { login, loginWithGoogle, error, clearError } = useAuth();
+  
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [validationError, setValidationError] = useState<string>('');
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Clear previous errors
+    clearError();
+    setValidationError('');
+    
+    // Validate input
+    const validation = loginSchema.safeParse({ email, password });
+    if (!validation.success) {
+      setValidationError(validation.error.issues[0].message);
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      await login(email, password);
+      router.push('/dashboard');
+    } catch (err: any) {
+      console.error('Login error:', err);
+      // Error is handled by AuthContext
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    clearError();
+    setValidationError('');
+    setLoading(true);
+    
+    try {
+      await loginWithGoogle();
+      router.push('/dashboard');
+    } catch (err: any) {
+      console.error('Google login error:', err);
+      // Error is handled by AuthContext
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const displayError = validationError || error;
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-b from-cyan-50 to-white flex items-center justify-center p-4">
       <Card className="w-full max-w-md p-8">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="h-12 w-12 rounded-lg bg-primary-500 flex items-center justify-center text-white font-bold text-2xl">
+          <div className="h-12 w-12 rounded-lg bg-cyan-500 flex items-center justify-center text-white font-bold text-2xl">
             T
           </div>
-          <span className="text-3xl font-bold text-primary-700">TripNoute</span>
+          <span className="text-3xl font-bold text-cyan-700">TripNoute</span>
         </div>
 
         {/* Title */}
@@ -29,14 +87,24 @@ export default function LoginPage() {
           Sign in to continue your journey
         </p>
 
+        {/* Error Message */}
+        {displayError && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+            {displayError}
+          </div>
+        )}
+
         {/* Login Form */}
-        <form className="space-y-4">
+        <form onSubmit={handleEmailLogin} className="space-y-4">
           <div>
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
               placeholder="your@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
               required
             />
           </div>
@@ -47,25 +115,34 @@ export default function LoginPage() {
               id="password"
               type="password"
               placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
               required
             />
           </div>
 
           <div className="flex items-center justify-between">
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" className="rounded" />
+              <input
+                type="checkbox"
+                className="rounded"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                disabled={loading}
+              />
               Remember me
             </label>
             <Link
               href="/forgot-password"
-              className="text-sm text-primary-600 hover:underline"
+              className="text-sm text-cyan-600 hover:underline"
             >
               Forgot password?
             </Link>
           </div>
 
-          <Button type="submit" className="w-full" size="lg">
-            Sign In
+          <Button type="submit" className="w-full" size="lg" disabled={loading}>
+            {loading ? 'Signing in...' : 'Sign In'}
           </Button>
         </form>
 
@@ -82,6 +159,8 @@ export default function LoginPage() {
           variant="outline"
           className="w-full"
           size="lg"
+          onClick={handleGoogleLogin}
+          disabled={loading}
         >
           <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
             <path
@@ -101,13 +180,13 @@ export default function LoginPage() {
               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
             />
           </svg>
-          Continue with Google
+          {loading ? 'Please wait...' : 'Continue with Google'}
         </Button>
 
         {/* Sign Up Link */}
         <p className="text-center text-sm text-gray-600 mt-6">
           Don't have an account?{' '}
-          <Link href="/register" className="text-primary-600 font-medium hover:underline">
+          <Link href="/register" className="text-cyan-600 font-medium hover:underline">
             Sign up
           </Link>
         </p>

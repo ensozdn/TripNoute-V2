@@ -4,23 +4,104 @@
  * User registration page with email/password and Google sign-up.
  */
 
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { useAuth } from '@/contexts/AuthContext';
+import { registerSchema } from '@/utils/validators';
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const { register, loginWithGoogle, error, clearError } = useAuth();
+  
+  const [displayName, setDisplayName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [validationError, setValidationError] = useState<string>('');
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Clear previous errors
+    clearError();
+    setValidationError('');
+    
+    // Check terms agreement
+    if (!agreeToTerms) {
+      setValidationError('You must agree to the Terms of Service and Privacy Policy');
+      return;
+    }
+    
+    // Debug log
+    console.log('Form data:', { displayName, email, password, confirmPassword });
+    
+    // Validate input
+    const validation = registerSchema.safeParse({ 
+      email, 
+      password, 
+      displayName,
+      confirmPassword
+    });
+    
+    if (!validation.success) {
+      console.error('Validation error:', validation.error);
+      setValidationError(validation.error.issues[0].message);
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      await register(email, password, displayName);
+      router.push('/dashboard');
+    } catch (err: any) {
+      console.error('Registration error:', err);
+      // Error is handled by AuthContext
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    clearError();
+    setValidationError('');
+    
+    if (!agreeToTerms) {
+      setValidationError('You must agree to the Terms of Service and Privacy Policy');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      await loginWithGoogle();
+      router.push('/dashboard');
+    } catch (err: any) {
+      console.error('Google signup error:', err);
+      // Error is handled by AuthContext
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const displayError = validationError || error;
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-b from-cyan-50 to-white flex items-center justify-center p-4">
       <Card className="w-full max-w-md p-8">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="h-12 w-12 rounded-lg bg-primary-500 flex items-center justify-center text-white font-bold text-2xl">
+          <div className="h-12 w-12 rounded-lg bg-cyan-500 flex items-center justify-center text-white font-bold text-2xl">
             T
           </div>
-          <span className="text-3xl font-bold text-primary-700">TripNoute</span>
+          <span className="text-3xl font-bold text-cyan-700">TripNoute</span>
         </div>
 
         {/* Title */}
@@ -29,14 +110,24 @@ export default function RegisterPage() {
           Start your travel journey today
         </p>
 
+        {/* Error Message */}
+        {displayError && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+            {displayError}
+          </div>
+        )}
+
         {/* Register Form */}
-        <form className="space-y-4">
+        <form onSubmit={handleRegister} className="space-y-4">
           <div>
             <Label htmlFor="name">Full Name</Label>
             <Input
               id="name"
               type="text"
               placeholder="John Doe"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              disabled={loading}
               required
             />
           </div>
@@ -47,6 +138,9 @@ export default function RegisterPage() {
               id="email"
               type="email"
               placeholder="your@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
               required
             />
           </div>
@@ -57,6 +151,9 @@ export default function RegisterPage() {
               id="password"
               type="password"
               placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
               required
             />
           </div>
@@ -67,6 +164,9 @@ export default function RegisterPage() {
               id="confirmPassword"
               type="password"
               placeholder="••••••••"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              disabled={loading}
               required
             />
           </div>
@@ -76,22 +176,25 @@ export default function RegisterPage() {
               type="checkbox"
               id="terms"
               className="mt-1 rounded"
+              checked={agreeToTerms}
+              onChange={(e) => setAgreeToTerms(e.target.checked)}
+              disabled={loading}
               required
             />
             <label htmlFor="terms" className="text-sm text-gray-600">
               I agree to the{' '}
-              <Link href="/terms" className="text-primary-600 hover:underline">
+              <Link href="/terms" className="text-cyan-600 hover:underline">
                 Terms of Service
               </Link>{' '}
               and{' '}
-              <Link href="/privacy" className="text-primary-600 hover:underline">
+              <Link href="/privacy" className="text-cyan-600 hover:underline">
                 Privacy Policy
               </Link>
             </label>
           </div>
 
-          <Button type="submit" className="w-full" size="lg">
-            Create Account
+          <Button type="submit" className="w-full" size="lg" disabled={loading}>
+            {loading ? 'Creating account...' : 'Create Account'}
           </Button>
         </form>
 
@@ -108,6 +211,8 @@ export default function RegisterPage() {
           variant="outline"
           className="w-full"
           size="lg"
+          onClick={handleGoogleSignup}
+          disabled={loading}
         >
           <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
             <path
@@ -127,13 +232,13 @@ export default function RegisterPage() {
               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
             />
           </svg>
-          Sign up with Google
+          {loading ? 'Please wait...' : 'Sign up with Google'}
         </Button>
 
         {/* Login Link */}
         <p className="text-center text-sm text-gray-600 mt-6">
           Already have an account?{' '}
-          <Link href="/login" className="text-primary-600 font-medium hover:underline">
+          <Link href="/login" className="text-cyan-600 font-medium hover:underline">
             Sign in
           </Link>
         </p>
