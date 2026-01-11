@@ -5,8 +5,6 @@
  * Handles map initialization, markers, and geocoding.
  */
 
-import { Loader } from '@googlemaps/js-api-loader';
-
 // Types
 export interface MapConfig {
   center: google.maps.LatLngLiteral;
@@ -28,14 +26,18 @@ export interface GeocodingResult {
 }
 
 class GoogleMapsService {
-  private loader: Loader | null = null;
   private isLoaded: boolean = false;
+  private loadPromise: Promise<void> | null = null;
 
   /**
    * Initialize Google Maps API
    */
   private async initLoader(): Promise<void> {
     if (this.isLoaded) return;
+    
+    if (this.loadPromise) {
+      return this.loadPromise;
+    }
 
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     
@@ -43,15 +45,33 @@ class GoogleMapsService {
       throw new Error('Google Maps API key is not configured');
     }
 
-    this.loader = new Loader({
-      apiKey,
-      version: 'weekly',
-      libraries: ['places', 'geocoding'],
+    this.loadPromise = new Promise((resolve, reject) => {
+      // Check if already loaded
+      if (typeof google !== 'undefined' && google.maps) {
+        this.isLoaded = true;
+        resolve();
+        return;
+      }
+
+      // Create script element
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geocoding&v=weekly`;
+      script.async = true;
+      script.defer = true;
+
+      script.onload = () => {
+        this.isLoaded = true;
+        resolve();
+      };
+
+      script.onerror = () => {
+        reject(new Error('Failed to load Google Maps API'));
+      };
+
+      document.head.appendChild(script);
     });
 
-    // Load the Google Maps JavaScript API
-    await (this.loader as any).load();
-    this.isLoaded = true;
+    return this.loadPromise;
   }
 
   /**

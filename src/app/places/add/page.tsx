@@ -60,12 +60,23 @@ export default function AddPlacePage() {
       // Geocode the address to get coordinates
       let location = { lat: 0, lng: 0 };
       try {
-        const address = `${validation.data.city}, ${validation.data.country}`;
-        const geocodeResult = await googleMapsService.geocodeAddress(address);
+        // Try with full address first
+        const fullAddress = `${validation.data.name}, ${validation.data.city}, ${validation.data.country}`;
+        const geocodeResult = await googleMapsService.geocodeAddress(fullAddress);
         location = { lat: geocodeResult.lat, lng: geocodeResult.lng };
+        console.log('Geocoding successful:', location);
       } catch (geocodeError) {
-        console.warn('Geocoding failed, using default coordinates:', geocodeError);
-        // Continue with default coordinates if geocoding fails
+        console.warn('Geocoding failed, trying with city only:', geocodeError);
+        // Fallback: try with just city and country
+        try {
+          const simpleAddress = `${validation.data.city}, ${validation.data.country}`;
+          const geocodeResult = await googleMapsService.geocodeAddress(simpleAddress);
+          location = { lat: geocodeResult.lat, lng: geocodeResult.lng };
+          console.log('Geocoding successful (fallback):', location);
+        } catch (fallbackError) {
+          console.error('Both geocoding attempts failed:', fallbackError);
+          // Continue with default coordinates
+        }
       }
       
       const placeInput = {

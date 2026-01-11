@@ -116,17 +116,23 @@ export class FirebaseDatabaseService implements IDatabaseService {
       const placeRef = doc(db, 'places', input.id);
 
       const updateData: any = {
-        ...input,
         updatedAt: serverTimestamp(),
       };
+
+      // Only add defined fields
+      if (input.title !== undefined) updateData.title = input.title;
+      if (input.description !== undefined) updateData.description = input.description;
+      if (input.location !== undefined) updateData.location = input.location;
+      if (input.address !== undefined) updateData.address = input.address;
+      if (input.category !== undefined) updateData.category = input.category;
+      if (input.rating !== undefined) updateData.rating = input.rating;
+      if (input.isPublic !== undefined) updateData.isPublic = input.isPublic;
+      if (input.tags !== undefined) updateData.tags = input.tags;
 
       // Convert visitDate if provided
       if (input.visitDate) {
         updateData.visitDate = FirestoreTimestamp.fromDate(input.visitDate);
       }
-
-      // Remove id from update data
-      delete updateData.id;
 
       await updateDoc(placeRef, updateData);
 

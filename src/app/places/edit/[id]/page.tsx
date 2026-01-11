@@ -115,12 +115,21 @@ export default function EditPlacePage() {
       // Geocode the address to get updated coordinates
       let location;
       try {
-        const address = `${formData.city}, ${formData.country}`;
-        const geocodeResult = await googleMapsService.geocodeAddress(address);
+        const fullAddress = `${formData.name}, ${formData.city}, ${formData.country}`;
+        const geocodeResult = await googleMapsService.geocodeAddress(fullAddress);
         location = { lat: geocodeResult.lat, lng: geocodeResult.lng };
+        console.log('Geocoding successful:', location);
       } catch (geocodeError) {
-        console.warn('Geocoding failed during update:', geocodeError);
-        // Don't update location if geocoding fails
+        console.warn('Geocoding failed, trying with city only:', geocodeError);
+        try {
+          const simpleAddress = `${formData.city}, ${formData.country}`;
+          const geocodeResult = await googleMapsService.geocodeAddress(simpleAddress);
+          location = { lat: geocodeResult.lat, lng: geocodeResult.lng };
+          console.log('Geocoding successful (fallback):', location);
+        } catch (fallbackError) {
+          console.error('Both geocoding attempts failed:', fallbackError);
+          // Don't update location if geocoding fails
+        }
       }
 
       await databaseService.updatePlace({
