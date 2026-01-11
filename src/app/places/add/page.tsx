@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { addPlaceSchema } from '@/utils/validators';
@@ -24,6 +24,11 @@ export default function AddPlacePage() {
   const [loadingForm, setLoadingForm] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<google.maps.Map | null>(null);
+  const markerRef = useRef<google.maps.Marker | null>(null);
 
   const [formData, setFormData] = useState<AddPlaceFormData>({
     name: '',
@@ -32,6 +37,53 @@ export default function AddPlacePage() {
     visitDate: '',
     notes: '',
   });
+
+  // Initialize map
+  useEffect(() => {
+    const initMap = async () => {
+      if (!mapRef.current) return;
+
+      try {
+        const map = await googleMapsService.createMap(mapRef.current, {
+          center: { lat: 41.0082, lng: 28.9784 }, // Istanbul default
+          zoom: 3,
+        });
+
+        mapInstanceRef.current = map;
+        setMapLoaded(true);
+
+        // Add click listener
+        map.addListener('click', (e: google.maps.MapMouseEvent) => {
+          if (e.latLng) {
+            const lat = e.latLng.lat();
+            const lng = e.latLng.lng();
+            
+            setSelectedLocation({ lat, lng });
+
+            // Remove old marker
+            if (markerRef.current) {
+              markerRef.current.setMap(null);
+            }
+
+            // Add new marker
+            const marker = new google.maps.Marker({
+              position: { lat, lng },
+              map: map,
+              title: 'Selected Location',
+            });
+
+            markerRef.current = marker;
+            
+            console.log('📍 Location selected:', { lat, lng });
+          }
+        });
+      } catch (error) {
+        console.error('Failed to initialize map:', error);
+      }
+    };
+
+    initMap();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,35 +106,20 @@ export default function AddPlacePage() {
         return;
       }
 
+      // Check if location is selected
+      if (!selectedLocation) {
+        setError('Please select a location on the map by clicking on it');
+        setLoadingForm(false);
+        return;
+      }
+
       // Convert form data to Place object
       const visitDate = new Date(validation.data.visitDate);
-      
-      // Geocode the address to get coordinates
-      let location = { lat: 0, lng: 0 };
-      try {
-        // Try with full address first
-        const fullAddress = `${validation.data.name}, ${validation.data.city}, ${validation.data.country}`;
-        const geocodeResult = await googleMapsService.geocodeAddress(fullAddress);
-        location = { lat: geocodeResult.lat, lng: geocodeResult.lng };
-        console.log('Geocoding successful:', location);
-      } catch (geocodeError) {
-        console.warn('Geocoding failed, trying with city only:', geocodeError);
-        // Fallback: try with just city and country
-        try {
-          const simpleAddress = `${validation.data.city}, ${validation.data.country}`;
-          const geocodeResult = await googleMapsService.geocodeAddress(simpleAddress);
-          location = { lat: geocodeResult.lat, lng: geocodeResult.lng };
-          console.log('Geocoding successful (fallback):', location);
-        } catch (fallbackError) {
-          console.error('Both geocoding attempts failed:', fallbackError);
-          // Continue with default coordinates
-        }
-      }
       
       const placeInput = {
         title: validation.data.name,
         description: validation.data.notes || '',
-        location,
+        location: selectedLocation, // Use selected location from map
         address: {
           formatted: `${validation.data.city}, ${validation.data.country}`,
           city: validation.data.city,
@@ -96,7 +133,7 @@ export default function AddPlacePage() {
 
       // Save to Firestore
       const place = await databaseService.createPlace(placeInput, user.uid);
-      console.log('Place created:', place);
+      console.log('✅ Place created with location:', place);
       
       // Show success and redirect
       setSuccess(true);
@@ -253,6 +290,28 @@ export default function AddPlacePage() {
                   rows={4}
                   className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
                 />
+              </div>
+
+              {/* Map for Location Selection */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Location * (Click on the map to select)
+                </label>
+                <div 
+                  ref={mapRef}
+                  className="w-full h-[400px] rounded-lg bg-slate-800 border border-white/10"
+                  style={{ minHeight: '400px' }}
+                />
+                {selectedLocation && (
+                  <p className="text-xs text-slate-400 mt-2">
+                    📍 Selected: {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
+                  </p>
+                )}
+                {!selectedLocation && mapLoaded && (
+                  <p className="text-xs text-amber-400 mt-2">
+                    ⚠️ Please click on the map to select a location
+                  </p>
+                )}
               </div>
 
               {/* Submit Button */}

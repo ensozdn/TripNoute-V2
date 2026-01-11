@@ -23,6 +23,14 @@ export default function GoogleMap({
   onMarkerClick,
 }: GoogleMapProps) {
   // Convert places to markers
+  console.log('🗺️ GoogleMap - All places:', places.map(p => ({
+    id: p.id,
+    title: p.title,
+    hasLocation: !!p.location,
+    lat: p.location?.lat,
+    lng: p.location?.lng
+  })));
+  
   const markers: MarkerData[] = places
     .filter((place) => place.location?.lat && place.location?.lng)
     .map((place) => ({

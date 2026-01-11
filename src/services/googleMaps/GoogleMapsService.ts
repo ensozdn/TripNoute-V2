@@ -39,11 +39,17 @@ class GoogleMapsService {
       return this.loadPromise;
     }
 
+    // For client-side, Next.js injects env vars into process.env at build time
+    // But we need to ensure it's available in browser
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     
     if (!apiKey) {
-      throw new Error('Google Maps API key is not configured');
+      console.error('Google Maps API key not found!');
+      console.log('Available env:', Object.keys(process.env).filter(k => k.includes('GOOGLE')));
+      throw new Error('Google Maps API key is not configured. Please add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to .env.local');
     }
+
+    console.log('🔑 Using Google Maps API Key:', apiKey.substring(0, 10) + '...');
 
     this.loadPromise = new Promise((resolve, reject) => {
       // Check if already loaded
