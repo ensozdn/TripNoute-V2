@@ -72,6 +72,12 @@ export default function EditPlacePage() {
           visitDate,
           notes: place.description || '',
         });
+
+        // Set existing location if available
+        if (place.location?.lat && place.location?.lng) {
+          setSelectedLocation(place.location);
+          console.log('📍 Loaded existing location:', place.location);
+        }
       } catch (err) {
         console.error('Error loading place:', err);
         setError('Failed to load place');
@@ -82,6 +88,87 @@ export default function EditPlacePage() {
 
     loadPlace();
   }, [user, placeId]);
+
+  // Initialize map
+  useEffect(() => {
+    const initMap = async () => {
+      if (!mapRef.current || loadingPlace) return;
+
+      try {
+        let initialCenter = { lat: 41.0082, lng: 28.9784 };
+        let initialZoom = 3;
+
+        // Use existing location if available
+        if (selectedLocation) {
+          initialCenter = selectedLocation;
+          initialZoom = 12;
+        } else if (navigator.geolocation) {
+          // Otherwise use user's current location
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const userLocation = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+              };
+              if (mapInstanceRef.current && !selectedLocation) {
+                mapInstanceRef.current.setCenter(userLocation);
+                mapInstanceRef.current.setZoom(12);
+              }
+            },
+            (error) => console.warn('Geolocation error:', error)
+          );
+        }
+
+        const map = await googleMapsService.createMap(mapRef.current, {
+          center: initialCenter,
+          zoom: initialZoom,
+        });
+
+        mapInstanceRef.current = map;
+        setMapLoaded(true);
+
+        // Add existing marker if location exists
+        if (selectedLocation) {
+          const marker = new google.maps.Marker({
+            position: selectedLocation,
+            map: map,
+            title: 'Current Location',
+          });
+          markerRef.current = marker;
+        }
+
+        // Add click listener for updating location
+        map.addListener('click', (e: google.maps.MapMouseEvent) => {
+          if (e.latLng) {
+            const lat = e.latLng.lat();
+            const lng = e.latLng.lng();
+            
+            setSelectedLocation({ lat, lng });
+
+            // Remove old marker
+            if (markerRef.current) {
+              markerRef.current.setMap(null);
+            }
+
+            // Add new marker
+            const marker = new google.maps.Marker({
+              position: { lat, lng },
+              map: map,
+              title: 'Updated Location',
+            });
+
+            markerRef.current = marker;
+            
+            console.log('📍 Location updated:', { lat, lng });
+          }
+        });
+      } catch (error) {
+        console.error('Failed to initialize map:', error);
+      }
+    };
+
+    initMap();
+  }, [loadingPlace, selectedLocation]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -117,31 +204,18 @@ export default function EditPlacePage() {
     setLoadingForm(true);
 
     try {
-      // Geocode the address to get updated coordinates
-      let location;
-      try {
-        const fullAddress = `${formData.name}, ${formData.city}, ${formData.country}`;
-        const geocodeResult = await googleMapsService.geocodeAddress(fullAddress);
-        location = { lat: geocodeResult.lat, lng: geocodeResult.lng };
-        console.log('Geocoding successful:', location);
-      } catch (geocodeError) {
-        console.warn('Geocoding failed, trying with city only:', geocodeError);
-        try {
-          const simpleAddress = `${formData.city}, ${formData.country}`;
-          const geocodeResult = await googleMapsService.geocodeAddress(simpleAddress);
-          location = { lat: geocodeResult.lat, lng: geocodeResult.lng };
-          console.log('Geocoding successful (fallback):', location);
-        } catch (fallbackError) {
-          console.error('Both geocoding attempts failed:', fallbackError);
-          // Don't update location if geocoding fails
-        }
+      // Use selected location from map (required)
+      if (!selectedLocation) {
+        setError('Please select a location on the map');
+        setLoadingForm(false);
+        return;
       }
 
       await databaseService.updatePlace({
         id: placeId,
         title: formData.name,
         description: formData.notes || undefined,
-        location,
+        location: selectedLocation, // Use map-selected location
         address: {
           country: formData.country,
           city: formData.city,
@@ -150,6 +224,7 @@ export default function EditPlacePage() {
         visitDate: new Date(formData.visitDate),
       });
 
+      console.log('✅ Place updated with location:', selectedLocation);
       setSuccess(true);
       setTimeout(() => {
         router.push('/dashboard');
@@ -358,6 +433,28 @@ export default function EditPlacePage() {
                 />
                 {errors.notes && (
                   <p className="mt-2 text-sm text-red-400">{errors.notes}</p>
+                )}
+              </div>
+
+              {/* Map for Location Selection */}
+              <div className="mb-8">
+                <label className="block text-white font-medium mb-2">
+                  Location * (Click to update)
+                </label>
+                <div 
+                  ref={mapRef}
+                  className="w-full h-[400px] rounded-xl bg-slate-800 border border-white/20"
+                  style={{ minHeight: '400px' }}
+                />
+                {selectedLocation && (
+                  <p className="text-xs text-slate-400 mt-2">
+                    📍 Location: {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
+                  </p>
+                )}
+                {!selectedLocation && mapLoaded && (
+                  <p className="text-xs text-amber-400 mt-2">
+                    ⚠️ Please click on the map to set a location
+                  </p>
                 )}
               </div>
 
