@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { addPlaceSchema } from '@/utils/validators';
 import { databaseService } from '@/lib/database';
+import { googleMapsService } from '@/lib/googleMaps';
 import { z } from 'zod';
 import Link from 'next/link';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -56,10 +57,21 @@ export default function AddPlacePage() {
       // Convert form data to Place object
       const visitDate = new Date(validation.data.visitDate);
       
+      // Geocode the address to get coordinates
+      let location = { lat: 0, lng: 0 };
+      try {
+        const address = `${validation.data.city}, ${validation.data.country}`;
+        const geocodeResult = await googleMapsService.geocodeAddress(address);
+        location = { lat: geocodeResult.lat, lng: geocodeResult.lng };
+      } catch (geocodeError) {
+        console.warn('Geocoding failed, using default coordinates:', geocodeError);
+        // Continue with default coordinates if geocoding fails
+      }
+      
       const placeInput = {
         title: validation.data.name,
         description: validation.data.notes || '',
-        location: { lat: 0, lng: 0 }, // TODO: Add map picker
+        location,
         address: {
           formatted: `${validation.data.city}, ${validation.data.country}`,
           city: validation.data.city,

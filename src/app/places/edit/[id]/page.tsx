@@ -11,6 +11,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { databaseService } from '@/lib/database';
+import { googleMapsService } from '@/lib/googleMaps';
 import { addPlaceSchema } from '@/utils/validators';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
@@ -111,10 +112,22 @@ export default function EditPlacePage() {
     setLoadingForm(true);
 
     try {
+      // Geocode the address to get updated coordinates
+      let location;
+      try {
+        const address = `${formData.city}, ${formData.country}`;
+        const geocodeResult = await googleMapsService.geocodeAddress(address);
+        location = { lat: geocodeResult.lat, lng: geocodeResult.lng };
+      } catch (geocodeError) {
+        console.warn('Geocoding failed during update:', geocodeError);
+        // Don't update location if geocoding fails
+      }
+
       await databaseService.updatePlace({
         id: placeId,
         title: formData.name,
         description: formData.notes || undefined,
+        location,
         address: {
           country: formData.country,
           city: formData.city,
