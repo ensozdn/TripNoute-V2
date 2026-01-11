@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { databaseService } from '@/lib/database';
 import { Place } from '@/types';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import GoogleMap from '@/components/GoogleMap';
 
 export default function MapPage() {
   const router = useRouter();
@@ -140,33 +141,11 @@ export default function MapPage() {
                 {/* Map Area */}
                 <div className="lg:col-span-2 rounded-2xl bg-white/10 border border-white/20 overflow-hidden flex flex-col">
                   <div className="flex-1 relative">
-                    {/* Placeholder Map */}
-                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
-                      <div className="text-center max-w-md px-6">
-                        <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                          <span className="text-6xl">🗺️</span>
-                        </div>
-                        <h3 className="text-2xl font-bold text-white mb-3">
-                          Google Maps Integration
-                        </h3>
-                        <p className="text-slate-300 mb-6 leading-relaxed">
-                          To enable interactive map view, you need to add your Google Maps API key to the environment variables.
-                        </p>
-                        <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 mb-6">
-                          <p className="text-blue-300 text-sm font-mono text-left">
-                            NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_key_here
-                          </p>
-                        </div>
-                        <a
-                          href="https://developers.google.com/maps/documentation/javascript/get-api-key"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-block py-3 px-6 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-medium transition-all"
-                        >
-                          Get API Key
-                        </a>
-                      </div>
-                    </div>
+                    <GoogleMap
+                      places={places}
+                      selectedPlace={selectedPlace}
+                      onMarkerClick={setSelectedPlace}
+                    />
                   </div>
 
                   {/* Selected Place Info */}

@@ -14,12 +14,14 @@ interface UseGoogleMapOptions {
   config: MapConfig;
   markers?: MarkerData[];
   fitBounds?: boolean;
+  onMarkerClick?: (markerId: string) => void;
 }
 
 export function useGoogleMap({
   config,
   markers = [],
   fitBounds = true,
+  onMarkerClick,
 }: UseGoogleMapOptions) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -70,6 +72,16 @@ export function useGoogleMap({
 
         // Add new markers
         const newMarkers = await googleMapsService.addMarkers(map, markers);
+        
+        // Add click listeners if callback provided
+        if (onMarkerClick) {
+          newMarkers.forEach((marker, index) => {
+            marker.addListener('click', () => {
+              onMarkerClick(markers[index].id);
+            });
+          });
+        }
+        
         setMarkerInstances(newMarkers);
 
         // Fit bounds if enabled
@@ -83,7 +95,7 @@ export function useGoogleMap({
     };
 
     addMarkers();
-  }, [map, markers, fitBounds]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [map, markers, fitBounds, onMarkerClick]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     mapRef,
