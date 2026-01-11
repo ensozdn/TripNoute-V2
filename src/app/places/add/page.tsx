@@ -44,9 +44,36 @@ export default function AddPlacePage() {
       if (!mapRef.current) return;
 
       try {
+        // Get user's current location
+        let initialCenter = { lat: 41.0082, lng: 28.9784 }; // Istanbul default
+        let initialZoom = 3;
+
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              initialCenter = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+              };
+              initialZoom = 12;
+              
+              // Update map center if already created
+              if (mapInstanceRef.current) {
+                mapInstanceRef.current.setCenter(initialCenter);
+                mapInstanceRef.current.setZoom(initialZoom);
+              }
+              
+              console.log('📍 User location:', initialCenter);
+            },
+            (error) => {
+              console.warn('Geolocation error:', error);
+            }
+          );
+        }
+
         const map = await googleMapsService.createMap(mapRef.current, {
-          center: { lat: 41.0082, lng: 28.9784 }, // Istanbul default
-          zoom: 3,
+          center: initialCenter,
+          zoom: initialZoom,
         });
 
         mapInstanceRef.current = map;
