@@ -76,7 +76,7 @@ export default function EditPlacePage() {
         // Set existing location if available
         if (place.location?.lat && place.location?.lng) {
           setSelectedLocation(place.location);
-          console.log('📍 Loaded existing location:', place.location);
+          console.log('Loaded existing location:', place.location);
         }
       } catch (err) {
         console.error('Error loading place:', err);
@@ -159,7 +159,7 @@ export default function EditPlacePage() {
 
             markerRef.current = marker;
             
-            console.log('📍 Location updated:', { lat, lng });
+            console.log('Location updated:', { lat, lng });
           }
         });
       } catch (error) {
@@ -224,7 +224,7 @@ export default function EditPlacePage() {
         visitDate: new Date(formData.visitDate),
       });
 
-      console.log('✅ Place updated with location:', selectedLocation);
+      console.log('Place updated with location:', selectedLocation);
       setSuccess(true);
       setTimeout(() => {
         router.push('/dashboard');

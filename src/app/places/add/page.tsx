@@ -63,7 +63,7 @@ export default function AddPlacePage() {
                 mapInstanceRef.current.setZoom(initialZoom);
               }
               
-              console.log('📍 User location:', initialCenter);
+              console.log('User location:', initialCenter);
             },
             (error) => {
               console.warn('Geolocation error:', error);
@@ -101,7 +101,7 @@ export default function AddPlacePage() {
 
             markerRef.current = marker;
             
-            console.log('📍 Location selected:', { lat, lng });
+            console.log('Location selected:', { lat, lng });
           }
         });
       } catch (error) {
@@ -160,7 +160,7 @@ export default function AddPlacePage() {
 
       // Save to Firestore
       const place = await databaseService.createPlace(placeInput, user.uid);
-      console.log('✅ Place created with location:', place);
+      console.log('Place created with location:', place);
       
       // Show success and redirect
       setSuccess(true);

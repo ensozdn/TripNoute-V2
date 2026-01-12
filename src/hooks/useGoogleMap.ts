@@ -28,19 +28,39 @@ export function useGoogleMap({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [markerInstances, setMarkerInstances] = useState<google.maps.Marker[]>([]);
+  const mapInitialized = useRef(false);
 
   // Check if API key is configured
   const isConfigured = googleMapsService.isConfigured();
+  
+  console.log('useGoogleMap - Hook initialized:', {
+    hasMapRef: !!mapRef.current,
+    isConfigured,
+    markersCount: markers.length,
+    mapInitialized: mapInitialized.current
+  });
 
   // Initialize map
   useEffect(() => {
-    if (!mapRef.current || !isConfigured) {
+    console.log('useGoogleMap - Init effect running:', {
+      hasMapRef: !!mapRef.current,
+      isConfigured,
+      mapInitialized: mapInitialized.current
+    });
+    
+    if (!mapRef.current || !isConfigured || mapInitialized.current) {
+      console.warn('useGoogleMap - Skipping init:', {
+        hasMapRef: !!mapRef.current,
+        isConfigured,
+        alreadyInitialized: mapInitialized.current
+      });
       setIsLoading(false);
       return;
     }
 
     const initMap = async () => {
       try {
+        console.log('useGoogleMap - Starting map initialization...');
         setIsLoading(true);
         setError(null);
 
@@ -49,9 +69,11 @@ export function useGoogleMap({
           config
         );
 
+        console.log('useGoogleMap - Map created successfully!', mapInstance);
+        mapInitialized.current = true;
         setMap(mapInstance);
       } catch (err) {
-        console.error('Error initializing map:', err);
+        console.error('useGoogleMap - Error initializing map:', err);
         setError(err instanceof Error ? err.message : 'Failed to load map');
       } finally {
         setIsLoading(false);
@@ -59,19 +81,33 @@ export function useGoogleMap({
     };
 
     initMap();
-  }, [isConfigured]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isConfigured, config]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Add markers
   useEffect(() => {
-    if (!map || markers.length === 0) return;
+    console.log('useGoogleMap - Markers effect:', {
+      hasMap: !!map,
+      markersCount: markers.length,
+      markers
+    });
+    
+    if (!map || markers.length === 0) {
+      console.warn('useGoogleMap - Skipping markers:', {
+        hasMap: !!map,
+        markersCount: markers.length
+      });
+      return;
+    }
 
     const addMarkers = async () => {
       try {
+        console.log('useGoogleMap - Adding markers...');
         // Clear existing markers
         markerInstances.forEach((marker) => marker.setMap(null));
 
         // Add new markers
         const newMarkers = await googleMapsService.addMarkers(map, markers);
+        console.log('useGoogleMap - Markers added:', newMarkers.length);
         
         // Add click listeners if callback provided
         if (onMarkerClick) {

@@ -23,16 +23,27 @@ export default function GoogleMap({
   onMarkerClick,
 }: GoogleMapProps) {
   // Convert places to markers
-  console.log('🗺️ GoogleMap - All places:', places.map(p => ({
+  console.log('GoogleMap - All places:', places.map(p => ({
     id: p.id,
     title: p.title,
     hasLocation: !!p.location,
+    location: p.location,
     lat: p.location?.lat,
     lng: p.location?.lng
   })));
   
   const markers: MarkerData[] = places
-    .filter((place) => place.location?.lat && place.location?.lng)
+    .filter((place) => {
+      const hasValidLocation = place.location?.lat && place.location?.lng;
+      if (!hasValidLocation) {
+        console.warn('Place missing location:', {
+          id: place.id,
+          title: place.title,
+          location: place.location
+        });
+      }
+      return hasValidLocation;
+    })
     .map((place) => ({
       id: place.id,
       position: {
@@ -42,15 +53,26 @@ export default function GoogleMap({
       title: place.title,
       description: `${place.address.city}, ${place.address.country}`,
     }));
+  
+  console.log('GoogleMap - Valid markers:', markers.length, 'out of', places.length);
+  console.log('Marker details:', markers);
 
   // Initialize map
+  // If we have markers, use the first one's position as center, otherwise world view
+  const initialConfig = markers.length > 0 
+    ? {
+        center: markers[0].position,
+        zoom: markers.length === 1 ? 12 : 2, // Zoom in if single marker
+      }
+    : {
+        center: { lat: 20, lng: 0 },
+        zoom: 2,
+      };
+
   const { mapRef, map, isLoading, error, isConfigured } = useGoogleMap({
-    config: {
-      center: { lat: 20, lng: 0 },
-      zoom: 2,
-    },
+    config: initialConfig,
     markers,
-    fitBounds: markers.length > 1,
+    fitBounds: markers.length > 1, // Only fit bounds if multiple markers
     onMarkerClick: (markerId) => {
       const place = places.find((p) => p.id === markerId);
       if (place && onMarkerClick) {
@@ -131,6 +153,10 @@ export default function GoogleMap({
 
   // Render map
   return (
-    <div ref={mapRef} className="absolute inset-0 w-full h-full" />
+    <div 
+      ref={mapRef} 
+      className="absolute inset-0 w-full h-full"
+      style={{ minHeight: '400px', minWidth: '100%' }}
+    />
   );
 }

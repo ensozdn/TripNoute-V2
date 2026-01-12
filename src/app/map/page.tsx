@@ -140,7 +140,7 @@ export default function MapPage() {
 
                 {/* Map Area */}
                 <div className="lg:col-span-2 rounded-2xl bg-white/10 border border-white/20 overflow-hidden flex flex-col">
-                  <div className="flex-1 relative">
+                  <div className="flex-1 relative min-h-0">
                     <GoogleMap
                       places={places}
                       selectedPlace={selectedPlace}
