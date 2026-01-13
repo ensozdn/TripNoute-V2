@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import { useMapbox } from '@/hooks/useMapbox';
 import type { MapMarker } from '@/types/maps';
 import type { Place } from '@/types/models/Place';
@@ -32,23 +32,9 @@ export default function MapboxMap({
   style = 'mapbox://styles/mapbox/streets-v12',
   className = '',
 }: MapboxMapProps) {
+  // Tüm hook'lar en başta
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // Access token al
-  const accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-
-  if (!accessToken) {
-    return (
-      <div className={`flex items-center justify-center bg-slate-900/50 ${className}`}>
-        <div className="text-center">
-          <p className="text-red-400 font-medium">Mapbox Access Token bulunamadı</p>
-          <p className="text-slate-400 text-sm mt-2">
-            .env.local dosyasına NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ekleyin
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
 
   // Places'leri MapMarker'lara dönüştür
   const markers: MapMarker[] = useMemo(() => {
@@ -67,12 +53,14 @@ export default function MapboxMap({
   }, [places, selectedPlace]);
 
   // Marker click handler
-  const handleMarkerClick = (markerId: string) => {
-    const place = places.find((p) => p.id === markerId);
-    if (place && onMarkerClick) {
-      onMarkerClick(place);
-    }
-  };
+  const handleMarkerClick = useMemo(() => {
+    return (markerId: string) => {
+      const place = places.find((p) => p.id === markerId);
+      if (place && onMarkerClick) {
+        onMarkerClick(place);
+      }
+    };
+  }, [places, onMarkerClick]);
 
   // Mapbox hook
   const { isLoaded, error, flyTo } = useMapbox(containerRef, {
@@ -85,12 +73,38 @@ export default function MapboxMap({
     onMarkerClick: handleMarkerClick,
   });
 
-  // Selected place değişince oraya uç
-  useMemo(() => {
+  // Selected place effect
+  useEffect(() => {
     if (isLoaded && selectedPlace?.location) {
       flyTo(selectedPlace.location.lat, selectedPlace.location.lng, 14);
     }
   }, [selectedPlace, isLoaded, flyTo]);
+
+  // No token
+  if (!accessToken) {
+    return (
+      <div className={`flex items-center justify-center bg-slate-900/50 w-full h-full ${className}`} style={{ minHeight: '400px' }}>
+        <div className="text-center">
+          <p className="text-red-400 font-medium">Mapbox Access Token bulunamadı</p>
+          <p className="text-slate-400 text-sm mt-2">
+            .env.local dosyasına NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ekleyin
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className={`flex items-center justify-center bg-slate-900/50 w-full h-full ${className}`} style={{ minHeight: '400px' }}>
+        <div className="text-center">
+          <p className="text-red-400 font-medium">Harita yüklenemedi</p>
+          <p className="text-slate-400 text-sm mt-2">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (error) {
     return (
@@ -104,9 +118,13 @@ export default function MapboxMap({
   }
 
   return (
-    <div className={`relative ${className}`}>
+    <div className={`relative w-full h-full ${className}`} style={{ minHeight: '400px' }}>
       {/* Map Container */}
-      <div ref={containerRef} className="absolute inset-0" />
+      <div 
+        ref={containerRef} 
+        className="absolute inset-0 w-full h-full"
+        style={{ minHeight: '400px' }}
+      />
 
       {/* Loading Overlay */}
       {!isLoaded && (

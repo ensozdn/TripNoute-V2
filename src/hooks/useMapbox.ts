@@ -43,12 +43,16 @@ export const useMapbox = (
 
   // Map initialization
   useEffect(() => {
-    if (!containerRef.current || isInitialized.current) return;
+    if (!containerRef.current) {
+      return;
+    }
+
+    if (isInitialized.current) {
+      return;
+    }
 
     const initMap = async () => {
       try {
-        console.log('Initializing Mapbox map...');
-
         const initializedMap = await mapboxService.current.initializeMap({
           container: containerRef.current!,
           accessToken: options.accessToken,
@@ -60,8 +64,6 @@ export const useMapbox = (
         setMap(initializedMap);
         setIsLoaded(true);
         isInitialized.current = true;
-
-        console.log('Mapbox map initialized successfully');
       } catch (err) {
         console.error('Failed to initialize Mapbox map:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
@@ -73,14 +75,14 @@ export const useMapbox = (
     // Cleanup
     return () => {
       if (isInitialized.current) {
-        console.log('Cleaning up Mapbox map...');
         mapboxService.current.destroyMap();
         setMap(null);
         setIsLoaded(false);
         isInitialized.current = false;
       }
     };
-  }, [containerRef, options.accessToken, options.style]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [options.accessToken, options.style]);
 
   // Event handlers
   useEffect(() => {
@@ -99,17 +101,12 @@ export const useMapbox = (
   useEffect(() => {
     if (!isLoaded || !options.markers) return;
 
-    console.log('Updating markers:', options.markers.length);
-
-    // Önce tüm marker'ları temizle
     mapboxService.current.clearMarkers();
 
-    // Yeni marker'ları ekle
     options.markers.forEach((marker) => {
       mapboxService.current.addMarker(marker);
     });
 
-    // Marker'ları içine alacak şekilde fit yap
     if (options.markers.length > 0) {
       mapboxService.current.fitBounds(options.markers);
     }

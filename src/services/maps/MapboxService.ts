@@ -23,45 +23,51 @@ class MapboxService implements IMapboxService {
    */
   async initializeMap(config: MapboxConfig): Promise<mapboxgl.Map> {
     if (this.map) {
-      console.warn('Map already initialized');
       return this.map;
     }
 
-    // Access token'ı ayarla
     mapboxgl.accessToken = config.accessToken;
 
-    // Haritayı oluştur
-    this.map = new mapboxgl.Map({
-      container: config.container,
-      style: config.style || 'mapbox://styles/mapbox/streets-v12',
-      center: config.center || [0, 0],
-      zoom: config.zoom || 2,
-      pitch: config.pitch || 0,
-      bearing: config.bearing || 0,
-    });
-
-    // Navigation controls ekle
-    this.map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-
-    // Full screen control ekle
-    this.map.addControl(new mapboxgl.FullscreenControl(), 'top-right');
-
-    // Harita yüklenene kadar bekle
-    await new Promise<void>((resolve) => {
-      this.map!.on('load', () => {
-        console.log('Mapbox map loaded successfully');
-        resolve();
+    try {
+      this.map = new mapboxgl.Map({
+        container: config.container,
+        style: config.style || 'mapbox://styles/mapbox/streets-v12',
+        center: config.center || [0, 0],
+        zoom: config.zoom || 2,
+        pitch: config.pitch || 0,
+        bearing: config.bearing || 0,
       });
-    });
 
-    // Click event'i dinle
-    this.map.on('click', (e) => {
-      if (this.clickCallback) {
-        this.clickCallback(e.lngLat.lat, e.lngLat.lng);
-      }
-    });
+      this.map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      this.map.addControl(new mapboxgl.FullscreenControl(), 'top-right');
 
-    return this.map;
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Map load timeout after 10 seconds'));
+        }, 10000);
+
+        this.map!.on('load', () => {
+          clearTimeout(timeout);
+          resolve();
+        });
+
+        this.map!.on('error', (e) => {
+          clearTimeout(timeout);
+          reject(new Error(`Map error: ${e.error?.message || 'Unknown error'}`));
+        });
+      });
+
+      this.map.on('click', (e) => {
+        if (this.clickCallback) {
+          this.clickCallback(e.lngLat.lat, e.lngLat.lng);
+        }
+      });
+
+      return this.map;
+    } catch (error) {
+      console.error('MapboxService initialization failed:', error);
+      throw error;
+    }
   }
 
   /**
