@@ -6,14 +6,14 @@
 
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { databaseService } from '@/lib/database';
-import { googleMapsService } from '@/lib/googleMaps';
 import { addPlaceSchema } from '@/utils/validators';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import MapboxLocationPicker from '@/components/MapboxLocationPicker';
 
 export default function EditPlacePage() {
   const router = useRouter();
@@ -25,11 +25,7 @@ export default function EditPlacePage() {
   const [loadingForm, setLoadingForm] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
-  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<google.maps.Map | null>(null);
-  const markerRef = useRef<google.maps.Marker | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number; address?: string } | null>(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -40,6 +36,25 @@ export default function EditPlacePage() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const handleLocationSelect = (location: { lat: number; lng: number; address?: string }) => {
+    setSelectedLocation(location);
+    
+    // Try to extract city and country from address
+    if (location.address) {
+      const addressParts = location.address.split(',').map(part => part.trim());
+      if (addressParts.length >= 2) {
+        const country = addressParts[addressParts.length - 1];
+        const city = addressParts[addressParts.length - 2];
+        
+        setFormData(prev => ({
+          ...prev,
+          country: country || prev.country,
+          city: city || prev.city,
+        }));
+      }
+    }
+  };
 
   // Load place data
   useEffect(() => {
@@ -76,7 +91,6 @@ export default function EditPlacePage() {
         // Set existing location if available
         if (place.location?.lat && place.location?.lng) {
           setSelectedLocation(place.location);
-          console.log('Loaded existing location:', place.location);
         }
       } catch (err) {
         console.error('Error loading place:', err);
@@ -88,87 +102,6 @@ export default function EditPlacePage() {
 
     loadPlace();
   }, [user, placeId]);
-
-  // Initialize map
-  useEffect(() => {
-    const initMap = async () => {
-      if (!mapRef.current || loadingPlace) return;
-
-      try {
-        let initialCenter = { lat: 41.0082, lng: 28.9784 };
-        let initialZoom = 3;
-
-        // Use existing location if available
-        if (selectedLocation) {
-          initialCenter = selectedLocation;
-          initialZoom = 12;
-        } else if (navigator.geolocation) {
-          // Otherwise use user's current location
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              const userLocation = {
-                lat: position.coords.latitude,
-                lng: position.coords.longitude,
-              };
-              if (mapInstanceRef.current && !selectedLocation) {
-                mapInstanceRef.current.setCenter(userLocation);
-                mapInstanceRef.current.setZoom(12);
-              }
-            },
-            (error) => console.warn('Geolocation error:', error)
-          );
-        }
-
-        const map = await googleMapsService.createMap(mapRef.current, {
-          center: initialCenter,
-          zoom: initialZoom,
-        });
-
-        mapInstanceRef.current = map;
-        setMapLoaded(true);
-
-        // Add existing marker if location exists
-        if (selectedLocation) {
-          const marker = new google.maps.Marker({
-            position: selectedLocation,
-            map: map,
-            title: 'Current Location',
-          });
-          markerRef.current = marker;
-        }
-
-        // Add click listener for updating location
-        map.addListener('click', (e: google.maps.MapMouseEvent) => {
-          if (e.latLng) {
-            const lat = e.latLng.lat();
-            const lng = e.latLng.lng();
-            
-            setSelectedLocation({ lat, lng });
-
-            // Remove old marker
-            if (markerRef.current) {
-              markerRef.current.setMap(null);
-            }
-
-            // Add new marker
-            const marker = new google.maps.Marker({
-              position: { lat, lng },
-              map: map,
-              title: 'Updated Location',
-            });
-
-            markerRef.current = marker;
-            
-            console.log('Location updated:', { lat, lng });
-          }
-        });
-      } catch (error) {
-        console.error('Failed to initialize map:', error);
-      }
-    };
-
-    initMap();
-  }, [loadingPlace, selectedLocation]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -439,21 +372,15 @@ export default function EditPlacePage() {
               {/* Map for Location Selection */}
               <div className="mb-8">
                 <label className="block text-white font-medium mb-2">
-                  Location * (Click to update)
+                  Location * (Search or click to update)
                 </label>
-                <div 
-                  ref={mapRef}
-                  className="w-full h-[400px] rounded-xl bg-slate-800 border border-white/20"
-                  style={{ minHeight: '400px' }}
+                <MapboxLocationPicker
+                  initialLocation={selectedLocation ? { lat: selectedLocation.lat, lng: selectedLocation.lng } : undefined}
+                  onLocationSelect={handleLocationSelect}
                 />
                 {selectedLocation && (
                   <p className="text-xs text-slate-400 mt-2">
-                    📍 Location: {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
-                  </p>
-                )}
-                {!selectedLocation && mapLoaded && (
-                  <p className="text-xs text-amber-400 mt-2">
-                    ⚠️ Please click on the map to set a location
+                    Location: {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
                   </p>
                 )}
               </div>

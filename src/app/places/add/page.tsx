@@ -2,19 +2,20 @@
  * TripNoute v2 - Add Place Page
  * 
  * Form for adding a new place to the user's collection.
+ * Hibrit Model: Mapbox (görselleştirme) + Google Places (arama/geocoding)
  */
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { addPlaceSchema } from '@/utils/validators';
 import { databaseService } from '@/lib/database';
-import { googleMapsService } from '@/lib/googleMaps';
 import { z } from 'zod';
 import Link from 'next/link';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import MapboxLocationPicker from '@/components/MapboxLocationPicker';
 
 type AddPlaceFormData = z.infer<typeof addPlaceSchema>;
 
@@ -24,11 +25,7 @@ export default function AddPlacePage() {
   const [loadingForm, setLoadingForm] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<google.maps.Map | null>(null);
-  const markerRef = useRef<google.maps.Marker | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number; address?: string } | null>(null);
 
   const [formData, setFormData] = useState<AddPlaceFormData>({
     name: '',
@@ -38,79 +35,24 @@ export default function AddPlacePage() {
     notes: '',
   });
 
-  // Initialize map
-  useEffect(() => {
-    const initMap = async () => {
-      if (!mapRef.current) return;
-
-      try {
-        // Get user's current location
-        let initialCenter = { lat: 41.0082, lng: 28.9784 }; // Istanbul default
-        let initialZoom = 3;
-
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              initialCenter = {
-                lat: position.coords.latitude,
-                lng: position.coords.longitude,
-              };
-              initialZoom = 12;
-              
-              // Update map center if already created
-              if (mapInstanceRef.current) {
-                mapInstanceRef.current.setCenter(initialCenter);
-                mapInstanceRef.current.setZoom(initialZoom);
-              }
-              
-              console.log('User location:', initialCenter);
-            },
-            (error) => {
-              console.warn('Geolocation error:', error);
-            }
-          );
-        }
-
-        const map = await googleMapsService.createMap(mapRef.current, {
-          center: initialCenter,
-          zoom: initialZoom,
-        });
-
-        mapInstanceRef.current = map;
-        setMapLoaded(true);
-
-        // Add click listener
-        map.addListener('click', (e: google.maps.MapMouseEvent) => {
-          if (e.latLng) {
-            const lat = e.latLng.lat();
-            const lng = e.latLng.lng();
-            
-            setSelectedLocation({ lat, lng });
-
-            // Remove old marker
-            if (markerRef.current) {
-              markerRef.current.setMap(null);
-            }
-
-            // Add new marker
-            const marker = new google.maps.Marker({
-              position: { lat, lng },
-              map: map,
-              title: 'Selected Location',
-            });
-
-            markerRef.current = marker;
-            
-            console.log('Location selected:', { lat, lng });
-          }
-        });
-      } catch (error) {
-        console.error('Failed to initialize map:', error);
+  const handleLocationSelect = (location: { lat: number; lng: number; address?: string }) => {
+    setSelectedLocation(location);
+    
+    // Try to extract city and country from address
+    if (location.address) {
+      const addressParts = location.address.split(',').map(part => part.trim());
+      if (addressParts.length >= 2) {
+        const country = addressParts[addressParts.length - 1];
+        const city = addressParts[addressParts.length - 2];
+        
+        setFormData(prev => ({
+          ...prev,
+          country: country || prev.country,
+          city: city || prev.city,
+        }));
       }
-    };
-
-    initMap();
-  }, []);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -322,21 +264,15 @@ export default function AddPlacePage() {
               {/* Map for Location Selection */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Location * (Click on the map to select)
+                  Location * (Search or click on the map)
                 </label>
-                <div 
-                  ref={mapRef}
-                  className="w-full h-[400px] rounded-lg bg-slate-800 border border-white/10"
-                  style={{ minHeight: '400px' }}
+                <MapboxLocationPicker
+                  initialLocation={selectedLocation ? { lat: selectedLocation.lat, lng: selectedLocation.lng } : undefined}
+                  onLocationSelect={handleLocationSelect}
                 />
                 {selectedLocation && (
                   <p className="text-xs text-slate-400 mt-2">
-                    📍 Selected: {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
-                  </p>
-                )}
-                {!selectedLocation && mapLoaded && (
-                  <p className="text-xs text-amber-400 mt-2">
-                    ⚠️ Please click on the map to select a location
+                    Selected: {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
                   </p>
                 )}
               </div>
