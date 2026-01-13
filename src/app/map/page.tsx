@@ -2,6 +2,7 @@
  * TripNoute v2 - Map View Page
  * 
  * Interactive map showing all user's visited places.
+ * Hibrit Model: Mapbox (UI/Görsellik) + Google Places (Data/Search)
  */
 
 'use client';
@@ -13,7 +14,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { databaseService } from '@/lib/database';
 import { Place } from '@/types';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import GoogleMap from '@/components/GoogleMap';
+import MapboxMap from '@/components/MapboxMap';
+import PlaceSearchBar from '@/components/PlaceSearchBar';
+import type { GooglePlaceResult } from '@/types/maps';
 
 export default function MapPage() {
   const router = useRouter();
@@ -21,6 +24,7 @@ export default function MapPage() {
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
+  const [mapCenter, setMapCenter] = useState<[number, number] | undefined>(undefined);
 
   useEffect(() => {
     const loadPlaces = async () => {
@@ -42,6 +46,13 @@ export default function MapPage() {
   const handleLogout = async () => {
     await logout();
     router.push('/');
+  };
+
+  // Google Places arama sonucu seçilince
+  const handlePlaceSelect = (place: GooglePlaceResult) => {
+    console.log('Selected place from search:', place);
+    // Haritayı bu konuma götür
+    setMapCenter([place.location.lng, place.location.lat]);
   };
 
   return (
@@ -110,10 +121,21 @@ export default function MapPage() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[600px]">
                 {/* Places List Sidebar */}
                 <div className="lg:col-span-1 rounded-2xl bg-white/10 border border-white/20 overflow-hidden flex flex-col">
+                  {/* Search Bar */}
+                  <div className="p-4 border-b border-white/10">
+                    <PlaceSearchBar 
+                      onPlaceSelect={handlePlaceSelect}
+                      placeholder="Yer ara..."
+                    />
+                  </div>
+
+                  {/* Places Header */}
                   <div className="p-6 border-b border-white/10">
                     <h2 className="text-xl font-bold text-white">Your Places</h2>
                     <p className="text-slate-400 text-sm mt-1">{places.length} locations</p>
                   </div>
+
+                  {/* Places List */}
                   <div className="flex-1 overflow-y-auto p-4 space-y-3">
                     {places.map((place) => (
                       <button
@@ -141,10 +163,14 @@ export default function MapPage() {
                 {/* Map Area */}
                 <div className="lg:col-span-2 rounded-2xl bg-white/10 border border-white/20 overflow-hidden flex flex-col">
                   <div className="flex-1 relative min-h-0">
-                    <GoogleMap
+                    <MapboxMap
                       places={places}
                       selectedPlace={selectedPlace}
                       onMarkerClick={setSelectedPlace}
+                      center={mapCenter}
+                      zoom={2}
+                      style="mapbox://styles/mapbox/dark-v11"
+                      className="w-full h-full"
                     />
                   </div>
 
