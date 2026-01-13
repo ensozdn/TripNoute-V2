@@ -169,7 +169,7 @@ export default function MapPage() {
                       onMarkerClick={setSelectedPlace}
                       center={mapCenter}
                       zoom={2}
-                      style="mapbox://styles/mapbox/dark-v11"
+                      style="mapbox://styles/mapbox/streets-v12"
                       className="w-full h-full"
                     />
                   </div>
