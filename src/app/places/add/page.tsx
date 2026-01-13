@@ -9,6 +9,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { addPlaceSchema } from '@/utils/validators';
 import { databaseService } from '@/lib/database';
@@ -138,9 +139,13 @@ export default function AddPlacePage() {
           <div className="container mx-auto px-6 py-5">
             <nav className="flex items-center justify-between">
               <Link href="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-xl">
-                  T
-                </div>
+                <Image 
+                  src="/tripnoute-logo.png" 
+                  alt="TripNoute Logo" 
+                  width={40} 
+                  height={40}
+                  className="rounded-xl"
+                />
                 <span className="text-xl font-semibold text-white">TripNoute</span>
               </Link>
               <div className="flex items-center gap-6">
