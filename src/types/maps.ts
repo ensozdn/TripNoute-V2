@@ -108,6 +108,10 @@ export interface IMapboxService {
   jumpTo(lat: number, lng: number, zoom?: number): void;
   fitBounds(markers: MapMarker[]): void;
   
+  // User Location
+  enableUserLocation(): void;
+  flyToUserLocation(zoom?: number): Promise<{ lat: number; lng: number } | null>;
+  
   // Events
   onClick(callback: (lat: number, lng: number) => void): void;
   onMarkerClick(callback: (markerId: string) => void): void;

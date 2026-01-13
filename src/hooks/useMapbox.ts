@@ -14,6 +14,7 @@ interface UseMapboxOptions {
   center?: [number, number]; // [lng, lat]
   zoom?: number;
   markers?: MapMarker[];
+  enableUserLocation?: boolean;
   onMapClick?: (lat: number, lng: number) => void;
   onMarkerClick?: (markerId: string) => void;
 }
@@ -24,6 +25,7 @@ interface UseMapboxReturn {
   error: string | null;
   flyTo: (lat: number, lng: number, zoom?: number) => void;
   jumpTo: (lat: number, lng: number, zoom?: number) => void;
+  flyToUserLocation: (zoom?: number) => Promise<{ lat: number; lng: number } | null>;
   addMarker: (marker: MapMarker) => void;
   removeMarker: (markerId: string) => void;
   clearMarkers: () => void;
@@ -112,6 +114,13 @@ export const useMapbox = (
     }
   }, [isLoaded, options.markers]);
 
+  // User location
+  useEffect(() => {
+    if (!isLoaded || !options.enableUserLocation) return;
+
+    mapboxService.current.enableUserLocation();
+  }, [isLoaded, options.enableUserLocation]);
+
   // Helper functions
   const flyTo = (lat: number, lng: number, zoom?: number) => {
     if (!isLoaded) return;
@@ -121,6 +130,11 @@ export const useMapbox = (
   const jumpTo = (lat: number, lng: number, zoom?: number) => {
     if (!isLoaded) return;
     mapboxService.current.jumpTo(lat, lng, zoom);
+  };
+
+  const flyToUserLocation = async (zoom?: number): Promise<{ lat: number; lng: number } | null> => {
+    if (!isLoaded) return null;
+    return mapboxService.current.flyToUserLocation(zoom);
   };
 
   const addMarker = (marker: MapMarker) => {
@@ -149,6 +163,7 @@ export const useMapbox = (
     error,
     flyTo,
     jumpTo,
+    flyToUserLocation,
     addMarker,
     removeMarker,
     clearMarkers,

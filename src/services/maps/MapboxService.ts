@@ -265,6 +265,64 @@ class MapboxService implements IMapboxService {
   }
 
   /**
+   * Kullanıcı konumunu aktif et (mavi nokta)
+   */
+  enableUserLocation(): void {
+    if (!this.map) {
+      throw new Error('Map not initialized');
+    }
+
+    const geolocateControl = new mapboxgl.GeolocateControl({
+      positionOptions: {
+        enableHighAccuracy: true,
+      },
+      trackUserLocation: true,
+      showUserHeading: true,
+      showUserLocation: true,
+    });
+
+    this.map.addControl(geolocateControl, 'top-right');
+
+    this.map.on('load', () => {
+      geolocateControl.trigger();
+    });
+  }
+
+  /**
+   * Kullanıcının konumuna git
+   */
+  async flyToUserLocation(zoom: number = 14): Promise<{ lat: number; lng: number } | null> {
+    return new Promise((resolve) => {
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+
+            if (this.map) {
+              this.flyTo(lat, lng, zoom);
+            }
+
+            resolve({ lat, lng });
+          },
+          (error) => {
+            console.warn('Geolocation error:', error);
+            resolve(null);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0,
+          }
+        );
+      } else {
+        console.warn('Geolocation not supported');
+        resolve(null);
+      }
+    });
+  }
+
+  /**
    * Harita stilini değiştir
    */
   setStyle(styleUrl: string): void {
