@@ -90,7 +90,7 @@ export function usePhotoManagement({
    * Upload multiple photos
    */
   const uploadPhotos = useCallback(
-    async (files: File[], options?: Partial<PhotoUploadOptions>): Promise<Photo[]> {
+    async (files: File[], options?: Partial<PhotoUploadOptions>) => {
       try {
         setUploading(true);
         setError(null);

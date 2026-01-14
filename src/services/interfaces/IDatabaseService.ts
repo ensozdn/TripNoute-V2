@@ -14,6 +14,7 @@ import {
   PaginatedResponse,
   PaginationParams,
 } from '@/types';
+import { Photo } from '@/types/models/Photo';
 
 export interface IDatabaseService {
   // ============================================
@@ -92,6 +93,30 @@ export interface IDatabaseService {
    * Update user stats (called after place creation/deletion)
    */
   updateUserStats(userId: string): Promise<void>;
+
+  // ============================================
+  // PHOTO OPERATIONS
+  // ============================================
+
+  /**
+   * Add a photo to a place
+   */
+  addPhotoToPlace(placeId: string, photo: Photo): Promise<Photo>;
+
+  /**
+   * Delete a photo from a place
+   */
+  deletePhotoFromPlace(placeId: string, photoId: string): Promise<void>;
+
+  /**
+   * Update photo description
+   */
+  updatePhotoDescription(placeId: string, photoId: string, description: string): Promise<void>;
+
+  /**
+   * Get all photos for a place
+   */
+  getPlacePhotos(placeId: string): Promise<Photo[]>;
 
   // ============================================
   // BATCH OPERATIONS

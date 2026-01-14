@@ -20,7 +20,8 @@ import {
   startAfter,
   serverTimestamp,
   Timestamp as FirestoreTimestamp,
-  DocumentSnapshot,
+  arrayUnion,
+  arrayRemove,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { IDatabaseService } from '@/services/interfaces/IDatabaseService';
@@ -33,6 +34,7 @@ import {
   PaginatedResponse,
   PaginationParams,
 } from '@/types';
+import { Photo } from '@/types/models/Photo';
 
 export class FirebaseDatabaseService implements IDatabaseService {
   // ============================================
@@ -395,6 +397,130 @@ export class FirebaseDatabaseService implements IDatabaseService {
     } catch (error: any) {
       console.error('Failed to update user stats:', error);
       // Don't throw - stats update shouldn't break the main operation
+    }
+  }
+
+  // ============================================
+  // PHOTO OPERATIONS
+  // ============================================
+
+  /**
+   * Add a photo to a place
+   */
+  async addPhotoToPlace(placeId: string, photo: Photo): Promise<Photo> {
+    try {
+      const placeRef = doc(db, 'places', placeId);
+      const placeDoc = await getDoc(placeRef);
+
+      if (!placeDoc.exists()) {
+        throw new Error('Place not found');
+      }
+
+      // Add photo to array
+      await updateDoc(placeRef, {
+        photos: arrayUnion(photo),
+        updatedAt: serverTimestamp(),
+      });
+
+      // Update user stats (increment photo count)
+      const place = placeDoc.data() as Place;
+      if (place.userId) {
+        await this.updateUserStats(place.userId);
+      }
+
+      return photo;
+    } catch (error: any) {
+      throw new Error(`Failed to add photo: ${error.message}`);
+    }
+  }
+
+  /**
+   * Delete a photo from a place
+   */
+  async deletePhotoFromPlace(placeId: string, photoId: string): Promise<void> {
+    try {
+      const placeRef = doc(db, 'places', placeId);
+      const placeDoc = await getDoc(placeRef);
+
+      if (!placeDoc.exists()) {
+        throw new Error('Place not found');
+      }
+
+      const place = placeDoc.data() as Place;
+      
+      // Find the photo to delete
+      const photoToDelete = place.photos.find(p => p.id === photoId);
+      if (!photoToDelete) {
+        throw new Error('Photo not found');
+      }
+
+      // Remove photo from array
+      await updateDoc(placeRef, {
+        photos: arrayRemove(photoToDelete),
+        updatedAt: serverTimestamp(),
+      });
+
+      // Update user stats (decrement photo count)
+      if (place.userId) {
+        await this.updateUserStats(place.userId);
+      }
+    } catch (error: any) {
+      throw new Error(`Failed to delete photo: ${error.message}`);
+    }
+  }
+
+  /**
+   * Update photo description
+   */
+  async updatePhotoDescription(
+    placeId: string,
+    photoId: string,
+    description: string
+  ): Promise<void> {
+    try {
+      const placeRef = doc(db, 'places', placeId);
+      const placeDoc = await getDoc(placeRef);
+
+      if (!placeDoc.exists()) {
+        throw new Error('Place not found');
+      }
+
+      const place = placeDoc.data() as Place;
+      
+      // Find and update the photo
+      const updatedPhotos = place.photos.map(photo => {
+        if (photo.id === photoId) {
+          return { ...photo, description };
+        }
+        return photo;
+      });
+
+      // Update the entire photos array
+      await updateDoc(placeRef, {
+        photos: updatedPhotos,
+        updatedAt: serverTimestamp(),
+      });
+    } catch (error: any) {
+      throw new Error(`Failed to update photo description: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get all photos for a place
+   */
+  async getPlacePhotos(placeId: string): Promise<Photo[]> {
+    try {
+      const placeRef = doc(db, 'places', placeId);
+      const placeDoc = await getDoc(placeRef);
+
+      if (!placeDoc.exists()) {
+        throw new Error('Place not found');
+      }
+
+      const place = placeDoc.data() as Place;
+      return place.photos || [];
+    } catch (error: any) {
+      throw new Error(`Failed to get place photos: ${error.message}`);
     }
   }
 
