@@ -51,7 +51,6 @@ export default function MapPage() {
 
   // Google Places arama sonucu seçilince
   const handlePlaceSelect = (place: GooglePlaceResult) => {
-    console.log('Selected place from search:', place);
     // Haritayı bu konuma götür
     setMapCenter([place.location.lng, place.location.lat]);
   };

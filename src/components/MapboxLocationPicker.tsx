@@ -44,14 +44,12 @@ export default function MapboxLocationPicker({
 
   // Harita tıklama handler'ı
   const handleMapClick = async (lat: number, lng: number) => {
-    console.log('Map clicked:', { lat, lng });
     setSelectedLocation({ lat, lng });
 
     // Google Reverse Geocoding ile adres al
     setIsGeocodingAddress(true);
     try {
       const address = await googlePlaces.current.reverseGeocode(lat, lng);
-      console.log('Reverse geocoded address:', address);
       onLocationSelect({ lat, lng, address });
     } catch (error) {
       console.error('Reverse geocoding failed:', error);
@@ -63,7 +61,6 @@ export default function MapboxLocationPicker({
 
   // Google Places arama sonucu seçilince
   const handlePlaceSelect = async (place: GooglePlaceResult) => {
-    console.log('Place selected from search:', place);
     const location = {
       lat: place.location.lat,
       lng: place.location.lng,

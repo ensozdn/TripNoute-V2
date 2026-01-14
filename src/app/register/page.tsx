@@ -42,9 +42,6 @@ export default function RegisterPage() {
       return;
     }
     
-    // Debug log
-    console.log('Form data:', { displayName, email, password, confirmPassword });
-    
     // Validate input
     const validation = registerSchema.safeParse({ 
       email, 

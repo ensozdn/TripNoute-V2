@@ -158,7 +158,6 @@ export default function EditPlacePage() {
         visitDate: new Date(formData.visitDate),
       });
 
-      console.log('Place updated with location:', selectedLocation);
       setSuccess(true);
       setTimeout(() => {
         router.push('/dashboard');
@@ -191,10 +190,14 @@ export default function EditPlacePage() {
           <header className="border-b border-white/10 bg-black/10 backdrop-blur-sm">
             <div className="container mx-auto px-6 py-5">
               <nav className="flex items-center justify-between">
-                <Link href="/dashboard" className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-xl">
-                    T
-                  </div>
+                <Link href="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                  <Image 
+                    src="/tripnoute-logo.png" 
+                    alt="TripNoute Logo" 
+                    width={40} 
+                    height={40}
+                    className="rounded-xl"
+                  />
                   <span className="text-xl font-semibold text-white">TripNoute</span>
                 </Link>
               </nav>
@@ -235,10 +238,14 @@ export default function EditPlacePage() {
         <header className="border-b border-white/10 bg-black/10 backdrop-blur-sm">
           <div className="container mx-auto px-6 py-5">
             <nav className="flex items-center justify-between">
-              <Link href="/dashboard" className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-xl">
-                  T
-                </div>
+              <Link href="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                <Image 
+                  src="/tripnoute-logo.png" 
+                  alt="TripNoute Logo" 
+                  width={40} 
+                  height={40}
+                  className="rounded-xl"
+                />
                 <span className="text-xl font-semibold text-white">TripNoute</span>
               </Link>
               <div className="flex items-center gap-6">

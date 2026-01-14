@@ -21,4 +21,4 @@ Logo şu sayfalarda kullanılıyor:
 3. Dev server otomatik olarak yenilenecek
 
 ## Durum:
-✅ Logo eklendi! `tripnoute-logo.png` başarıyla yüklendi.
+ Logo eklendi! `tripnoute-logo.png` başarıyla yüklendi.
