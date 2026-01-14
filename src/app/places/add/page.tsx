@@ -13,10 +13,12 @@ import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { addPlaceSchema } from '@/utils/validators';
 import { databaseService } from '@/lib/database';
+import { storageService } from '@/services/firebase/FirebaseStorageService';
 import { z } from 'zod';
 import Link from 'next/link';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import MapboxLocationPicker from '@/components/MapboxLocationPicker';
+import { ImageUploader } from '@/components/place';
 
 type AddPlaceFormData = z.infer<typeof addPlaceSchema>;
 
@@ -27,6 +29,9 @@ export default function AddPlacePage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number; address?: string } | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const [formData, setFormData] = useState<AddPlaceFormData>({
     name: '',
@@ -103,7 +108,31 @@ export default function AddPlacePage() {
 
       // Save to Firestore
       const place = await databaseService.createPlace(placeInput, user.uid);
-      console.log('Place created with location:', place);
+      
+      // Upload photos if any selected
+      if (selectedFiles.length > 0) {
+        setUploading(true);
+        try {
+          const uploadPromises = selectedFiles.map((file, index) =>
+            storageService.uploadPhoto(file, user.uid, place.id, {}, (progress) => {
+              const fileProgress = progress.percentage / selectedFiles.length;
+              const overallProgress = (index / selectedFiles.length) * 100 + fileProgress;
+              setUploadProgress(overallProgress);
+            }).then((photo) => {
+              // Add photo to place
+              return databaseService.addPhotoToPlace(place.id, photo);
+            })
+          );
+          
+          await Promise.all(uploadPromises);
+          setUploading(false);
+        } catch (photoError) {
+          console.error('Failed to upload photos:', photoError);
+          setUploading(false);
+          // Don't block place creation if photo upload fails
+          setError('Place created but some photos failed to upload');
+        }
+      }
       
       // Show success and redirect
       setSuccess(true);
@@ -264,6 +293,26 @@ export default function AddPlacePage() {
                   rows={4}
                   className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
                 />
+              </div>
+
+              {/* Photos */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Photos
+                </label>
+                <ImageUploader
+                  onFilesSelected={setSelectedFiles}
+                  maxFiles={10}
+                  maxSizeInMB={10}
+                  disabled={loadingForm || uploading}
+                  uploading={uploading}
+                  uploadProgress={uploadProgress}
+                />
+                {selectedFiles.length > 0 && (
+                  <p className="text-xs text-slate-400 mt-2">
+                    {selectedFiles.length} photo{selectedFiles.length > 1 ? 's' : ''} selected
+                  </p>
+                )}
               </div>
 
               {/* Map for Location Selection */}

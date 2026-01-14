@@ -13,8 +13,11 @@ import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { databaseService } from '@/lib/database';
 import { addPlaceSchema } from '@/utils/validators';
+import { usePhotoManagement } from '@/hooks/usePhotoManagement';
+import { Photo } from '@/types/models/Photo';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import MapboxLocationPicker from '@/components/MapboxLocationPicker';
+import { ImageUploader, PhotoGallery } from '@/components/place';
 
 export default function EditPlacePage() {
   const router = useRouter();
@@ -27,6 +30,8 @@ export default function EditPlacePage() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number; address?: string } | null>(null);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -37,6 +42,24 @@ export default function EditPlacePage() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Photo management hook
+  const {
+    uploading,
+    uploadProgress,
+    uploadPhotos,
+    deletePhoto,
+    updatePhotoDescription,
+  } = usePhotoManagement({
+    placeId,
+    userId: user?.uid || '',
+    onSuccess: (photo) => {
+      setPhotos(prev => [...prev, photo]);
+    },
+    onError: (err) => {
+      setError(err.message);
+    },
+  });
 
   const handleLocationSelect = (location: { lat: number; lng: number; address?: string }) => {
     setSelectedLocation(location);
@@ -93,6 +116,9 @@ export default function EditPlacePage() {
         if (place.location?.lat && place.location?.lng) {
           setSelectedLocation(place.location);
         }
+
+        // Load photos
+        setPhotos(place.photos || []);
       } catch (err) {
         console.error('Error loading place:', err);
         setError('Failed to load place');
@@ -112,6 +138,39 @@ export default function EditPlacePage() {
     // Clear error for this field
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  // Photo handlers
+  const handleUploadPhotos = async () => {
+    if (selectedFiles.length === 0) return;
+
+    try {
+      const uploadedPhotos = await uploadPhotos(selectedFiles);
+      setPhotos(prev => [...prev, ...uploadedPhotos]);
+      setSelectedFiles([]);
+    } catch (err) {
+      console.error('Failed to upload photos:', err);
+    }
+  };
+
+  const handleDeletePhoto = async (photo: Photo) => {
+    try {
+      await deletePhoto(photo);
+      setPhotos(prev => prev.filter(p => p.id !== photo.id));
+    } catch (err) {
+      console.error('Failed to delete photo:', err);
+    }
+  };
+
+  const handleUpdateDescription = async (photoId: string, description: string) => {
+    try {
+      await updatePhotoDescription(photoId, description);
+      setPhotos(prev => prev.map(p =>
+        p.id === photoId ? { ...p, description } : p
+      ));
+    } catch (err) {
+      console.error('Failed to update description:', err);
     }
   };
 
@@ -374,6 +433,52 @@ export default function EditPlacePage() {
                 />
                 {errors.notes && (
                   <p className="mt-2 text-sm text-red-400">{errors.notes}</p>
+                )}
+              </div>
+
+              {/* Existing Photos */}
+              {photos.length > 0 && (
+                <div className="mb-8">
+                  <label className="block text-white font-medium mb-4">
+                    Photos ({photos.length})
+                  </label>
+                  <PhotoGallery
+                    photos={photos}
+                    onDelete={handleDeletePhoto}
+                    onUpdateDescription={handleUpdateDescription}
+                    disabled={loadingForm || uploading}
+                    columns={3}
+                  />
+                </div>
+              )}
+
+              {/* Upload New Photos */}
+              <div className="mb-8">
+                <label className="block text-white font-medium mb-4">
+                  Add Photos
+                </label>
+                <ImageUploader
+                  onFilesSelected={setSelectedFiles}
+                  maxFiles={10}
+                  maxSizeInMB={10}
+                  disabled={loadingForm}
+                  uploading={uploading}
+                  uploadProgress={uploadProgress}
+                />
+                {selectedFiles.length > 0 && (
+                  <div className="mt-4 flex items-center justify-between">
+                    <p className="text-sm text-slate-400">
+                      {selectedFiles.length} photo{selectedFiles.length > 1 ? 's' : ''} selected
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleUploadPhotos}
+                      disabled={uploading || loadingForm}
+                      className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 disabled:bg-blue-500/50 text-white text-sm font-medium transition-all"
+                    >
+                      {uploading ? 'Uploading...' : 'Upload Photos'}
+                    </button>
+                  </div>
                 )}
               </div>
 
