@@ -1,7 +1,8 @@
 /**
  * TripNoute v2 - Register Page
  * 
- * User registration page with email/password and Google sign-up.
+ * Dark theme registration matching Dashboard aesthetics.
+ * Mobile-first responsive design.
  */
 
 'use client';
@@ -9,8 +10,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -90,128 +91,149 @@ export default function RegisterPage() {
   };
 
   const displayError = validationError || error;
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-cyan-50 to-white flex items-center justify-center p-4">
-      <Card className="w-full max-w-md p-8">
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="h-12 w-12 rounded-lg bg-cyan-500 flex items-center justify-center text-white font-bold text-2xl">
-            T
-          </div>
-          <span className="text-3xl font-bold text-cyan-700">TripNoute</span>
-        </div>
-
-        {/* Title */}
-        <h1 className="text-2xl font-bold text-center mb-2">Create Account</h1>
-        <p className="text-gray-600 text-center mb-8">
-          Start your travel journey today
-        </p>
-
-        {/* Error Message */}
-        {displayError && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-            {displayError}
-          </div>
-        )}
-
-        {/* Register Form */}
-        <form onSubmit={handleRegister} className="space-y-4">
-          <div>
-            <Label htmlFor="name">Full Name</Label>
-            <Input
-              id="name"
-              type="text"
-              placeholder="John Doe"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              disabled={loading}
-              required
+    <div className="min-h-screen relative bg-slate-900">
+      {/* Background Gradients - Dashboard Style */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-transparent to-transparent"></div>
+      <div className="absolute inset-0 bg-gradient-to-tl from-blue-600/20 via-transparent to-transparent"></div>
+      
+      {/* Content */}
+      <div className="relative z-10 min-h-screen flex items-center justify-center p-4 sm:p-6">
+        {/* Register Card - Dashboard Style */}
+        <div className="w-full max-w-md p-6 sm:p-8 rounded-2xl bg-white/10 border border-white/20">
+          {/* Logo */}
+          <div className="flex items-center justify-center gap-2 sm:gap-3 mb-6 sm:mb-8">
+            <Image 
+              src="/tripnoute-logo.png" 
+              alt="TripNoute Logo" 
+              width={48} 
+              height={48}
+              className="rounded-xl"
             />
+            <span className="text-2xl sm:text-3xl font-bold text-white">TripNoute</span>
           </div>
 
-          <div>
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="your@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+          {/* Title */}
+          <h1 className="text-xl sm:text-2xl font-bold text-center text-white mb-2">Create Account</h1>
+          <p className="text-sm sm:text-base text-slate-400 text-center mb-6 sm:mb-8">
+            Start your travel journey today
+          </p>
+
+          {/* Error Message */}
+          {displayError && (
+            <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg mb-4 text-sm">
+              {displayError}
+            </div>
+          )}
+
+          {/* Register Form */}
+          <form onSubmit={handleRegister} className="space-y-4">
+            <div>
+              <Label htmlFor="name" className="text-slate-300 text-sm sm:text-base">Full Name</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="John Doe"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                disabled={loading}
+                required
+                className="mt-1.5 bg-white/5 border-white/10 text-white placeholder-slate-500 focus:border-blue-400 focus:ring-blue-400"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="email" className="text-slate-300 text-sm sm:text-base">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+                required
+                className="mt-1.5 bg-white/5 border-white/10 text-white placeholder-slate-500 focus:border-blue-400 focus:ring-blue-400"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="password" className="text-slate-300 text-sm sm:text-base">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                required
+                className="mt-1.5 bg-white/5 border-white/10 text-white placeholder-slate-500 focus:border-blue-400 focus:ring-blue-400"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="confirmPassword" className="text-slate-300 text-sm sm:text-base">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={loading}
+                required
+                className="mt-1.5 bg-white/5 border-white/10 text-white placeholder-slate-500 focus:border-blue-400 focus:ring-blue-400"
+              />
+            </div>
+
+            <div className="flex items-start gap-2 pt-2">
+              <input
+                type="checkbox"
+                id="terms"
+                className="mt-1 rounded bg-white/5 border-white/10 text-blue-600 focus:ring-blue-500"
+                checked={agreeToTerms}
+                onChange={(e) => setAgreeToTerms(e.target.checked)}
+                disabled={loading}
+                required
+              />
+              <label htmlFor="terms" className="text-xs sm:text-sm text-slate-400">
+                I agree to the{' '}
+                <Link href="/terms" className="text-blue-400 hover:text-blue-300 transition-colors">
+                  Terms of Service
+                </Link>{' '}
+                and{' '}
+                <Link href="/privacy" className="text-blue-400 hover:text-blue-300 transition-colors">
+                  Privacy Policy
+                </Link>
+              </label>
+            </div>
+
+            <Button 
+              type="submit" 
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white" 
+              size="lg" 
               disabled={loading}
-              required
-            />
+            >
+              {loading ? 'Creating account...' : 'Create Account'}
+            </Button>
+          </form>
+
+          {/* Separator */}
+          <div className="flex items-center gap-4 my-6">
+            <Separator className="flex-1 bg-white/10" />
+            <span className="text-sm text-slate-500">OR</span>
+            <Separator className="flex-1 bg-white/10" />
           </div>
 
-          <div>
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
-              required
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              placeholder="••••••••"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              disabled={loading}
-              required
-            />
-          </div>
-
-          <div className="flex items-start gap-2">
-            <input
-              type="checkbox"
-              id="terms"
-              className="mt-1 rounded"
-              checked={agreeToTerms}
-              onChange={(e) => setAgreeToTerms(e.target.checked)}
-              disabled={loading}
-              required
-            />
-            <label htmlFor="terms" className="text-sm text-gray-600">
-              I agree to the{' '}
-              <Link href="/terms" className="text-cyan-600 hover:underline">
-                Terms of Service
-              </Link>{' '}
-              and{' '}
-              <Link href="/privacy" className="text-cyan-600 hover:underline">
-                Privacy Policy
-              </Link>
-            </label>
-          </div>
-
-          <Button type="submit" className="w-full" size="lg" disabled={loading}>
-            {loading ? 'Creating account...' : 'Create Account'}
-          </Button>
-        </form>
-
-        {/* Separator */}
-        <div className="flex items-center gap-4 my-6">
-          <Separator className="flex-1" />
-          <span className="text-sm text-gray-500">OR</span>
-          <Separator className="flex-1" />
-        </div>
-
-        {/* Google Sign Up */}
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          size="lg"
-          onClick={handleGoogleSignup}
-          disabled={loading}
-        >
-          <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+          {/* Google Sign Up */}
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full border-white/20 text-white hover:bg-white/10"
+            size="lg"
+            onClick={handleGoogleSignup}
+            disabled={loading}
+          >
+            <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
             <path
               fill="currentColor"
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -233,13 +255,14 @@ export default function RegisterPage() {
         </Button>
 
         {/* Login Link */}
-        <p className="text-center text-sm text-gray-600 mt-6">
+        <p className="text-center text-sm text-slate-400 mt-6">
           Already have an account?{' '}
-          <Link href="/login" className="text-cyan-600 font-medium hover:underline">
+          <Link href="/login" className="text-blue-400 font-medium hover:text-blue-300 transition-colors">
             Sign in
           </Link>
         </p>
-      </Card>
+      </div>
+    </div>
     </div>
   );
 }
