@@ -416,9 +416,15 @@ export class FirebaseDatabaseService implements IDatabaseService {
         throw new Error('Place not found');
       }
 
+      // Generate unique ID for photo
+      const photoWithId: Photo = {
+        ...photo,
+        id: `${placeId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      };
+
       // Add photo to array
       await updateDoc(placeRef, {
-        photos: arrayUnion(photo),
+        photos: arrayUnion(photoWithId),
         updatedAt: serverTimestamp(),
       });
 
@@ -428,7 +434,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
         await this.updateUserStats(place.userId);
       }
 
-      return photo;
+      return photoWithId;
     } catch (error: any) {
       throw new Error(`Failed to add photo: ${error.message}`);
     }

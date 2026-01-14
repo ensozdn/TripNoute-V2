@@ -111,7 +111,7 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
       >
         {photos.map((photo, index) => (
           <PhotoCard
-            key={photo.id}
+            key={photo.id || `photo-${index}`}
             photo={photo}
             onDelete={onDelete}
             onUpdateDescription={onUpdateDescription}
