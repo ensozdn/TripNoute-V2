@@ -15,6 +15,7 @@ export interface Photo {
   mimeType: string;
   width: number;
   height: number;
+  description?: string; // Optional photo caption/description
   uploadedAt: Timestamp;
   uploadedBy: string; // userId
 }
