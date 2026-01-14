@@ -2,7 +2,7 @@
  * TripNoute v2 - Dashboard Page
  * 
  * Main dashboard for authenticated users.
- * Shows user profile, statistics, and recent places.
+ * Shows user profile, statistics, and recent places with integrated map.
  */
 
 'use client';
@@ -11,10 +11,21 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { useAuth } from '@/contexts/AuthContext';
 import { databaseService } from '@/lib/database';
 import { Place } from '@/types';
 import ProtectedRoute from '@/components/ProtectedRoute';
+
+// Dynamic import for MapboxMap to avoid SSR issues
+const MapboxMap = dynamic(() => import('@/components/MapboxMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center bg-slate-800/50 rounded-2xl">
+      <p className="text-slate-400">Loading map...</p>
+    </div>
+  ),
+});
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -23,6 +34,7 @@ export default function DashboardPage() {
   const [loadingPlaces, setLoadingPlaces] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
 
   useEffect(() => {
     const loadPlaces = async () => {
@@ -79,6 +91,10 @@ export default function DashboardPage() {
 
   const handleEditPlace = (placeId: string) => {
     router.push(`/places/edit/${placeId}`);
+  };
+
+  const handleMarkerClick = (place: Place) => {
+    setSelectedPlace(place);
   };
 
   return (
@@ -170,32 +186,116 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid md:grid-cols-2 gap-8 mb-16">
-          <div className="p-10 rounded-2xl bg-white/10 border border-white/20 hover:bg-white/[0.12] transition-all">
-            <h2 className="text-2xl font-bold mb-3 text-white">Add New Place</h2>
-            <p className="text-slate-300 mb-8 leading-relaxed">
-              Document a new location you've visited with photos and notes.
-            </p>
-            <Link href="/places/add" className="block w-full py-4 px-6 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-medium transition-all text-center">
-              Add Place
-            </Link>
+        {/* Map & Places Section */}
+        <div className="grid lg:grid-cols-3 gap-8 mb-16">
+          {/* Map - Takes 2 columns */}
+          <div className="lg:col-span-2">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-white">Your Travel Map</h2>
+              <Link 
+                href="/map" 
+                className="text-sm text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-2"
+              >
+                Full Screen
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </Link>
+            </div>
+            <div className="rounded-2xl overflow-hidden border border-white/20 bg-slate-800/50" style={{ height: '600px' }}>
+              {loadingPlaces ? (
+                <div className="w-full h-full flex items-center justify-center">
+                  <p className="text-slate-400">Loading map...</p>
+                </div>
+              ) : places.length === 0 ? (
+                <div className="w-full h-full flex flex-col items-center justify-center p-8">
+                  <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mb-4">
+                    <span className="text-4xl">🗺️</span>
+                  </div>
+                  <p className="text-xl text-white font-medium mb-2">No places yet!</p>
+                  <p className="text-slate-400 text-center mb-6">Add your first place to see it on the map</p>
+                  <Link 
+                    href="/places/add" 
+                    className="py-3 px-6 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-medium transition-all"
+                  >
+                    Add Place
+                  </Link>
+                </div>
+              ) : (
+                <MapboxMap
+                  places={places}
+                  selectedPlace={selectedPlace}
+                  onMarkerClick={handleMarkerClick}
+                  zoom={2}
+                  style="mapbox://styles/mapbox/streets-v12"
+                  className="w-full h-full"
+                />
+              )}
+            </div>
           </div>
 
-          <div className="p-10 rounded-2xl bg-white/10 border border-white/20 hover:bg-white/[0.12] transition-all">
-            <h2 className="text-2xl font-bold mb-3 text-white">View Map</h2>
-            <p className="text-slate-300 mb-8 leading-relaxed">
-              See all your visited places on an interactive world map.
-            </p>
-            <Link href="/map" className="block w-full py-4 px-6 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 font-medium transition-all text-center">
-              Open Map
-            </Link>
+          {/* Quick Actions Sidebar - Takes 1 column */}
+          <div className="space-y-6">
+            <div className="p-8 rounded-2xl bg-white/10 border border-white/20 hover:bg-white/[0.12] transition-all">
+              <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center mb-4">
+                <span className="text-2xl">➕</span>
+              </div>
+              <h3 className="text-xl font-bold mb-2 text-white">Add New Place</h3>
+              <p className="text-slate-300 mb-6 text-sm leading-relaxed">
+                Document a new location you've visited with photos and notes.
+              </p>
+              <Link 
+                href="/places/add" 
+                className="block w-full py-3 px-4 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-medium transition-all text-center text-sm"
+              >
+                Add Place
+              </Link>
+            </div>
+
+            <div className="p-8 rounded-2xl bg-white/10 border border-white/20">
+              <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center mb-4">
+                <span className="text-2xl">📊</span>
+              </div>
+              <h3 className="text-xl font-bold mb-4 text-white">Quick Stats</h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 text-sm">Total Places</span>
+                  <span className="text-white font-semibold">{places.length}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 text-sm">Countries</span>
+                  <span className="text-white font-semibold">
+                    {new Set(places.map(p => p.address.country)).size}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 text-sm">Photos</span>
+                  <span className="text-white font-semibold">
+                    {places.reduce((total, place) => total + place.photos.length, 0)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-8 rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-600/20 border border-blue-400/30">
+              <h3 className="text-lg font-bold mb-2 text-white">💡 Tip</h3>
+              <p className="text-slate-300 text-sm leading-relaxed">
+                Click on map markers to view place details, or use the full screen map for better navigation.
+              </p>
+            </div>
           </div>
         </div>
 
         {/* Recent Places */}
         <div>
-          <h2 className="text-2xl font-bold mb-8 text-white">Recent Places</h2>
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-bold text-white">Recent Places</h2>
+            {places.length > 6 && (
+              <Link href="/map" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
+                View all →
+              </Link>
+            )}
+          </div>
           
           {loadingPlaces ? (
             <div className="p-16 rounded-2xl bg-white/10 border border-white/20 text-center">
