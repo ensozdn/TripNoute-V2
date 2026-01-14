@@ -126,12 +126,22 @@ export default function AddPlacePage() {
           
           await Promise.all(uploadPromises);
           setUploading(false);
+          setLoadingForm(false);
         } catch (photoError) {
           console.error('Failed to upload photos:', photoError);
           setUploading(false);
+          setLoadingForm(false);
           // Don't block place creation if photo upload fails
           setError('Place created but some photos failed to upload');
+          // Still redirect after error shown
+          setTimeout(() => {
+            router.push('/dashboard');
+          }, 2000);
+          return;
         }
+      } else {
+        // No photos to upload, just finish
+        setLoadingForm(false);
       }
       
       // Show success and redirect
@@ -143,6 +153,7 @@ export default function AddPlacePage() {
       console.error('Error adding place:', err);
       setError(err instanceof Error ? err.message : 'Failed to add place');
       setLoadingForm(false);
+      setUploading(false);
     }
   };
 

@@ -20,6 +20,12 @@ export class FirebaseStorageService implements IStorageService {
   private readonly MAX_FILE_SIZE_MB = 10;
   private readonly ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
+  constructor() {
+    // Log storage bucket info for debugging
+    console.log('🔧 Firebase Storage initialized');
+    console.log('Storage bucket:', storage.app.options.storageBucket);
+  }
+
   /**
    * Upload a single photo to Firebase Storage
    */
@@ -31,14 +37,27 @@ export class FirebaseStorageService implements IStorageService {
     onProgress?: (progress: PhotoUploadProgress) => void
   ): Promise<Photo> {
     try {
+      console.log('🔵 Starting photo upload:', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        userId,
+        placeId,
+      });
+
       // Validate file
       this.validateFile(file);
+      console.log('✅ File validation passed');
 
       // Compress if needed
       const processedFile = await this.compressImageInternal(file, {
         maxWidth: options?.maxWidth || 1920,
         maxHeight: options?.maxHeight || 1080,
         quality: options?.quality || 0.8,
+      });
+      console.log('✅ Image compressed:', {
+        originalSize: file.size,
+        compressedSize: processedFile.size,
       });
 
       // Generate unique filename
@@ -49,6 +68,7 @@ export class FirebaseStorageService implements IStorageService {
       // Create storage path
       const storagePath = `users/${userId}/places/${placeId}/${filename}`;
       const storageRef = ref(storage, storagePath);
+      console.log('🔵 Uploading to path:', storagePath);
 
       // Upload with progress tracking
       const uploadTask = uploadBytesResumable(storageRef, processedFile, {
@@ -74,10 +94,13 @@ export class FirebaseStorageService implements IStorageService {
       }
 
       // Wait for upload to complete
+      console.log('⏳ Waiting for upload to complete...');
       await uploadTask;
+      console.log('✅ Upload complete');
 
       // Get download URL
       const url = await getDownloadURL(storageRef);
+      console.log('✅ Got download URL:', url);
 
       // Get image dimensions
       const dimensions = await this.getImageDimensions(processedFile);
@@ -109,10 +132,16 @@ export class FirebaseStorageService implements IStorageService {
         uploadedBy: userId,
       };
 
+      console.log('✅ Photo upload complete:', photo);
       return photo;
     } catch (error: any) {
-      console.error('Error uploading photo:', error);
-      throw new Error(`Failed to upload photo: ${error.message}`);
+      console.error('❌ Error uploading photo:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        stack: error.stack,
+      });
+      throw new Error(`Failed to upload photo: ${error.message || 'Unknown error'}`);
     }
   }
 
