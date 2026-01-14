@@ -49,6 +49,18 @@ export class FirebaseDatabaseService implements IDatabaseService {
       const placesRef = collection(db, 'places');
       const newPlaceRef = doc(placesRef);
 
+      // Convert visitDate to Firestore Timestamp
+      let visitDateTimestamp;
+      if (input.visitDate instanceof Date) {
+        console.log('Converting Date to Timestamp:', input.visitDate);
+        visitDateTimestamp = FirestoreTimestamp.fromDate(input.visitDate);
+        console.log('Converted Timestamp:', visitDateTimestamp);
+      } else {
+        console.log('Using existing timestamp:', input.visitDate);
+        // If it's already a timestamp-like object, use it
+        visitDateTimestamp = input.visitDate;
+      }
+
       const placeData: any = {
         userId,
         title: input.title,
@@ -57,7 +69,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
         address: input.address || {
           formatted: '',
         },
-        visitDate: FirestoreTimestamp.fromDate(input.visitDate),
+        visitDate: visitDateTimestamp,
         photos: [],
         isPublic: input.isPublic,
         tags: input.tags || [],
