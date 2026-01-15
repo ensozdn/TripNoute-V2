@@ -14,6 +14,7 @@ import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useAuth } from '@/contexts/AuthContext';
 import { databaseService } from '@/lib/database';
+import { getMapboxService } from '@/services/maps/MapboxService';
 import { Place } from '@/types';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
@@ -52,6 +53,28 @@ export default function DashboardPage() {
 
     loadPlaces();
   }, [user]);
+
+  // Draw route lines when places change
+  useEffect(() => {
+    const mapboxService = getMapboxService();
+    
+    if (places.length > 0) {
+      // Wait a bit for map to be ready
+      const timer = setTimeout(() => {
+        mapboxService.drawRouteLines(places);
+        mapboxService.focusOnRoute(places);
+      }, 500);
+
+      return () => {
+        clearTimeout(timer);
+        mapboxService.clearRouteLines();
+      };
+    }
+
+    return () => {
+      mapboxService.clearRouteLines();
+    };
+  }, [places]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -95,6 +118,15 @@ export default function DashboardPage() {
 
   const handleMarkerClick = (place: Place) => {
     setSelectedPlace(place);
+    
+    // Focus on the clicked place with cinematic camera angle
+    const mapboxService = getMapboxService();
+    mapboxService.focusOnPlace(place.id, places, {
+      zoom: 15,
+      pitch: 45,
+      bearing: 0,
+      duration: 2000
+    });
   };
 
   return (
