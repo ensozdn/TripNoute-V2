@@ -17,6 +17,7 @@ import { databaseService } from '@/lib/database';
 import { getMapboxService } from '@/services/maps/MapboxService';
 import { Place } from '@/types';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import TravelTimeline from '@/components/timeline/TravelTimeline';
 
 // Dynamic import for MapboxMap to avoid SSR issues
 const MapboxMap = dynamic(() => import('@/components/MapboxMap'), {
@@ -317,6 +318,18 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* Travel Timeline */}
+        {places.length > 0 && (
+          <div className="mb-16">
+            <TravelTimeline
+              places={places}
+              selectedPlaceId={selectedPlace?.id}
+              onPlaceSelect={handleMarkerClick}
+              className="p-8 rounded-2xl bg-white/10 border border-white/20"
+            />
+          </div>
+        )}
 
         {/* Recent Places */}
         <div>
