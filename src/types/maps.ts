@@ -108,6 +108,16 @@ export interface IMapboxService {
   jumpTo(lat: number, lng: number, zoom?: number): void;
   fitBounds(markers: MapMarker[]): void;
   
+  // Route Lines (Polarsteps-style)
+  drawRouteLines(places: Array<{ id: string; location: { lat: number; lng: number }; visitDate: any }>): void;
+  clearRouteLines(): void;
+  focusOnPlace(
+    placeId: string,
+    places: Array<{ id: string; location: { lat: number; lng: number } }>,
+    options?: { zoom?: number; pitch?: number; bearing?: number; duration?: number }
+  ): void;
+  focusOnRoute(places: Array<{ location: { lat: number; lng: number } }>): void;
+  
   // User Location
   enableUserLocation(): void;
   flyToUserLocation(zoom?: number): Promise<{ lat: number; lng: number } | null>;

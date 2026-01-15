@@ -17,6 +17,8 @@ class MapboxService implements IMapboxService {
   private markers: Map<string, mapboxgl.Marker> = new Map();
   private clickCallback: ((lat: number, lng: number) => void) | null = null;
   private markerClickCallback: ((markerId: string) => void) | null = null;
+  private routeLayerId: string = 'route-line';
+  private routeSourceId: string = 'route-source';
 
   /**
    * Haritayı başlat
@@ -350,6 +352,192 @@ class MapboxService implements IMapboxService {
       throw new Error('Map not initialized');
     }
     this.map.setBearing(bearing);
+  }
+
+  /**
+   * Polarsteps-style: Kavisli rota çizgileri çiz (Geodesic lines)
+   * Zaman sırasına göre sıralanmış Place dizisi alır ve aralarında bağlantı çizer
+   */
+  drawRouteLines(places: Array<{ id: string; location: { lat: number; lng: number }; visitDate: any }>): void {
+    if (!this.map || places.length < 2) {
+      console.warn('Cannot draw routes: Map not initialized or insufficient places');
+      return;
+    }
+
+    // Tarihe göre sırala (eskiden yeniye)
+    const sortedPlaces = [...places].sort((a, b) => {
+      const dateA = a.visitDate?.seconds ? a.visitDate.seconds * 1000 : new Date(a.visitDate).getTime();
+      const dateB = b.visitDate?.seconds ? b.visitDate.seconds * 1000 : new Date(b.visitDate).getTime();
+      return dateA - dateB;
+    });
+
+    // GeoJSON LineString oluştur
+    const coordinates: [number, number][] = sortedPlaces.map(place => [
+      place.location.lng,
+      place.location.lat
+    ]);
+
+    // Kavisli çizgi için ara noktalar ekle (geodesic interpolation)
+    const smoothCoordinates = this.interpolateGeodesicLine(coordinates);
+
+    const geojson: GeoJSON.Feature<GeoJSON.LineString> = {
+      type: 'Feature',
+      properties: {},
+      geometry: {
+        type: 'LineString',
+        coordinates: smoothCoordinates,
+      },
+    };
+
+    // Eski route layer/source varsa kaldır
+    if (this.map.getLayer(this.routeLayerId)) {
+      this.map.removeLayer(this.routeLayerId);
+    }
+    if (this.map.getSource(this.routeSourceId)) {
+      this.map.removeSource(this.routeSourceId);
+    }
+
+    // Source ekle
+    this.map.addSource(this.routeSourceId, {
+      type: 'geojson',
+      data: geojson,
+    });
+
+    // Layer ekle (kesikli beyaz hat - Polarsteps style)
+    this.map.addLayer({
+      id: this.routeLayerId,
+      type: 'line',
+      source: this.routeSourceId,
+      layout: {
+        'line-join': 'round',
+        'line-cap': 'round',
+      },
+      paint: {
+        'line-color': '#ffffff',
+        'line-width': 3,
+        'line-opacity': 0.8,
+        'line-dasharray': [2, 2], // Kesikli çizgi
+      },
+    });
+
+    console.log(`✅ Route drawn with ${sortedPlaces.length} places`);
+  }
+
+  /**
+   * Geodesic line interpolation (kavisli çizgi için ara noktalar)
+   * Basit linear interpolation - production'da Turf.js kullanılabilir
+   */
+  private interpolateGeodesicLine(coordinates: [number, number][]): [number, number][] {
+    const result: [number, number][] = [];
+    
+    for (let i = 0; i < coordinates.length - 1; i++) {
+      const start = coordinates[i];
+      const end = coordinates[i + 1];
+      
+      result.push(start);
+      
+      // İki nokta arası mesafe hesapla (basit)
+      const distance = Math.sqrt(
+        Math.pow(end[0] - start[0], 2) + Math.pow(end[1] - start[1], 2)
+      );
+      
+      // Uzak noktalar arasına ara noktalar ekle
+      if (distance > 5) {
+        const steps = Math.ceil(distance / 5);
+        for (let j = 1; j < steps; j++) {
+          const ratio = j / steps;
+          result.push([
+            start[0] + (end[0] - start[0]) * ratio,
+            start[1] + (end[1] - start[1]) * ratio,
+          ]);
+        }
+      }
+    }
+    
+    result.push(coordinates[coordinates.length - 1]);
+    return result;
+  }
+
+  /**
+   * Rota çizgilerini temizle
+   */
+  clearRouteLines(): void {
+    if (!this.map) return;
+
+    if (this.map.getLayer(this.routeLayerId)) {
+      this.map.removeLayer(this.routeLayerId);
+    }
+    if (this.map.getSource(this.routeSourceId)) {
+      this.map.removeSource(this.routeSourceId);
+    }
+
+    console.log('✅ Route lines cleared');
+  }
+
+  /**
+   * Belirli bir Place'e odaklan (Polarsteps-style smooth transition)
+   * ID ile place bulur ve animasyonlu geçiş yapar
+   */
+  focusOnPlace(
+    placeId: string, 
+    places: Array<{ id: string; location: { lat: number; lng: number } }>,
+    options?: {
+      zoom?: number;
+      pitch?: number;
+      bearing?: number;
+      duration?: number;
+    }
+  ): void {
+    if (!this.map) {
+      throw new Error('Map not initialized');
+    }
+
+    const place = places.find(p => p.id === placeId);
+    if (!place) {
+      console.warn(`Place with ID ${placeId} not found`);
+      return;
+    }
+
+    // Varsayılan değerler - Polarsteps tarzı sinematik görünüm
+    const zoom = options?.zoom ?? 15;
+    const pitch = options?.pitch ?? 45; // 3D açı
+    const bearing = options?.bearing ?? 0;
+    const duration = options?.duration ?? 2000;
+
+    this.map.flyTo({
+      center: [place.location.lng, place.location.lat],
+      zoom,
+      pitch,
+      bearing,
+      duration,
+      essential: true,
+      easing: (t) => t * (2 - t), // Smooth easing function
+    });
+
+    console.log(`✅ Focused on place: ${placeId}`);
+  }
+
+  /**
+   * Tüm route'u gösterecek şekilde kamera ayarla
+   */
+  focusOnRoute(places: Array<{ location: { lat: number; lng: number } }>): void {
+    if (!this.map || places.length === 0) return;
+
+    if (places.length === 1) {
+      this.flyTo(places[0].location.lat, places[0].location.lng, 12);
+      return;
+    }
+
+    const bounds = new mapboxgl.LngLatBounds();
+    places.forEach((place) => {
+      bounds.extend([place.location.lng, place.location.lat]);
+    });
+
+    this.map.fitBounds(bounds, {
+      padding: { top: 100, bottom: 100, left: 100, right: 100 },
+      maxZoom: 12,
+      duration: 1500,
+    });
   }
 }
 
