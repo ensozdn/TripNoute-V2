@@ -60,11 +60,15 @@ export default function DashboardPage() {
     const mapboxService = getMapboxService();
     
     if (places.length > 0) {
-      // Wait a bit for map to be ready
+      // Wait for map to be fully loaded (increased timeout for reliability)
       const timer = setTimeout(() => {
-        mapboxService.drawRouteLines(places);
-        mapboxService.focusOnRoute(places);
-      }, 500);
+        try {
+          mapboxService.drawRouteLines(places);
+          mapboxService.focusOnRoute(places);
+        } catch (error) {
+          console.error('Error drawing routes:', error);
+        }
+      }, 1000); // Increased from 500ms to 1000ms
 
       return () => {
         clearTimeout(timer);

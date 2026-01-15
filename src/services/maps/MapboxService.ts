@@ -364,6 +364,15 @@ class MapboxService implements IMapboxService {
       return;
     }
 
+    // Style yüklenene kadar bekle
+    if (!this.map.isStyleLoaded()) {
+      console.warn('Map style not loaded yet, waiting...');
+      this.map.once('style.load', () => {
+        this.drawRouteLines(places);
+      });
+      return;
+    }
+
     // Tarihe göre sırala (eskiden yeniye)
     const sortedPlaces = [...places].sort((a, b) => {
       const dateA = a.visitDate?.seconds ? a.visitDate.seconds * 1000 : new Date(a.visitDate).getTime();
@@ -492,6 +501,15 @@ class MapboxService implements IMapboxService {
       throw new Error('Map not initialized');
     }
 
+    // Style yüklenene kadar bekle
+    if (!this.map.isStyleLoaded()) {
+      console.warn('Map style not loaded yet, waiting for focusOnPlace...');
+      this.map.once('style.load', () => {
+        this.focusOnPlace(placeId, places, options);
+      });
+      return;
+    }
+
     const place = places.find(p => p.id === placeId);
     if (!place) {
       console.warn(`Place with ID ${placeId} not found`);
@@ -522,6 +540,15 @@ class MapboxService implements IMapboxService {
    */
   focusOnRoute(places: Array<{ location: { lat: number; lng: number } }>): void {
     if (!this.map || places.length === 0) return;
+
+    // Style yüklenene kadar bekle
+    if (!this.map.isStyleLoaded()) {
+      console.warn('Map style not loaded yet, waiting for focusOnRoute...');
+      this.map.once('style.load', () => {
+        this.focusOnRoute(places);
+      });
+      return;
+    }
 
     if (places.length === 1) {
       this.flyTo(places[0].location.lat, places[0].location.lng, 12);
