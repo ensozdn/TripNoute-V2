@@ -4,6 +4,18 @@ const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
   
+  // Allow Firebase Storage images
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+        port: '',
+        pathname: '/v0/b/**',
+      },
+    ],
+  },
+  
   // Fix Google Maps CORS/COEP issues
   async headers() {
     return [
