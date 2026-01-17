@@ -61,7 +61,7 @@ export default function RegisterPage() {
     try {
       await register(email, password, displayName);
       router.push('/dashboard');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Registration error:', err);
       // Error is handled by AuthContext
     } finally {
@@ -82,7 +82,7 @@ export default function RegisterPage() {
     try {
       await loginWithGoogle();
       router.push('/dashboard');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Google signup error:', err);
       // Error is handled by AuthContext
     } finally {

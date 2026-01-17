@@ -73,7 +73,7 @@ export function usePhotoManagement({
         onSuccess?.(savedPhoto);
 
         return savedPhoto;
-      } catch (err: any) {
+      } catch (err: unknown) {
         const errorMessage = err.message || 'Failed to upload photo';
         setError(errorMessage);
         onError?.(new Error(errorMessage));
@@ -125,7 +125,7 @@ export function usePhotoManagement({
 
         setUploadProgress(100);
         return uploadedPhotos;
-      } catch (err: any) {
+      } catch (err: unknown) {
         const errorMessage = err.message || 'Failed to upload photos';
         setError(errorMessage);
         onError?.(new Error(errorMessage));
@@ -152,7 +152,7 @@ export function usePhotoManagement({
 
         // Delete metadata from Firestore
         await databaseService.deletePhotoFromPlace(placeId, photo.id);
-      } catch (err: any) {
+      } catch (err: unknown) {
         const errorMessage = err.message || 'Failed to delete photo';
         setError(errorMessage);
         onError?.(new Error(errorMessage));
@@ -172,7 +172,7 @@ export function usePhotoManagement({
 
         // Update in Firestore
         await databaseService.updatePhotoDescription(placeId, photoId, description);
-      } catch (err: any) {
+      } catch (err: unknown) {
         const errorMessage = err.message || 'Failed to update photo description';
         setError(errorMessage);
         onError?.(new Error(errorMessage));

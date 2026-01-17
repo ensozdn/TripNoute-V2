@@ -96,7 +96,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
       await this.updateUserStats(userId);
 
       return createdPlace;
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error(`Failed to create place: ${error.message}`);
     }
   }
@@ -117,7 +117,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
         id: placeDoc.id,
         ...placeDoc.data(),
       } as Place;
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error(`Failed to get place: ${error.message}`);
     }
   }
@@ -156,7 +156,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
       }
 
       return updatedPlace;
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error(`Failed to update place: ${error.message}`);
     }
   }
@@ -178,7 +178,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
 
       // Update user stats
       await this.updateUserStats(placeData.userId);
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error(`Failed to delete place: ${error.message}`);
     }
   }
@@ -248,7 +248,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
         nextCursor,
         hasMore,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error(`Failed to get places: ${error.message}`);
     }
   }
@@ -285,7 +285,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
         const { lat, lng } = place.location;
         return lat <= north && lat >= south && lng <= east && lng >= west;
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error(`Failed to get places in bounds: ${error.message}`);
     }
   }
@@ -328,7 +328,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
           allowNotifications: true,
         },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error(`Failed to create user: ${error.message}`);
     }
   }
@@ -349,7 +349,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
         uid: userDoc.id,
         ...userDoc.data(),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error(`Failed to get user: ${error.message}`);
     }
   }
@@ -364,7 +364,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
         preferences,
         updatedAt: serverTimestamp(),
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error(`Failed to update user preferences: ${error.message}`);
     }
   }
@@ -406,7 +406,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
         'stats.lastTripDate': lastTripDate,
         updatedAt: serverTimestamp(),
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to update user stats:', error);
       // Don't throw - stats update shouldn't break the main operation
     }
@@ -447,7 +447,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
       }
 
       return photoWithId;
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error(`Failed to add photo: ${error.message}`);
     }
   }
@@ -482,7 +482,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
       if (place.userId) {
         await this.updateUserStats(place.userId);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error(`Failed to delete photo: ${error.message}`);
     }
   }
@@ -518,7 +518,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
         photos: updatedPhotos,
         updatedAt: serverTimestamp(),
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error(`Failed to update photo description: ${error.message}`);
     }
   }
@@ -537,7 +537,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
 
       const place = placeDoc.data() as Place;
       return place.photos || [];
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error(`Failed to get place photos: ${error.message}`);
     }
   }
@@ -553,7 +553,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
     try {
       const deletePromises = placeIds.map((id) => this.deletePlace(id));
       await Promise.all(deletePromises);
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error(`Failed to delete places: ${error.message}`);
     }
   }

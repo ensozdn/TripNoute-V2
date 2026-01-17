@@ -134,7 +134,7 @@ export class FirebaseStorageService implements IStorageService {
 
       console.log('✅ Photo upload complete:', photo);
       return photo;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Error uploading photo:', error);
       console.error('Error details:', {
         message: error.message,
@@ -162,7 +162,7 @@ export class FirebaseStorageService implements IStorageService {
 
       const photos = await Promise.all(uploadPromises);
       return photos;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error uploading photos:', error);
       throw new Error(`Failed to upload photos: ${error.message}`);
     }
@@ -185,7 +185,7 @@ export class FirebaseStorageService implements IStorageService {
         // Thumbnail might not exist, that's okay
         console.warn('Thumbnail not found or already deleted:', thumbnailPath);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting photo:', error);
       throw new Error(`Failed to delete photo: ${error.message}`);
     }
@@ -201,7 +201,7 @@ export class FirebaseStorageService implements IStorageService {
       );
 
       await Promise.all(deletePromises);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting photos:', error);
       throw new Error(`Failed to delete photos: ${error.message}`);
     }
@@ -215,7 +215,7 @@ export class FirebaseStorageService implements IStorageService {
       const storageRef = ref(storage, storagePath);
       const url = await getDownloadURL(storageRef);
       return url;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error getting photo URL:', error);
       throw new Error(`Failed to get photo URL: ${error.message}`);
     }

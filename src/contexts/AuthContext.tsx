@@ -41,14 +41,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, []);
 
+  // Helper to extract error message from unknown error
+  const getErrorMessage = (err: unknown, defaultMessage: string): string => {
+    if (err instanceof Error) {
+      return err.message;
+    }
+    if (typeof err === 'object' && err !== null && 'message' in err) {
+      return String(err.message);
+    }
+    return defaultMessage;
+  };
+
   const login = async (email: string, password: string) => {
     try {
       setError(null);
       setLoading(true);
       const userData = await authService.login({ email, password });
       setUser(userData);
-    } catch (err: any) {
-      setError(err.message || 'Login failed');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Login failed'));
       throw err;
     } finally {
       setLoading(false);
@@ -61,8 +72,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       const userData = await authService.register({ email, password, displayName });
       setUser(userData);
-    } catch (err: any) {
-      setError(err.message || 'Registration failed');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Registration failed'));
       throw err;
     } finally {
       setLoading(false);
@@ -75,8 +86,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       const userData = await authService.loginWithGoogle();
       setUser(userData);
-    } catch (err: any) {
-      setError(err.message || 'Google login failed');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Google login failed'));
       throw err;
     } finally {
       setLoading(false);
@@ -88,8 +99,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       await authService.logout();
       setUser(null);
-    } catch (err: any) {
-      setError(err.message || 'Logout failed');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Logout failed'));
       throw err;
     }
   };
@@ -101,8 +112,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       await authService.updateProfile(data);
       setUser({ ...user, ...data });
-    } catch (err: any) {
-      setError(err.message || 'Profile update failed');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Profile update failed'));
       throw err;
     }
   };
@@ -114,8 +125,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       await authService.deleteAccount();
       setUser(null);
-    } catch (err: any) {
-      setError(err.message || 'Account deletion failed');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Account deletion failed'));
       throw err;
     }
   };

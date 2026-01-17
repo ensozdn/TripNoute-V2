@@ -20,7 +20,6 @@ import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { IAuthService } from '@/services/interfaces/IAuthService';
 import { User, LoginInput, RegisterInput } from '@/types';
-import type { Timestamp } from '@/types';
 
 export class FirebaseAuthService implements IAuthService {
   private googleProvider: GoogleAuthProvider;
@@ -83,7 +82,7 @@ export class FirebaseAuthService implements IAuthService {
       await setDoc(userDocRef, userData);
 
       return userData;
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw this.handleAuthError(error);
     }
   }
@@ -105,7 +104,7 @@ export class FirebaseAuthService implements IAuthService {
       }
 
       return user;
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw this.handleAuthError(error);
     }
   }
@@ -159,7 +158,7 @@ export class FirebaseAuthService implements IAuthService {
       }
 
       return userDoc.data() as User;
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw this.handleAuthError(error);
     }
   }
@@ -170,7 +169,7 @@ export class FirebaseAuthService implements IAuthService {
   async logout(): Promise<void> {
     try {
       await signOut(auth);
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw this.handleAuthError(error);
     }
   }
@@ -193,7 +192,7 @@ export class FirebaseAuthService implements IAuthService {
   async sendPasswordResetEmail(email: string): Promise<void> {
     try {
       await sendPasswordResetEmail(auth, email);
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw this.handleAuthError(error);
     }
   }
@@ -224,7 +223,7 @@ export class FirebaseAuthService implements IAuthService {
         },
         { merge: true }
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw this.handleAuthError(error);
     }
   }
@@ -246,7 +245,7 @@ export class FirebaseAuthService implements IAuthService {
 
       // Delete Firebase Auth user
       await deleteUser(firebaseUser);
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw this.handleAuthError(error);
     }
   }
@@ -291,18 +290,22 @@ export class FirebaseAuthService implements IAuthService {
   /**
    * Handle Firebase Auth errors and convert to user-friendly messages
    */
-  private handleAuthError(error: any): Error {
+  private handleAuthError(error: unknown): Error {
     let message = 'An error occurred during authentication';
 
-    switch (error.code) {
-      case 'auth/email-already-in-use':
-        message = 'This email is already registered';
-        break;
-      case 'auth/invalid-email':
-        message = 'Invalid email address';
-        break;
-      case 'auth/operation-not-allowed':
-        message = 'Operation not allowed';
+    // Type guard: check if error has code property (Firebase error)
+    if (typeof error === 'object' && error !== null && 'code' in error) {
+      const firebaseError = error as { code: string; message?: string };
+      
+      switch (firebaseError.code) {
+        case 'auth/email-already-in-use':
+          message = 'This email is already registered';
+          break;
+        case 'auth/invalid-email':
+          message = 'Invalid email address';
+          break;
+        case 'auth/operation-not-allowed':
+          message = 'Operation not allowed';
         break;
       case 'auth/weak-password':
         message = 'Password is too weak';
@@ -326,7 +329,12 @@ export class FirebaseAuthService implements IAuthService {
         message = 'Sign-in popup was closed';
         break;
       default:
-        message = error.message || message;
+        // Use error message if available
+        message = firebaseError.message || message;
+      }
+    } else if (error instanceof Error) {
+      // Standard JavaScript Error
+      message = error.message;
     }
 
     return new Error(message);
