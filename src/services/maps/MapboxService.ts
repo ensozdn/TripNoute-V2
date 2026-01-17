@@ -19,6 +19,12 @@ class MapboxService implements IMapboxService {
   private markerClickCallback: ((markerId: string) => void) | null = null;
   private routeLayerId: string = 'route-line';
   private routeSourceId: string = 'route-source';
+  
+  // Cinematic Globe Rotation
+  private rotationAnimationId: number | null = null;
+  private isRotating: boolean = false;
+  private lastFrameTime: number = 0;
+  private rotationSpeed: number = 0.05; // degrees per frame at 60fps
 
   /**
    * Haritayı başlat
@@ -33,15 +39,19 @@ class MapboxService implements IMapboxService {
     try {
       this.map = new mapboxgl.Map({
         container: config.container,
-        style: config.style || 'mapbox://styles/mapbox/streets-v12',
+        style: config.style || 'mapbox://styles/mapbox/dark-v11',
         center: config.center || [0, 0],
-        zoom: config.zoom || 2,
+        zoom: config.zoom || 1.5, // Globe view zoom
         pitch: config.pitch || 0,
         bearing: config.bearing || 0,
+        projection: 'globe' as any, // Enable globe projection
       });
 
       this.map.addControl(new mapboxgl.NavigationControl(), 'top-right');
       this.map.addControl(new mapboxgl.FullscreenControl(), 'top-right');
+
+      // Setup interrupt listeners for rotation
+      this.setupRotationInterrupts();
 
       await new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => {
@@ -76,12 +86,74 @@ class MapboxService implements IMapboxService {
    * Haritayı yok et
    */
   destroyMap(): void {
+    this.stopRotation();
     if (this.map) {
       this.clearMarkers();
       this.map.remove();
       this.map = null;
       // Map destroyed successfully - no logging needed in production
     }
+  }
+
+  /**
+   * Setup rotation interrupt listeners
+   */
+  private setupRotationInterrupts(): void {
+    if (!this.map) return;
+
+    // Stop rotation on any user interaction
+    this.map.on('dragstart', () => this.stopRotation());
+    this.map.on('zoomstart', () => this.stopRotation());
+    this.map.on('pitchstart', () => this.stopRotation());
+    this.map.on('rotatestart', () => this.stopRotation());
+    this.map.on('touchstart', () => this.stopRotation());
+  }
+
+  /**
+   * Start cinematic globe rotation
+   */
+  startSlowRotation(): void {
+    if (!this.map || this.isRotating) return;
+
+    this.isRotating = true;
+    this.lastFrameTime = performance.now();
+
+    const rotate = (currentTime: number): void => {
+      if (!this.map || !this.isRotating) return;
+
+      // Frame rate independent rotation
+      const deltaTime = currentTime - this.lastFrameTime;
+      const targetFrameTime = 1000 / 60; // 60fps
+      const speedMultiplier = deltaTime / targetFrameTime;
+
+      const center = this.map.getCenter();
+      const newLng = center.lng + (this.rotationSpeed * speedMultiplier);
+
+      this.map.setCenter([newLng, center.lat]);
+
+      this.lastFrameTime = currentTime;
+      this.rotationAnimationId = requestAnimationFrame(rotate);
+    };
+
+    this.rotationAnimationId = requestAnimationFrame(rotate);
+  }
+
+  /**
+   * Stop globe rotation
+   */
+  stopRotation(): void {
+    this.isRotating = false;
+    if (this.rotationAnimationId !== null) {
+      cancelAnimationFrame(this.rotationAnimationId);
+      this.rotationAnimationId = null;
+    }
+  }
+
+  /**
+   * Check if globe is currently rotating
+   */
+  isGlobeRotating(): boolean {
+    return this.isRotating;
   }
 
   /**
@@ -514,6 +586,9 @@ class MapboxService implements IMapboxService {
       throw new Error('Map not initialized');
     }
 
+    // Stop rotation for cinematic transition
+    this.stopRotation();
+
     // Style yüklenene kadar bekle
     if (!this.map.isStyleLoaded()) {
       console.warn('Map style not loaded yet, waiting for focusOnPlace...');
@@ -529,11 +604,11 @@ class MapboxService implements IMapboxService {
       return;
     }
 
-    // Varsayılan değerler - Polarsteps tarzı sinematik görünüm
+    // Cinematic descent parameters - like falling from space
     const zoom = options?.zoom ?? 15;
-    const pitch = options?.pitch ?? 45; // 3D açı
+    const pitch = options?.pitch ?? 60; // Higher pitch for dramatic angle
     const bearing = options?.bearing ?? 0;
-    const duration = options?.duration ?? 2000;
+    const duration = options?.duration ?? 3500; // Slower for cinematic feel
 
     this.map.flyTo({
       center: [place.location.lng, place.location.lat],
@@ -542,7 +617,8 @@ class MapboxService implements IMapboxService {
       bearing,
       duration,
       essential: true,
-      easing: (t) => t * (2 - t), // Smooth easing function
+      curve: 1.42, // Natural earth curvature descent
+      easing: (t) => t * (2 - t), // Smooth easeInOut
     });
 
     // Successfully focused on place with cinematic transition
@@ -553,6 +629,9 @@ class MapboxService implements IMapboxService {
    */
   focusOnRoute(places: Array<{ location: { lat: number; lng: number } }>): void {
     if (!this.map || places.length === 0) return;
+
+    // Stop rotation for cinematic transition
+    this.stopRotation();
 
     // Style yüklenene kadar bekle
     if (!this.map.isStyleLoaded()) {

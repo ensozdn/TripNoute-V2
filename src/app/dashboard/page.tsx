@@ -56,6 +56,35 @@ export default function DashboardPage() {
     loadPlaces();
   }, [user]);
 
+  // Cinematic Globe Rotation - Start after map loads
+  useEffect(() => {
+    const mapboxService = getMapboxService();
+    const map = mapboxService.getMap();
+
+    if (!map) return;
+
+    // Wait for style to load, then start rotation
+    const startRotation = () => {
+      // Only rotate if we have no places or are in globe view
+      if (places.length === 0 || map.getZoom() < 3) {
+        setTimeout(() => {
+          mapboxService.startSlowRotation();
+        }, 1000); // 1 second delay for dramatic effect
+      }
+    };
+
+    if (map.isStyleLoaded()) {
+      startRotation();
+    } else {
+      map.once('style.load', startRotation);
+    }
+
+    // Cleanup: stop rotation on unmount
+    return () => {
+      mapboxService.stopRotation();
+    };
+  }, [places]);
+
   // MANUAL ROUTE CONTROL: Auto-route drawing disabled per user feedback
   // Users will create routes manually in future updates
   // The map now shows markers only, without automatic dashed lines
