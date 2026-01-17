@@ -80,7 +80,7 @@ class MapboxService implements IMapboxService {
       this.clearMarkers();
       this.map.remove();
       this.map = null;
-      console.log('Mapbox map destroyed');
+      // Map destroyed successfully - no logging needed in production
     }
   }
 
@@ -358,25 +358,38 @@ class MapboxService implements IMapboxService {
    * Polarsteps-style: Kavisli rota çizgileri çiz (Geodesic lines)
    * Zaman sırasına göre sıralanmış Place dizisi alır ve aralarında bağlantı çizer
    */
-  drawRouteLines(places: Array<{ id: string; location: { lat: number; lng: number }; visitDate: any }>): void {
+  drawRouteLines(places: Array<{ 
+    id: string; 
+    location: { lat: number; lng: number }; 
+    visitDate: { seconds: number; nanoseconds: number } | Date;
+  }>): void {
     if (!this.map || places.length < 2) {
-      console.warn('Cannot draw routes: Map not initialized or insufficient places');
+      // Intentionally silent - not an error condition, just insufficient data
       return;
     }
 
     // Style yüklenene kadar bekle
     if (!this.map.isStyleLoaded()) {
-      console.warn('Map style not loaded yet, waiting...');
+      // Wait for style to load before drawing routes
       this.map.once('style.load', () => {
         this.drawRouteLines(places);
       });
       return;
     }
 
+    // Helper function to extract timestamp from visitDate
+    const getTimestamp = (visitDate: { seconds: number; nanoseconds: number } | Date): number => {
+      if (visitDate instanceof Date) {
+        return visitDate.getTime();
+      }
+      // Firebase Timestamp
+      return visitDate.seconds * 1000;
+    };
+
     // Tarihe göre sırala (eskiden yeniye)
     const sortedPlaces = [...places].sort((a, b) => {
-      const dateA = a.visitDate?.seconds ? a.visitDate.seconds * 1000 : new Date(a.visitDate).getTime();
-      const dateB = b.visitDate?.seconds ? b.visitDate.seconds * 1000 : new Date(b.visitDate).getTime();
+      const dateA = getTimestamp(a.visitDate);
+      const dateB = getTimestamp(b.visitDate);
       return dateA - dateB;
     });
 
@@ -429,7 +442,7 @@ class MapboxService implements IMapboxService {
       },
     });
 
-    console.log(`✅ Route drawn with ${sortedPlaces.length} places`);
+    // Route successfully drawn with all places
   }
 
   /**
@@ -480,7 +493,7 @@ class MapboxService implements IMapboxService {
       this.map.removeSource(this.routeSourceId);
     }
 
-    console.log('✅ Route lines cleared');
+    // Route lines cleared successfully
   }
 
   /**
@@ -532,7 +545,7 @@ class MapboxService implements IMapboxService {
       easing: (t) => t * (2 - t), // Smooth easing function
     });
 
-    console.log(`✅ Focused on place: ${placeId}`);
+    // Successfully focused on place with cinematic transition
   }
 
   /**

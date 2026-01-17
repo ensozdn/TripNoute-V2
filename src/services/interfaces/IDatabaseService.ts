@@ -82,12 +82,12 @@ export interface IDatabaseService {
   /**
    * Get user by ID
    */
-  getUserById(userId: string): Promise<any>;
+  getUserById(userId: string): Promise<import('@/types/firebase').UserDocument | null>;
 
   /**
    * Update user preferences
    */
-  updateUserPreferences(userId: string, preferences: any): Promise<void>;
+  updateUserPreferences(userId: string, preferences: import('@/types/firebase').UserPreferences): Promise<void>;
 
   /**
    * Update user stats (called after place creation/deletion)
