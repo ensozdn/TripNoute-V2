@@ -75,7 +75,7 @@ export default function MapboxLocationPicker({
   // Mapbox hook
   const { isLoaded, error, flyTo, flyToUserLocation } = useMapbox(containerRef, {
     accessToken,
-    style: 'mapbox://styles/mapbox/streets-v12',
+    style: 'mapbox://styles/mapbox/satellite-streets-v12',
     center: initialLocation ? [initialLocation.lng, initialLocation.lat] : [0, 0],
     zoom: initialLocation ? 14 : 2,
     markers,
