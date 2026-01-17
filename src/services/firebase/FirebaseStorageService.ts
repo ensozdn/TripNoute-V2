@@ -16,6 +16,26 @@ import { storage } from '@/lib/firebase';
 import { IStorageService } from '@/services/interfaces/IStorageService';
 import { Photo, PhotoUploadOptions, PhotoUploadProgress } from '@/types/models/Photo';
 
+/**
+ * Helper to safely extract error information including message, code, and stack
+ */
+const extractErrorInfo = (error: unknown): { message: string; code?: string; stack?: string } => {
+  if (error instanceof Error) {
+    return {
+      message: error.message,
+      stack: error.stack,
+    };
+  }
+  if (typeof error === 'object' && error !== null) {
+    return {
+      message: 'message' in error ? String(error.message) : 'Unknown error',
+      code: 'code' in error ? String(error.code) : undefined,
+      stack: 'stack' in error ? String(error.stack) : undefined,
+    };
+  }
+  return { message: 'Unknown error' };
+};
+
 export class FirebaseStorageService implements IStorageService {
   private readonly MAX_FILE_SIZE_MB = 10;
   private readonly ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -135,13 +155,10 @@ export class FirebaseStorageService implements IStorageService {
       console.log('✅ Photo upload complete:', photo);
       return photo;
     } catch (error: unknown) {
+      const errorInfo = extractErrorInfo(error);
       console.error('❌ Error uploading photo:', error);
-      console.error('Error details:', {
-        message: error.message,
-        code: error.code,
-        stack: error.stack,
-      });
-      throw new Error(`Failed to upload photo: ${error.message || 'Unknown error'}`);
+      console.error('Error details:', errorInfo);
+      throw new Error(`Failed to upload photo: ${errorInfo.message}`);
     }
   }
 
@@ -163,8 +180,9 @@ export class FirebaseStorageService implements IStorageService {
       const photos = await Promise.all(uploadPromises);
       return photos;
     } catch (error: unknown) {
+      const errorInfo = extractErrorInfo(error);
       console.error('Error uploading photos:', error);
-      throw new Error(`Failed to upload photos: ${error.message}`);
+      throw new Error(`Failed to upload photos: ${errorInfo.message}`);
     }
   }
 
@@ -186,8 +204,9 @@ export class FirebaseStorageService implements IStorageService {
         console.warn('Thumbnail not found or already deleted:', thumbnailPath);
       }
     } catch (error: unknown) {
+      const errorInfo = extractErrorInfo(error);
       console.error('Error deleting photo:', error);
-      throw new Error(`Failed to delete photo: ${error.message}`);
+      throw new Error(`Failed to delete photo: ${errorInfo.message}`);
     }
   }
 
@@ -202,8 +221,9 @@ export class FirebaseStorageService implements IStorageService {
 
       await Promise.all(deletePromises);
     } catch (error: unknown) {
+      const errorInfo = extractErrorInfo(error);
       console.error('Error deleting photos:', error);
-      throw new Error(`Failed to delete photos: ${error.message}`);
+      throw new Error(`Failed to delete photos: ${errorInfo.message}`);
     }
   }
 
@@ -216,8 +236,9 @@ export class FirebaseStorageService implements IStorageService {
       const url = await getDownloadURL(storageRef);
       return url;
     } catch (error: unknown) {
+      const errorInfo = extractErrorInfo(error);
       console.error('Error getting photo URL:', error);
-      throw new Error(`Failed to get photo URL: ${error.message}`);
+      throw new Error(`Failed to get photo URL: ${errorInfo.message}`);
     }
   }
 

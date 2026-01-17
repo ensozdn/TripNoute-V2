@@ -11,6 +11,19 @@ import { storageService } from '@/services/firebase/FirebaseStorageService';
 import { databaseService } from '@/lib/database';
 import { Photo, PhotoUploadOptions, PhotoUploadProgress } from '@/types/models/Photo';
 
+/**
+ * Helper to safely extract error message
+ */
+const getErrorMessage = (error: unknown, defaultMessage: string): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    return String(error.message);
+  }
+  return defaultMessage;
+};
+
 interface UsePhotoManagementOptions {
   placeId: string;
   userId: string;
@@ -74,7 +87,7 @@ export function usePhotoManagement({
 
         return savedPhoto;
       } catch (err: unknown) {
-        const errorMessage = err.message || 'Failed to upload photo';
+        const errorMessage = getErrorMessage(err, 'Failed to upload photo');
         setError(errorMessage);
         onError?.(new Error(errorMessage));
         return null;
@@ -126,7 +139,7 @@ export function usePhotoManagement({
         setUploadProgress(100);
         return uploadedPhotos;
       } catch (err: unknown) {
-        const errorMessage = err.message || 'Failed to upload photos';
+        const errorMessage = getErrorMessage(err, 'Failed to upload photos');
         setError(errorMessage);
         onError?.(new Error(errorMessage));
         return [];
@@ -153,7 +166,7 @@ export function usePhotoManagement({
         // Delete metadata from Firestore
         await databaseService.deletePhotoFromPlace(placeId, photo.id);
       } catch (err: unknown) {
-        const errorMessage = err.message || 'Failed to delete photo';
+        const errorMessage = getErrorMessage(err, 'Failed to delete photo');
         setError(errorMessage);
         onError?.(new Error(errorMessage));
         throw err;
@@ -173,7 +186,7 @@ export function usePhotoManagement({
         // Update in Firestore
         await databaseService.updatePhotoDescription(placeId, photoId, description);
       } catch (err: unknown) {
-        const errorMessage = err.message || 'Failed to update photo description';
+        const errorMessage = getErrorMessage(err, 'Failed to update photo description');
         setError(errorMessage);
         onError?.(new Error(errorMessage));
         throw err;

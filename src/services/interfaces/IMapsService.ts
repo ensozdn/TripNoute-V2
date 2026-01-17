@@ -5,7 +5,7 @@
  * Provider-independent: Can be Google Maps, Mapbox, OpenStreetMap, etc.
  */
 
-import { Location, Address, MapBounds } from '@/types';
+import { Location, Address } from '@/types';
 
 export interface IMapService {
   /**

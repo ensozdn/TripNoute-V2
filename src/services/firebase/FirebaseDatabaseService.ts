@@ -36,6 +36,19 @@ import {
 } from '@/types';
 import { Photo } from '@/types/models/Photo';
 
+/**
+ * Helper to safely extract error message
+ */
+const getErrorMessage = (error: unknown, defaultMessage: string): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    return String(error.message);
+  }
+  return defaultMessage;
+};
+
 export class FirebaseDatabaseService implements IDatabaseService {
   // ============================================
   // PLACE OPERATIONS
@@ -97,7 +110,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
 
       return createdPlace;
     } catch (error: unknown) {
-      throw new Error(`Failed to create place: ${error.message}`);
+      throw new Error(`Failed to create place: ${getErrorMessage(error, 'Unknown error')}`);
     }
   }
 
@@ -118,7 +131,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
         ...placeDoc.data(),
       } as Place;
     } catch (error: unknown) {
-      throw new Error(`Failed to get place: ${error.message}`);
+      throw new Error(`Failed to get place: ${getErrorMessage(error, 'Unknown error')}`);
     }
   }
 
@@ -157,7 +170,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
 
       return updatedPlace;
     } catch (error: unknown) {
-      throw new Error(`Failed to update place: ${error.message}`);
+      throw new Error(`Failed to update place: ${getErrorMessage(error, 'Unknown error')}`);
     }
   }
 
@@ -179,7 +192,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
       // Update user stats
       await this.updateUserStats(placeData.userId);
     } catch (error: unknown) {
-      throw new Error(`Failed to delete place: ${error.message}`);
+      throw new Error(`Failed to delete place: ${getErrorMessage(error, 'Unknown error')}`);
     }
   }
 
@@ -249,7 +262,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
         hasMore,
       };
     } catch (error: unknown) {
-      throw new Error(`Failed to get places: ${error.message}`);
+      throw new Error(`Failed to get places: ${getErrorMessage(error, 'Unknown error')}`);
     }
   }
 
@@ -286,7 +299,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
         return lat <= north && lat >= south && lng <= east && lng >= west;
       });
     } catch (error: unknown) {
-      throw new Error(`Failed to get places in bounds: ${error.message}`);
+      throw new Error(`Failed to get places in bounds: ${getErrorMessage(error, 'Unknown error')}`);
     }
   }
 
@@ -329,7 +342,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
         },
       });
     } catch (error: unknown) {
-      throw new Error(`Failed to create user: ${error.message}`);
+      throw new Error(`Failed to create user: ${getErrorMessage(error, 'Unknown error')}`);
     }
   }
 
@@ -350,7 +363,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
         ...userDoc.data(),
       };
     } catch (error: unknown) {
-      throw new Error(`Failed to get user: ${error.message}`);
+      throw new Error(`Failed to get user: ${getErrorMessage(error, 'Unknown error')}`);
     }
   }
 
@@ -365,7 +378,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
         updatedAt: serverTimestamp(),
       });
     } catch (error: unknown) {
-      throw new Error(`Failed to update user preferences: ${error.message}`);
+      throw new Error(`Failed to update user preferences: ${getErrorMessage(error, 'Unknown error')}`);
     }
   }
 
@@ -448,7 +461,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
 
       return photoWithId;
     } catch (error: unknown) {
-      throw new Error(`Failed to add photo: ${error.message}`);
+      throw new Error(`Failed to add photo: ${getErrorMessage(error, 'Unknown error')}`);
     }
   }
 
@@ -483,7 +496,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
         await this.updateUserStats(place.userId);
       }
     } catch (error: unknown) {
-      throw new Error(`Failed to delete photo: ${error.message}`);
+      throw new Error(`Failed to delete photo: ${getErrorMessage(error, 'Unknown error')}`);
     }
   }
 
@@ -519,7 +532,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
         updatedAt: serverTimestamp(),
       });
     } catch (error: unknown) {
-      throw new Error(`Failed to update photo description: ${error.message}`);
+      throw new Error(`Failed to update photo description: ${getErrorMessage(error, 'Unknown error')}`);
     }
   }
 
@@ -538,7 +551,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
       const place = placeDoc.data() as Place;
       return place.photos || [];
     } catch (error: unknown) {
-      throw new Error(`Failed to get place photos: ${error.message}`);
+      throw new Error(`Failed to get place photos: ${getErrorMessage(error, 'Unknown error')}`);
     }
   }
 
@@ -554,7 +567,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
       const deletePromises = placeIds.map((id) => this.deletePlace(id));
       await Promise.all(deletePromises);
     } catch (error: unknown) {
-      throw new Error(`Failed to delete places: ${error.message}`);
+      throw new Error(`Failed to delete places: ${getErrorMessage(error, 'Unknown error')}`);
     }
   }
 }
