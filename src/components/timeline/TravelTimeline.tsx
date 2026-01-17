@@ -13,7 +13,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Place } from '@/types';
-import { MapPin, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Camera } from 'lucide-react';
 
 interface TravelTimelineProps {
   places: Place[];
@@ -102,54 +102,53 @@ export default function TravelTimeline({
 
   return (
     <div className={`relative ${className}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      {/* Header - Minimal */}
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-xl font-bold text-white mb-1">Travel Timeline</h3>
-          <p className="text-slate-400 text-sm">
-            {sortedPlaces.length} {sortedPlaces.length === 1 ? 'place' : 'places'} • 
-            {' '}{new Set(sortedPlaces.map(p => p.address.country)).size} {new Set(sortedPlaces.map(p => p.address.country)).size === 1 ? 'country' : 'countries'}
+          <h3 className="text-sm font-semibold text-white">Travel Timeline</h3>
+          <p className="text-xs text-slate-500">
+            {sortedPlaces.length} {sortedPlaces.length === 1 ? 'place' : 'places'}
           </p>
         </div>
 
-        {/* Scroll Controls */}
-        <div className="flex items-center gap-2">
+        {/* Scroll Controls - Minimal */}
+        <div className="flex items-center gap-1">
           <button
             onClick={() => scroll('left')}
             disabled={!canScrollLeft}
-            className={`p-2 rounded-lg transition-all ${
+            className={`p-1.5 rounded-lg transition-all ${
               canScrollLeft
                 ? 'bg-white/10 hover:bg-white/20 text-white'
                 : 'bg-white/5 text-slate-600 cursor-not-allowed'
             }`}
             aria-label="Scroll left"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="w-4 h-4" />
           </button>
           <button
             onClick={() => scroll('right')}
             disabled={!canScrollRight}
-            className={`p-2 rounded-lg transition-all ${
+            className={`p-1.5 rounded-lg transition-all ${
               canScrollRight
                 ? 'bg-white/10 hover:bg-white/20 text-white'
                 : 'bg-white/5 text-slate-600 cursor-not-allowed'
             }`}
             aria-label="Scroll right"
           >
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </div>
 
       {/* Timeline Container */}
       <div className="relative">
-        {/* Timeline Line */}
-        <div className="absolute top-12 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-blue-500/30 to-transparent z-0" />
+        {/* Timeline Line - Subtle */}
+        <div className="absolute top-3 left-0 right-0 h-px bg-white/10 z-0" />
 
         {/* Scrollable Places Container */}
         <div
           ref={scrollContainerRef}
-          className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide scroll-smooth"
+          className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide scroll-smooth"
           style={{
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
@@ -164,69 +163,65 @@ export default function TravelTimeline({
               <div
                 key={place.id}
                 id={`timeline-place-${place.id}`}
-                className="flex-shrink-0 w-64 relative"
+                className="flex-shrink-0 w-48 relative"
               >
-                {/* Timeline Dot */}
-                <div className="flex justify-center mb-3">
+                {/* Timeline Dot - Minimal */}
+                <div className="flex justify-center mb-2">
                   <div
-                    className={`w-6 h-6 rounded-full border-4 transition-all duration-300 relative z-10 ${
+                    className={`w-2 h-2 rounded-full transition-all duration-300 relative z-10 ${
                       isSelected
-                        ? 'bg-blue-500 border-blue-400 scale-125 shadow-lg shadow-blue-500/50'
-                        : 'bg-slate-800 border-slate-600 hover:border-blue-500/50'
+                        ? 'bg-blue-400 scale-150 shadow-lg shadow-blue-500/50'
+                        : 'bg-slate-600 hover:bg-blue-500/50'
                     }`}
                   >
                     {/* Pulse animation for selected */}
                     {isSelected && (
-                      <span className="absolute inset-0 rounded-full bg-blue-500 animate-ping opacity-75" />
+                      <span className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-75" />
                     )}
                   </div>
                 </div>
 
-                {/* Place Card */}
+                {/* Place Card - Compact */}
                 <button
                   onClick={() => onPlaceSelect(place)}
-                  className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-300 ${
+                  className={`w-full text-left p-3 rounded-lg border transition-all duration-300 ${
                     isSelected
-                      ? 'bg-blue-500/20 border-blue-400 shadow-xl shadow-blue-500/20'
-                      : 'bg-white/10 border-white/20 hover:bg-white/[0.15] hover:border-white/30'
+                      ? 'bg-blue-500/10 border-blue-400/50 shadow-lg shadow-blue-500/20'
+                      : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
                   }`}
                 >
-                  {/* Badge for first/last */}
+                  {/* Badge for first/last - Minimal */}
                   {(isFirst || isLast) && (
                     <div className="mb-2">
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-500/20 text-blue-400 text-xs font-medium">
-                        {isFirst && '🚀 Start'}
-                        {isLast && '🎯 Latest'}
+                      <span className="inline-block px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-400 text-[10px] font-medium">
+                        {isFirst && 'Start'}
+                        {isLast && 'Latest'}
                       </span>
                     </div>
                   )}
 
-                  {/* Place Info */}
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                      <MapPin className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-white font-semibold mb-1 line-clamp-1">
-                        {place.title}
-                      </h4>
-                      <p className="text-slate-400 text-xs line-clamp-1">
-                        {place.address.city}, {place.address.country}
-                      </p>
-                    </div>
+                  {/* Place Info - Compact */}
+                  <div className="mb-2">
+                    <h4 className="text-sm font-semibold text-white mb-0.5 line-clamp-1">
+                      {place.title}
+                    </h4>
+                    <p className="text-xs text-slate-400 line-clamp-1">
+                      {place.address.city}, {place.address.country}
+                    </p>
                   </div>
 
-                  {/* Date */}
-                  <div className="flex items-center gap-2 text-slate-500 text-xs">
-                    <Calendar className="w-3.5 h-3.5" />
+                  {/* Date - Minimal */}
+                  <div className="flex items-center gap-1 text-slate-500 text-[10px]">
+                    <Calendar className="w-3 h-3" />
                     <span>{formatDate(place.visitDate)}</span>
                   </div>
 
-                  {/* Photos indicator */}
+                  {/* Photos indicator - Only if has photos */}
                   {place.photos.length > 0 && (
-                    <div className="mt-2 pt-2 border-t border-white/10">
-                      <span className="text-slate-500 text-xs flex items-center gap-1">
-                        📸 {place.photos.length} {place.photos.length === 1 ? 'photo' : 'photos'}
+                    <div className="mt-2 pt-2 border-t border-white/5">
+                      <span className="text-slate-500 text-[10px] flex items-center gap-1">
+                        <Camera className="w-3 h-3" />
+                        {place.photos.length}
                       </span>
                     </div>
                   )}
