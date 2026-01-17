@@ -12,6 +12,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
 import { Place } from '@/types';
 import { Calendar, ChevronLeft, ChevronRight, Camera } from 'lucide-react';
 
@@ -102,24 +103,26 @@ export default function TravelTimeline({
 
   return (
     <div className={`relative ${className}`}>
-      {/* Header - Minimal */}
+      {/* Header - Vibrant */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-sm font-semibold text-white">Travel Timeline</h3>
-          <p className="text-xs text-slate-500">
-            {sortedPlaces.length} {sortedPlaces.length === 1 ? 'place' : 'places'}
+          <h3 className="text-base font-bold text-white flex items-center gap-2">
+            ✈️ Your Journey
+          </h3>
+          <p className="text-xs text-white/60">
+            {sortedPlaces.length} {sortedPlaces.length === 1 ? 'place' : 'places'} • {new Set(sortedPlaces.map(p => p.address.country)).size} {new Set(sortedPlaces.map(p => p.address.country)).size === 1 ? 'country' : 'countries'}
           </p>
         </div>
 
-        {/* Scroll Controls - Minimal */}
+        {/* Scroll Controls */}
         <div className="flex items-center gap-1">
           <button
             onClick={() => scroll('left')}
             disabled={!canScrollLeft}
-            className={`p-1.5 rounded-lg transition-all ${
+            className={`p-2 rounded-full transition-all ${
               canScrollLeft
-                ? 'bg-white/10 hover:bg-white/20 text-white'
-                : 'bg-white/5 text-slate-600 cursor-not-allowed'
+                ? 'bg-white/10 hover:bg-white/20 text-white hover:scale-110'
+                : 'bg-white/5 text-white/30 cursor-not-allowed'
             }`}
             aria-label="Scroll left"
           >
@@ -128,10 +131,10 @@ export default function TravelTimeline({
           <button
             onClick={() => scroll('right')}
             disabled={!canScrollRight}
-            className={`p-1.5 rounded-lg transition-all ${
+            className={`p-2 rounded-full transition-all ${
               canScrollRight
-                ? 'bg-white/10 hover:bg-white/20 text-white'
-                : 'bg-white/5 text-slate-600 cursor-not-allowed'
+                ? 'bg-white/10 hover:bg-white/20 text-white hover:scale-110'
+                : 'bg-white/5 text-white/30 cursor-not-allowed'
             }`}
             aria-label="Scroll right"
           >
@@ -142,8 +145,8 @@ export default function TravelTimeline({
 
       {/* Timeline Container */}
       <div className="relative">
-        {/* Timeline Line - Subtle */}
-        <div className="absolute top-3 left-0 right-0 h-px bg-white/10 z-0" />
+        {/* Timeline Line - Vibrant Gradient */}
+        <div className="absolute top-6 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-400/20 via-purple-400/30 to-blue-400/20 z-0" />
 
         {/* Scrollable Places Container */}
         <div
@@ -165,66 +168,89 @@ export default function TravelTimeline({
                 id={`timeline-place-${place.id}`}
                 className="flex-shrink-0 w-48 relative"
               >
-                {/* Timeline Dot - Minimal */}
-                <div className="flex justify-center mb-2">
-                  <div
-                    className={`w-2 h-2 rounded-full transition-all duration-300 relative z-10 ${
-                      isSelected
-                        ? 'bg-blue-400 scale-150 shadow-lg shadow-blue-500/50'
-                        : 'bg-slate-600 hover:bg-blue-500/50'
-                    }`}
-                  >
-                    {/* Pulse animation for selected */}
-                    {isSelected && (
-                      <span className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-75" />
-                    )}
-                  </div>
+                {/* Timeline Connection - Visual Storytelling */}
+                <div className="flex justify-center mb-3">
+                  {/* Photo Thumbnail or Pulsing Dot */}
+                  {place.photos && place.photos.length > 0 && place.photos[0]?.url ? (
+                    <div
+                      className={`relative w-12 h-12 rounded-full transition-all duration-300 z-10 ${
+                        isSelected
+                          ? 'ring-4 ring-blue-400/50 scale-110 shadow-xl shadow-blue-500/30'
+                          : 'ring-2 ring-white/20 hover:ring-blue-400/30 hover:scale-105'
+                      }`}
+                    >
+                      <Image
+                        src={place.photos[0].url}
+                        alt={place.title}
+                        fill
+                        className="rounded-full object-cover"
+                      />
+                      {/* Pulse animation for selected */}
+                      {isSelected && (
+                        <span className="absolute inset-0 rounded-full bg-blue-400/30 animate-ping" />
+                      )}
+                    </div>
+                  ) : (
+                    <div
+                      className={`w-3 h-3 rounded-full transition-all duration-300 relative z-10 ${
+                        isSelected
+                          ? 'bg-blue-400 scale-150 shadow-lg shadow-blue-500/50'
+                          : 'bg-gradient-to-br from-blue-400 to-purple-400 hover:scale-125'
+                      }`}
+                    >
+                      {/* Pulse animation for selected */}
+                      {isSelected && (
+                        <span className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-75" />
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                {/* Place Card - Compact */}
+                {/* Place Card - Visual Story */}
                 <button
                   onClick={() => onPlaceSelect(place)}
-                  className={`w-full text-left p-3 rounded-lg border transition-all duration-300 ${
+                  className={`w-full text-left p-3 rounded-xl border transition-all duration-300 ${
                     isSelected
-                      ? 'bg-blue-500/10 border-blue-400/50 shadow-lg shadow-blue-500/20'
-                      : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+                      ? 'bg-white/10 border-blue-400/50 shadow-xl shadow-blue-500/20 scale-105'
+                      : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 hover:shadow-lg'
                   }`}
                 >
-                  {/* Badge for first/last - Minimal */}
+                  {/* Badge for first/last */}
                   {(isFirst || isLast) && (
                     <div className="mb-2">
-                      <span className="inline-block px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-400 text-[10px] font-medium">
-                        {isFirst && 'Start'}
-                        {isLast && 'Latest'}
+                      <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                        isFirst ? 'bg-green-400/20 text-green-300' : 'bg-blue-400/20 text-blue-300'
+                      }`}>
+                        {isFirst && '🚀 Start'}
+                        {isLast && '✨ Latest'}
                       </span>
                     </div>
                   )}
 
-                  {/* Place Info - Compact */}
+                  {/* Place Info */}
                   <div className="mb-2">
-                    <h4 className="text-sm font-semibold text-white mb-0.5 line-clamp-1">
+                    <h4 className="text-sm font-bold text-white mb-1 line-clamp-2 leading-tight">
                       {place.title}
                     </h4>
-                    <p className="text-xs text-slate-400 line-clamp-1">
-                      {place.address.city}, {place.address.country}
+                    <p className="text-xs text-white/70 line-clamp-1 flex items-center gap-1">
+                      📍 {place.address.city}
                     </p>
                   </div>
 
-                  {/* Date - Minimal */}
-                  <div className="flex items-center gap-1 text-slate-500 text-[10px]">
-                    <Calendar className="w-3 h-3" />
-                    <span>{formatDate(place.visitDate)}</span>
-                  </div>
-
-                  {/* Photos indicator - Only if has photos */}
-                  {place.photos.length > 0 && (
-                    <div className="mt-2 pt-2 border-t border-white/5">
-                      <span className="text-slate-500 text-[10px] flex items-center gap-1">
-                        <Camera className="w-3 h-3" />
-                        {place.photos.length}
-                      </span>
+                  {/* Date & Photos Row */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1 text-white/50 text-[10px]">
+                      <Calendar className="w-3 h-3" />
+                      <span>{formatDate(place.visitDate)}</span>
                     </div>
-                  )}
+
+                    {place.photos.length > 0 && (
+                      <div className="flex items-center gap-1 text-white/50 text-[10px]">
+                        <Camera className="w-3 h-3" />
+                        <span>{place.photos.length}</span>
+                      </div>
+                    )}
+                  </div>
                 </button>
               </div>
             );

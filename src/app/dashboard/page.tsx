@@ -56,7 +56,10 @@ export default function DashboardPage() {
     loadPlaces();
   }, [user]);
 
-  // Draw route lines when places change
+  // MANUAL ROUTE CONTROL: Auto-route drawing disabled per user feedback
+  // Users will create routes manually in future updates
+  // The map now shows markers only, without automatic dashed lines
+  /*
   useEffect(() => {
     const mapboxService = getMapboxService();
     
@@ -80,6 +83,7 @@ export default function DashboardPage() {
       mapboxService.clearRouteLines();
     };
   }, [places]);
+  */
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -139,34 +143,34 @@ export default function DashboardPage() {
               selectedPlace={selectedPlace}
               onMarkerClick={handleMarkerClick}
               zoom={2}
-              style="mapbox://styles/mapbox/dark-v11"
+              style="mapbox://styles/mapbox/satellite-streets-v12"
               className="w-full h-full"
             />
           )}
         </div>
 
-        {/* Glassmorphic Header */}
-        <header className="absolute top-0 left-0 right-0 z-40">
-          <div className="mx-4 mt-4 rounded-2xl bg-slate-900/40 backdrop-blur-xl border border-white/10 shadow-2xl shadow-black/50">
-            <div className="px-4 sm:px-6 py-3 flex items-center justify-between">
+        {/* Floating Glass Capsule Header - "The Frame" */}
+        <header className="absolute top-4 left-1/2 -translate-x-1/2 z-40 w-[95%] max-w-2xl">
+          <div className="rounded-full bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl shadow-black/20 px-6 py-3">
+            <div className="flex items-center justify-between">
               {/* Logo */}
               <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                 <Image 
                   src="/tripnoute-logo.png" 
                   alt="TripNoute" 
-                  width={32} 
-                  height={32}
+                  width={28} 
+                  height={28}
                   className="rounded-lg"
                 />
-                <span className="text-lg font-semibold text-white hidden sm:inline">TripNoute</span>
+                <span className="text-base font-semibold text-white hidden sm:inline">TripNoute</span>
               </Link>
 
               {/* Desktop Nav */}
               <div className="hidden md:flex items-center gap-4">
-                <span className="text-sm text-slate-300">Welcome, {user?.displayName}!</span>
+                <span className="text-sm text-white/80">Hi, {user?.displayName?.split(' ')[0] || 'Traveler'}!</span>
                 <button 
                   onClick={handleLogout} 
-                  className="text-sm text-slate-400 hover:text-white transition-colors"
+                  className="text-sm text-white/70 hover:text-white transition-colors"
                 >
                   Logout
                 </button>
@@ -175,20 +179,20 @@ export default function DashboardPage() {
               {/* Mobile Menu Button */}
               <button
                 onClick={() => setShowMenu(!showMenu)}
-                className="md:hidden p-2 rounded-lg hover:bg-white/10 transition-colors"
+                className="md:hidden p-2 rounded-full hover:bg-white/10 transition-colors"
               >
                 {showMenu ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5 text-white" />}
               </button>
             </div>
 
-            {/* Mobile Menu */}
+            {/* Mobile Menu Dropdown */}
             {showMenu && (
-              <div className="md:hidden px-4 pb-4 border-t border-white/10">
-                <div className="pt-4 space-y-2">
-                  <p className="text-sm text-slate-300 mb-2">Welcome, {user?.displayName}!</p>
+              <div className="md:hidden mt-3 pt-3 border-t border-white/10">
+                <div className="space-y-2">
+                  <p className="text-sm text-white/80 mb-2">Hi, {user?.displayName?.split(' ')[0] || 'Traveler'}!</p>
                   <button 
                     onClick={handleLogout} 
-                    className="w-full text-left text-sm text-slate-400 hover:text-white transition-colors py-2"
+                    className="w-full text-left text-sm text-white/70 hover:text-white transition-colors py-2"
                   >
                     Logout
                   </button>
@@ -198,58 +202,60 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        {/* Floating Stats Cards - Top Right */}
+        {/* Floating Stats Bar - Horizontal Above Timeline - "The Stats Band" */}
         {places.length > 0 && (
-          <div className="absolute top-24 right-4 z-30 flex flex-col gap-3 w-[280px] hidden lg:flex">
-            {/* Places Count */}
-            <div className="px-4 py-3 rounded-xl bg-slate-900/40 backdrop-blur-xl border border-white/10 shadow-2xl shadow-black/50">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                  <MapPin className="w-5 h-5 text-blue-400" />
+          <div className="absolute bottom-44 sm:bottom-40 left-1/2 -translate-x-1/2 z-30 w-[95%] max-w-2xl">
+            <div className="rounded-full bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl shadow-black/20 px-6 py-3">
+              <div className="flex items-center justify-around gap-4">
+                {/* Places Count */}
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-blue-400/20 flex items-center justify-center">
+                    <MapPin className="w-4 h-4 text-blue-300" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-white leading-none">{places.length}</p>
+                    <p className="text-[10px] text-white/60">Places</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">{places.length}</p>
-                  <p className="text-xs text-slate-400">Places Visited</p>
-                </div>
-              </div>
-            </div>
 
-            {/* Countries Count */}
-            <div className="px-4 py-3 rounded-xl bg-slate-900/40 backdrop-blur-xl border border-white/10 shadow-2xl shadow-black/50">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                  <Globe2 className="w-5 h-5 text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">
-                    {new Set(places.map(p => p.address.country)).size}
-                  </p>
-                  <p className="text-xs text-slate-400">Countries</p>
-                </div>
-              </div>
-            </div>
+                <div className="w-px h-8 bg-white/20" />
 
-            {/* Photos Count */}
-            <div className="px-4 py-3 rounded-xl bg-slate-900/40 backdrop-blur-xl border border-white/10 shadow-2xl shadow-black/50">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                  <Camera className="w-5 h-5 text-blue-400" />
+                {/* Countries Count */}
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-green-400/20 flex items-center justify-center">
+                    <Globe2 className="w-4 h-4 text-green-300" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-white leading-none">
+                      {new Set(places.map(p => p.address.country)).size}
+                    </p>
+                    <p className="text-[10px] text-white/60">Countries</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">
-                    {places.reduce((total, place) => total + place.photos.length, 0)}
-                  </p>
-                  <p className="text-xs text-slate-400">Photos</p>
+
+                <div className="w-px h-8 bg-white/20" />
+
+                {/* Photos Count */}
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-purple-400/20 flex items-center justify-center">
+                    <Camera className="w-4 h-4 text-purple-300" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-white leading-none">
+                      {places.reduce((total, place) => total + place.photos.length, 0)}
+                    </p>
+                    <p className="text-[10px] text-white/60">Photos</p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Floating Timeline - Bottom */}
+        {/* Floating Timeline - Bottom - "The Content" */}
         {places.length > 0 && (
           <div className="absolute bottom-0 left-0 right-0 z-30 p-4">
-            <div className="rounded-2xl bg-slate-900/40 backdrop-blur-xl border border-white/10 shadow-2xl shadow-black/50">
+            <div className="rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl shadow-black/20">
               <TravelTimeline
                 places={places}
                 selectedPlaceId={selectedPlace?.id}
@@ -263,38 +269,10 @@ export default function DashboardPage() {
         {/* Floating Action Button - Add Place */}
         <Link
           href="/places/add"
-          className="absolute bottom-24 right-6 sm:bottom-8 sm:right-8 z-40 w-14 h-14 rounded-full bg-blue-500 hover:bg-blue-600 shadow-2xl shadow-blue-500/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95 group"
+          className="absolute bottom-40 right-6 sm:bottom-36 sm:right-8 z-40 w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-2xl shadow-blue-500/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95 group"
         >
-          <Plus className="w-6 h-6 text-white group-hover:rotate-90 transition-transform" />
+          <Plus className="w-6 h-6 text-white group-hover:rotate-90 transition-transform duration-300" />
         </Link>
-
-        {/* Mobile Stats - Bottom Sheet */}
-        {places.length > 0 && (
-          <div className="lg:hidden absolute bottom-52 left-4 right-4 z-30">
-            <div className="rounded-2xl bg-slate-900/40 backdrop-blur-xl border border-white/10 shadow-2xl shadow-black/50 p-4">
-              <div className="flex items-center justify-around">
-                <div className="text-center">
-                  <p className="text-xl font-bold text-white">{places.length}</p>
-                  <p className="text-xs text-slate-400">Places</p>
-                </div>
-                <div className="w-px h-8 bg-white/10"></div>
-                <div className="text-center">
-                  <p className="text-xl font-bold text-white">
-                    {new Set(places.map(p => p.address.country)).size}
-                  </p>
-                  <p className="text-xs text-slate-400">Countries</p>
-                </div>
-                <div className="w-px h-8 bg-white/10"></div>
-                <div className="text-center">
-                  <p className="text-xl font-bold text-white">
-                    {places.reduce((total, place) => total + place.photos.length, 0)}
-                  </p>
-                  <p className="text-xs text-slate-400">Photos</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </ProtectedRoute>
   );
