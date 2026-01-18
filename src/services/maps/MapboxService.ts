@@ -340,6 +340,7 @@ class MapboxService implements IMapboxService {
 
   /**
    * Kullanıcı konumunu aktif et (mavi nokta)
+   * NOT: Globe rotation için otomatik trigger KAPALI
    */
   enableUserLocation(): void {
     if (!this.map) {
@@ -357,9 +358,11 @@ class MapboxService implements IMapboxService {
 
     this.map.addControl(geolocateControl, 'top-right');
 
-    this.map.on('load', () => {
-      geolocateControl.trigger();
-    });
+    // REMOVED: Automatic trigger that was forcing map to user location
+    // User can manually click the geolocate button if they want to see their location
+    // this.map.on('load', () => {
+    //   geolocateControl.trigger();
+    // });
   }
 
   /**

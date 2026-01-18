@@ -65,8 +65,8 @@ export default function DashboardPage() {
 
     // Wait for style to load, then start rotation
     const startRotation = () => {
-      // Only rotate if we have no places or are in globe view
-      if (places.length === 0 || map.getZoom() < 3) {
+      // Start rotation if in globe view (zoom < 3), regardless of places count
+      if (map.getZoom() < 3) {
         setTimeout(() => {
           mapboxService.startSlowRotation();
         }, 1000); // 1 second delay for dramatic effect
@@ -83,7 +83,7 @@ export default function DashboardPage() {
     return () => {
       mapboxService.stopRotation();
     };
-  }, [places]);
+  }, []); // Empty dependency - only run once on mount
 
   // MANUAL ROUTE CONTROL: Auto-route drawing disabled per user feedback
   // Users will create routes manually in future updates

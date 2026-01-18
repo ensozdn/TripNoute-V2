@@ -58,9 +58,9 @@ export const useMapbox = (
         const initializedMap = await mapboxService.current.initializeMap({
           container: containerRef.current!,
           accessToken: options.accessToken,
-          style: options.style || 'mapbox://styles/mapbox/streets-v12',
+          style: options.style || 'mapbox://styles/mapbox/dark-v11',
           center: options.center || [0, 0],
-          zoom: options.zoom || 2,
+          zoom: options.zoom || 1.5,
         });
 
         setMap(initializedMap);
@@ -109,9 +109,12 @@ export const useMapbox = (
       mapboxService.current.addMarker(marker);
     });
 
-    if (options.markers.length > 0) {
-      mapboxService.current.fitBounds(options.markers);
-    }
+    // REMOVED: Auto fitBounds that was breaking globe view
+    // Markers are added but map stays in globe view for cinematic rotation
+    // User can manually zoom to places or click timeline to focus
+    // if (options.markers.length > 0) {
+    //   mapboxService.current.fitBounds(options.markers);
+    // }
   }, [isLoaded, options.markers]);
 
   // User location

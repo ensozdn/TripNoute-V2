@@ -8,6 +8,7 @@
 
 import { useRef, useMemo, useEffect } from 'react';
 import { useMapbox } from '@/hooks/useMapbox';
+import { getMapboxService } from '@/services/maps';
 import type { MapMarker } from '@/types/maps';
 import type { Place } from '@/types/models/Place';
 
@@ -62,14 +63,14 @@ export default function MapboxMap({
     };
   }, [places, onMarkerClick]);
 
-  // Mapbox hook
-  const { isLoaded, error, flyTo, flyToUserLocation } = useMapbox(containerRef, {
+  // Mapbox hook - Geolocate butonu aktif AMA otomatik tetiklenmiyor
+  const { map, isLoaded, error, flyTo, flyToUserLocation } = useMapbox(containerRef, {
     accessToken,
     style,
     center,
     zoom,
     markers,
-    enableUserLocation: true,
+    enableUserLocation: true, // Buton gösterilir ama globe view bozulmaz
     onMapClick,
     onMarkerClick: handleMarkerClick,
   });
@@ -80,6 +81,26 @@ export default function MapboxMap({
       flyTo(selectedPlace.location.lat, selectedPlace.location.lng, 14);
     }
   }, [selectedPlace, isLoaded, flyTo]);
+
+  // Start globe rotation when map loads (if in globe view)
+  useEffect(() => {
+    if (!isLoaded || !map) return;
+
+    const mapboxService = getMapboxService();
+    
+    // Start rotation after a delay for dramatic effect
+    const timer = setTimeout(() => {
+      // Start if we're in globe view (zoom < 3) - regardless of places
+      if (map.getZoom() < 3) {
+        mapboxService.startSlowRotation();
+      }
+    }, 1000);
+
+    return () => {
+      clearTimeout(timer);
+      mapboxService.stopRotation();
+    };
+  }, [isLoaded, map]);
 
   // No token
   if (!accessToken) {
