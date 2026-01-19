@@ -44,6 +44,15 @@ export class FirebaseStorageService implements IStorageService {
     // Log storage bucket info for debugging
     console.log('🔧 Firebase Storage initialized');
     console.log('Storage bucket:', storage.app.options.storageBucket);
+    
+    // Verify storage is properly initialized
+    if (!storage) {
+      throw new Error('Firebase Storage not initialized');
+    }
+    
+    if (!storage.app.options.storageBucket) {
+      throw new Error('Firebase Storage bucket not configured. Check NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET in .env.local');
+    }
   }
 
   /**
@@ -87,6 +96,14 @@ export class FirebaseStorageService implements IStorageService {
       
       // Create storage path
       const storagePath = `users/${userId}/places/${placeId}/${filename}`;
+      
+      // Log storage details for debugging
+      console.log('🔵 Storage configuration:', {
+        bucket: storage.app.options.storageBucket,
+        path: storagePath,
+        fullUrl: `gs://${storage.app.options.storageBucket}/${storagePath}`,
+      });
+      
       const storageRef = ref(storage, storagePath);
       console.log('🔵 Uploading to path:', storagePath);
 

@@ -143,6 +143,50 @@ export default function DashboardPage() {
     });
   };
 
+  // Handle place deletion with map sync
+  const handlePlaceDelete = async (placeId: string): Promise<void> => {
+    try {
+      // Optimistic UI update
+      setPlaces(prevPlaces => prevPlaces.filter(p => p.id !== placeId));
+      
+      // Clear selected if deleting current selection
+      if (selectedPlace?.id === placeId) {
+        setSelectedPlace(null);
+      }
+
+      // Remove from map
+      const mapboxService = getMapboxService();
+      mapboxService.removeMarker(placeId);
+      
+      // Re-draw routes with remaining places
+      const remainingPlaces = places.filter(p => p.id !== placeId);
+      if (remainingPlaces.length > 1) {
+        mapboxService.clearRouteLines();
+        mapboxService.drawRouteLines(remainingPlaces);
+      } else {
+        mapboxService.clearRouteLines();
+      }
+
+      // Delete from Firebase
+      await databaseService.deletePlace(placeId);
+      
+      console.log('✅ Place deleted successfully');
+    } catch (error) {
+      console.error('❌ Failed to delete place:', error);
+      
+      // Revert optimistic update on error
+      const response = await databaseService.getUserPlaces(user!.uid);
+      setPlaces(response.items);
+      
+      throw error; // Re-throw to let Timeline show error
+    }
+  };
+
+  // Handle place edit navigation
+  const handlePlaceEdit = (place: Place): void => {
+    router.push(`/places/edit/${place.id}`);
+  };
+
   return (
     <ProtectedRoute>
       <div className="relative w-full h-screen overflow-hidden">
@@ -289,6 +333,8 @@ export default function DashboardPage() {
                 places={places}
                 selectedPlaceId={selectedPlace?.id}
                 onPlaceSelect={handleMarkerClick}
+                onPlaceDelete={handlePlaceDelete}
+                onPlaceEdit={handlePlaceEdit}
                 className="p-4"
               />
             </div>

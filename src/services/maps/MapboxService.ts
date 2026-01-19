@@ -236,6 +236,17 @@ class MapboxService implements IMapboxService {
   }
 
   /**
+   * Marker güncelle (pozisyon veya popup değiştiğinde)
+   */
+  updateMarker(updatedMarker: MapMarker): void {
+    // Önce eski marker'ı kaldır
+    this.removeMarker(updatedMarker.id);
+    
+    // Yeni marker'ı ekle
+    this.addMarker(updatedMarker);
+  }
+
+  /**
    * Tüm marker'ları temizle
    */
   clearMarkers(): void {

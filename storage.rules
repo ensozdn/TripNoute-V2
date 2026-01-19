@@ -1,0 +1,50 @@
+rules_version = '2';
+
+// TripNoute v2 - Firebase Storage Security Rules
+// Deploy: firebase deploy --only storage
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isValidImageFile() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    function isFileSizeValid() {
+      // Maximum 10MB per file
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+    
+    // User photo uploads
+    match /users/{userId}/places/{placeId}/{fileName} {
+      // Allow read if authenticated (for now - will add public/private logic later)
+      allow read: if isAuthenticated();
+      
+      // Allow write only if:
+      // 1. User is authenticated
+      // 2. User is the owner
+      // 3. File is an image
+      // 4. File size is within limit
+      allow write: if isOwner(userId) 
+                   && isValidImageFile() 
+                   && isFileSizeValid();
+      
+      // Allow delete only if user is the owner
+      allow delete: if isOwner(userId);
+    }
+    
+    // Deny all other paths by default
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
