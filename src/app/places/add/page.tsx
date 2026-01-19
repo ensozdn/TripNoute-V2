@@ -112,31 +112,63 @@ export default function AddPlacePage() {
       // Upload photos if any selected
       if (selectedFiles.length > 0) {
         setUploading(true);
+        setUploadProgress(0);
         try {
+          // Track individual file progress
+          const fileProgressMap = new Map<number, number>();
+          
           const uploadPromises = selectedFiles.map((file, index) =>
             storageService.uploadPhoto(file, user.uid, place.id, {}, (progress) => {
-              const fileProgress = progress.percentage / selectedFiles.length;
-              const overallProgress = (index / selectedFiles.length) * 100 + fileProgress;
-              setUploadProgress(overallProgress);
+              // Update this file's progress (0-100)
+              fileProgressMap.set(index, progress.percentage);
+              
+              // Calculate overall progress correctly
+              let totalProgress = 0;
+              fileProgressMap.forEach((value) => {
+                totalProgress += value;
+              });
+              
+              // Normalize to 0-100 scale
+              const overallProgress = totalProgress / selectedFiles.length;
+              setUploadProgress(Math.min(overallProgress, 99)); // Cap at 99 until complete
             }).then((photo) => {
               // Add photo to place
               return databaseService.addPhotoToPlace(place.id, photo);
+            }).catch((error) => {
+              // Capture error but don't stop other uploads
+              console.error(`Failed to upload file ${index + 1}:`, error);
+              throw error;
             })
           );
           
-          await Promise.all(uploadPromises);
+          // Wait for all uploads - if any fail, catch it below
+          const results = await Promise.allSettled(uploadPromises);
+          
+          // Check if all succeeded
+          const failures = results.filter(r => r.status === 'rejected');
+          
+          setUploadProgress(100);
           setUploading(false);
           setLoadingForm(false);
+          
+          if (failures.length > 0) {
+            console.error(`${failures.length} photo(s) failed to upload`);
+            setError(`Place created but ${failures.length} photo(s) failed to upload. Please try uploading them again.`);
+            // Still redirect after showing error
+            setTimeout(() => {
+              router.push('/dashboard');
+            }, 3000);
+            return;
+          }
         } catch (photoError) {
           console.error('Failed to upload photos:', photoError);
           setUploading(false);
           setLoadingForm(false);
-          // Don't block place creation if photo upload fails
-          setError('Place created but some photos failed to upload');
+          setError('Place created but photos failed to upload. Try uploading them later.');
           // Still redirect after error shown
           setTimeout(() => {
             router.push('/dashboard');
-          }, 2000);
+          }, 3000);
           return;
         }
       } else {

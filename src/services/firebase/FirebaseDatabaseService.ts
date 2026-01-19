@@ -175,7 +175,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
   }
 
   /**
-   * Delete a place
+   * Delete a place and its associated photos from storage
    */
   async deletePlace(placeId: string): Promise<void> {
     try {
@@ -187,6 +187,30 @@ export class FirebaseDatabaseService implements IDatabaseService {
       }
 
       const placeData = placeDoc.data() as Place;
+      
+      // Delete associated photos from storage
+      if (placeData.photos && placeData.photos.length > 0) {
+        try {
+          // Import storage service to delete photos
+          const { storageService } = await import('@/services/firebase/FirebaseStorageService');
+          
+          // Delete all photos for this place
+          const photoDeletePromises = placeData.photos.map((photo) =>
+            storageService.deletePhoto(photo.id, photo.storagePath)
+              .catch((error) => {
+                console.error(`Failed to delete photo ${photo.id}:`, error);
+                // Continue deleting other photos even if one fails
+              })
+          );
+          
+          await Promise.allSettled(photoDeletePromises);
+        } catch (storageError) {
+          console.error('Error deleting photos from storage:', storageError);
+          // Continue with place deletion even if photo deletion fails
+        }
+      }
+      
+      // Delete place document from Firestore
       await deleteDoc(placeRef);
 
       // Update user stats
