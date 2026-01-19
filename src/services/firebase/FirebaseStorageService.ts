@@ -204,26 +204,62 @@ export class FirebaseStorageService implements IStorageService {
   }
 
   /**
-   * Delete a photo from Firebase Storage
+   * Delete a photo from Firebase Storage with robust error handling
+   * CRITICAL: Handles CORS errors gracefully and provides detailed feedback
    */
   async deletePhoto(_photoId: string, storagePath: string): Promise<void> {
+    const startTime = Date.now();
+    
     try {
+      console.log('🔴 Starting photo deletion:', { storagePath });
+      
       const storageRef = ref(storage, storagePath);
       await deleteObject(storageRef);
 
-      // Also delete thumbnail if it exists
+      console.log('✅ Photo deleted successfully:', {
+        storagePath,
+        duration: `${Date.now() - startTime}ms`,
+      });
+
+      // Also delete thumbnail if it exists (non-blocking)
       const thumbnailPath = storagePath.replace(/([^/]+)$/, 'thumb_$1');
       try {
         const thumbnailRef = ref(storage, thumbnailPath);
         await deleteObject(thumbnailRef);
+        console.log('✅ Thumbnail deleted:', thumbnailPath);
       } catch (err) {
-        // Thumbnail might not exist, that's okay
-        console.warn('Thumbnail not found or already deleted:', thumbnailPath);
+        // Thumbnail might not exist, that's okay - log as warning only
+        const thumbnailError = extractErrorInfo(err);
+        console.warn('ℹ️ Thumbnail deletion skipped (not found):', {
+          path: thumbnailPath,
+          reason: thumbnailError.message,
+        });
       }
     } catch (error: unknown) {
       const errorInfo = extractErrorInfo(error);
-      console.error('Error deleting photo:', error);
-      throw new Error(`Failed to delete photo: ${errorInfo.message}`);
+      const duration = Date.now() - startTime;
+      
+      console.error('❌ Photo deletion failed:', {
+        storagePath,
+        errorMessage: errorInfo.message,
+        errorCode: errorInfo.code,
+        duration: `${duration}ms`,
+      });
+
+      // Provide user-friendly error messages based on error type
+      let userMessage = `Failed to delete photo: ${errorInfo.message}`;
+      
+      if (errorInfo.code === 'storage/object-not-found') {
+        userMessage = 'Photo not found in storage (may have been deleted already)';
+      } else if (errorInfo.message.includes('CORS')) {
+        userMessage = 'Storage configuration error (CORS). Contact support.';
+      } else if (errorInfo.message.includes('permission')) {
+        userMessage = 'Permission denied. You may not have access to delete this photo.';
+      } else if (errorInfo.message.includes('network')) {
+        userMessage = 'Network error. Please check your connection and try again.';
+      }
+
+      throw new Error(userMessage);
     }
   }
 

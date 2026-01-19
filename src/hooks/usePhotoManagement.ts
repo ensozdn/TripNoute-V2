@@ -100,10 +100,13 @@ export function usePhotoManagement({
   );
 
   /**
-   * Upload multiple photos
+   * Upload multiple photos with robust error handling
+   * CRITICAL: Resets uploading state even if partial failures occur
    */
   const uploadPhotos = useCallback(
     async (files: File[], options?: Partial<PhotoUploadOptions>) => {
+      const startTime = Date.now();
+      
       try {
         setUploading(true);
         setError(null);
@@ -111,62 +114,143 @@ export function usePhotoManagement({
 
         const uploadedPhotos: Photo[] = [];
         const totalFiles = files.length;
+        const failedFiles: Array<{ filename: string; error: string }> = [];
 
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
 
-          // Track overall progress
-          const onProgress = (progress: PhotoUploadProgress) => {
-            const fileProgress = progress.percentage / totalFiles;
-            const overallProgress = (i / totalFiles) * 100 + fileProgress;
-            setUploadProgress(overallProgress);
-          };
+          try {
+            console.log(`📤 Uploading file ${i + 1}/${totalFiles}:`, file.name);
 
-          // Upload to Firebase Storage
-          const photo = await storageService.uploadPhoto(
-            file,
-            userId,
-            placeId,
-            options,
-            onProgress
-          );
+            // Track overall progress
+            const onProgress = (progress: PhotoUploadProgress) => {
+              const fileProgress = progress.percentage / totalFiles;
+              const overallProgress = (i / totalFiles) * 100 + fileProgress;
+              setUploadProgress(Math.min(overallProgress, 99)); // Cap at 99% until complete
+            };
 
-          // Save metadata to Firestore
-          const savedPhoto = await databaseService.addPhotoToPlace(placeId, photo);
-          uploadedPhotos.push(savedPhoto);
+            // Upload to Firebase Storage
+            const photo = await storageService.uploadPhoto(
+              file,
+              userId,
+              placeId,
+              options,
+              onProgress
+            );
+
+            // Save metadata to Firestore
+            const savedPhoto = await databaseService.addPhotoToPlace(placeId, photo);
+            uploadedPhotos.push(savedPhoto);
+            
+            console.log(`✅ File ${i + 1} uploaded successfully`);
+          } catch (fileError: unknown) {
+            const errorMessage = getErrorMessage(fileError, 'Upload failed');
+            console.error(`❌ File ${i + 1} failed:`, errorMessage);
+            failedFiles.push({
+              filename: file.name,
+              error: errorMessage,
+            });
+            
+            // Continue uploading other files instead of stopping
+          }
         }
 
         setUploadProgress(100);
+        const duration = Date.now() - startTime;
+
+        // Check if any uploads succeeded
+        if (uploadedPhotos.length > 0) {
+          console.log(`✅ Uploaded ${uploadedPhotos.length}/${totalFiles} files`, {
+            duration: `${duration}ms`,
+          });
+          onSuccess?.(uploadedPhotos[0]);
+        }
+
+        // Handle partial failures
+        if (failedFiles.length > 0) {
+          const failureMessage = `${failedFiles.length} photo(s) failed to upload: ${failedFiles.map(f => f.filename).join(', ')}`;
+          console.warn('⚠️ Partial upload failure:', failureMessage);
+          setError(failureMessage);
+          onError?.(new Error(failureMessage));
+        }
+
         return uploadedPhotos;
       } catch (err: unknown) {
         const errorMessage = getErrorMessage(err, 'Failed to upload photos');
+        const duration = Date.now() - startTime;
+        
+        console.error('❌ Photo upload failed:', {
+          errorMessage,
+          duration: `${duration}ms`,
+        });
+
         setError(errorMessage);
         onError?.(new Error(errorMessage));
         return [];
       } finally {
         setUploading(false);
-        setTimeout(() => setUploadProgress(0), 1000);
+        // Reset progress bar after a short delay for visual feedback
+        setTimeout(() => setUploadProgress(0), 1500);
       }
     },
-    [placeId, userId, onError]
+    [placeId, userId, onSuccess, onError]
   );
 
   /**
-   * Delete a photo
+   * Delete a photo with robust error handling
+   * CRITICAL: Ensures loading state is reset even on error
    * Atomically removes from both Storage and Firestore
    */
   const deletePhoto = useCallback(
     async (photo: Photo): Promise<void> => {
+      const startTime = Date.now();
+      
       try {
         setError(null);
 
-        // Delete from Firebase Storage
-        await storageService.deletePhoto(photo.id, photo.storagePath);
+        console.log('🔴 Starting photo deletion:', { photoId: photo.id });
+
+        // Delete from Firebase Storage first
+        try {
+          await storageService.deletePhoto(photo.id, photo.storagePath);
+          console.log('✅ Storage deletion successful');
+        } catch (storageError: unknown) {
+          const errorMessage = getErrorMessage(storageError, 'Failed to delete from storage');
+          console.error('❌ Storage deletion failed:', errorMessage);
+          
+          // Check if it's a "not found" error - if so, continue to Firestore deletion
+          if (storageError instanceof Error && !storageError.message.includes('not found')) {
+            throw storageError;
+          }
+          console.log('ℹ️ File not in storage, continuing to remove metadata...');
+        }
 
         // Delete metadata from Firestore
-        await databaseService.deletePhotoFromPlace(placeId, photo.id);
+        try {
+          await databaseService.deletePhotoFromPlace(placeId, photo.id);
+          console.log('✅ Firestore deletion successful');
+        } catch (firestoreError: unknown) {
+          const errorMessage = getErrorMessage(firestoreError, 'Failed to delete photo metadata');
+          console.error('❌ Firestore deletion failed:', errorMessage);
+          throw firestoreError;
+        }
+
+        const duration = Date.now() - startTime;
+        console.log('✅ Photo deleted completely:', {
+          photoId: photo.id,
+          duration: `${duration}ms`,
+        });
       } catch (err: unknown) {
         const errorMessage = getErrorMessage(err, 'Failed to delete photo');
+        const duration = Date.now() - startTime;
+        
+        console.error('❌ Photo deletion failed:', {
+          photoId: photo.id,
+          errorMessage,
+          duration: `${duration}ms`,
+        });
+
+        // Set error state for UI display
         setError(errorMessage);
         onError?.(new Error(errorMessage));
         throw err;
