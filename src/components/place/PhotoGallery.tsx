@@ -109,13 +109,16 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
           className
         )}
       >
-        {photos.map((photo, index) => (
+        {photos.map((photo) => (
           <PhotoCard
-            key={photo.id || `photo-${index}`}
+            key={photo.id}
             photo={photo}
             onDelete={onDelete}
             onUpdateDescription={onUpdateDescription}
-            onClick={() => setLightboxIndex(index)}
+            onClick={() => {
+              const index = photos.findIndex(p => p.id === photo.id);
+              setLightboxIndex(index);
+            }}
             disabled={disabled}
           />
         ))}

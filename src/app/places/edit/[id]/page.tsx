@@ -53,13 +53,6 @@ export default function EditPlacePage() {
   } = usePhotoManagement({
     placeId,
     userId: user?.uid || '',
-    onSuccess: (photo) => {
-      // Prevent duplicates: only add if not already in list
-      setPhotos(prev => {
-        const exists = prev.some(p => p.id === photo.id);
-        return exists ? prev : [...prev, photo];
-      });
-    },
     onError: (err) => {
       setError(err.message);
     },
