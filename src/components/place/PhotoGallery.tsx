@@ -97,6 +97,11 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
     );
   }
 
+  // Defensive: filter out photos without valid URL or ID/storagePath
+  const validPhotos = photos.filter(
+    (photo) => (photo.url || photo.storagePath) && (photo.id || photo.storagePath)
+  );
+
   return (
     <>
       {/* Gallery Grid */}
@@ -109,15 +114,17 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
           className
         )}
       >
-        {photos.map((photo) => (
+        {validPhotos.map((photo, index) => (
           <PhotoCard
-            key={photo.id}
+            key={photo.id || photo.storagePath || `photo-${index}`}
             photo={photo}
             onDelete={onDelete}
             onUpdateDescription={onUpdateDescription}
             onClick={() => {
-              const index = photos.findIndex(p => p.id === photo.id);
-              setLightboxIndex(index);
+              const foundIndex = validPhotos.findIndex(
+                (p) => p.id === photo.id || p.storagePath === photo.storagePath
+              );
+              setLightboxIndex(foundIndex);
             }}
             disabled={disabled}
           />

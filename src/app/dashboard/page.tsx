@@ -17,8 +17,8 @@ import { databaseService } from '@/lib/database';
 import { getMapboxService } from '@/services/maps/MapboxService';
 import { Place } from '@/types';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import TravelTimeline from '@/components/timeline/TravelTimeline';
-import { Plus, MapPin, Globe2, Camera, Menu, X } from 'lucide-react';
+import { JourneyHub } from '@/components/journey';
+import { Plus, MapPin, Menu, X } from 'lucide-react';
 
 // Dynamic import for MapboxMap to avoid SSR issues
 const MapboxMap = dynamic(() => import('@/components/MapboxMap'), {
@@ -189,9 +189,9 @@ export default function DashboardPage() {
 
   return (
     <ProtectedRoute>
-      <div className="relative w-full h-screen overflow-hidden">
+      <div className="relative w-full h-screen overflow-hidden bg-slate-900">
         {/* Full-Bleed Map Background */}
-        <div className="absolute inset-0">
+        <div className="absolute top-0 left-0 right-0 bottom-0">
           {loadingPlaces ? (
             <div className="w-full h-full flex items-center justify-center bg-slate-900">
               <p className="text-slate-400">Loading your journey...</p>
@@ -217,7 +217,7 @@ export default function DashboardPage() {
               onMarkerClick={handleMarkerClick}
               zoom={2}
               style="mapbox://styles/mapbox/satellite-streets-v12"
-              className="w-full h-full"
+              className="absolute top-0 left-0 w-full h-screen"
             />
           )}
         </div>
@@ -275,76 +275,21 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        {/* Floating Stats Bar - Horizontal Above Timeline - "The Stats Band" */}
+        {/* Journey Hub - Premium Tabbed Interface */}
         {places.length > 0 && (
-          <div className="absolute bottom-44 sm:bottom-40 left-1/2 -translate-x-1/2 z-30 w-[95%] max-w-2xl">
-            <div className="rounded-full bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl shadow-black/20 px-6 py-3">
-              <div className="flex items-center justify-around gap-4">
-                {/* Places Count */}
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-blue-400/20 flex items-center justify-center">
-                    <MapPin className="w-4 h-4 text-blue-300" />
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-white leading-none">{places.length}</p>
-                    <p className="text-[10px] text-white/60">Places</p>
-                  </div>
-                </div>
-
-                <div className="w-px h-8 bg-white/20" />
-
-                {/* Countries Count */}
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-green-400/20 flex items-center justify-center">
-                    <Globe2 className="w-4 h-4 text-green-300" />
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-white leading-none">
-                      {new Set(places.map(p => p.address.country)).size}
-                    </p>
-                    <p className="text-[10px] text-white/60">Countries</p>
-                  </div>
-                </div>
-
-                <div className="w-px h-8 bg-white/20" />
-
-                {/* Photos Count */}
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-purple-400/20 flex items-center justify-center">
-                    <Camera className="w-4 h-4 text-purple-300" />
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-white leading-none">
-                      {places.reduce((total, place) => total + place.photos.length, 0)}
-                    </p>
-                    <p className="text-[10px] text-white/60">Photos</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Floating Timeline - Bottom - "The Content" */}
-        {places.length > 0 && (
-          <div className="absolute bottom-0 left-0 right-0 z-30 p-4">
-            <div className="rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl shadow-black/20">
-              <TravelTimeline
-                places={places}
-                selectedPlaceId={selectedPlace?.id}
-                onPlaceSelect={handleMarkerClick}
-                onPlaceDelete={handlePlaceDelete}
-                onPlaceEdit={handlePlaceEdit}
-                className="p-4"
-              />
-            </div>
-          </div>
+          <JourneyHub
+            places={places}
+            selectedPlaceId={selectedPlace?.id}
+            onPlaceSelect={handleMarkerClick}
+            onPlaceDelete={handlePlaceDelete}
+            onPlaceEdit={handlePlaceEdit}
+          />
         )}
 
         {/* Floating Action Button - Add Place */}
         <Link
           href="/places/add"
-          className="absolute bottom-40 right-6 sm:bottom-36 sm:right-8 z-40 w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-2xl shadow-blue-500/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95 group"
+          className="absolute bottom-8 right-6 sm:right-8 z-40 w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-2xl shadow-blue-500/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95 group"
         >
           <Plus className="w-6 h-6 text-white group-hover:rotate-90 transition-transform duration-300" />
         </Link>

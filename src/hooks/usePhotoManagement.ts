@@ -140,9 +140,15 @@ export function usePhotoManagement({
 
             // Save metadata to Firestore
             const savedPhoto = await databaseService.addPhotoToPlace(placeId, photo);
-            uploadedPhotos.push(savedPhoto);
             
-            console.log(`✅ File ${i + 1} uploaded successfully`);
+            // Defensive check: prevent duplicates by storagePath
+            const isDuplicate = uploadedPhotos.some(p => p.storagePath === savedPhoto.storagePath);
+            if (!isDuplicate) {
+              uploadedPhotos.push(savedPhoto);
+              console.log(`✅ File ${i + 1} uploaded successfully`);
+            } else {
+              console.warn(`⚠️ File ${i + 1} already uploaded (duplicate storagePath), skipping`);
+            }
           } catch (fileError: unknown) {
             const errorMessage = getErrorMessage(fileError, 'Upload failed');
             console.error(`❌ File ${i + 1} failed:`, errorMessage);

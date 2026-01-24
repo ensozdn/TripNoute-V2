@@ -1,0 +1,101 @@
+/**
+ * InsightsTab Component
+ * 
+ * Travel statistics dashboard.
+ * Single Responsibility: Only renders insights/stats view.
+ */
+
+'use client';
+
+import { motion } from 'framer-motion';
+import { JourneyStats, PlaceFrequency } from '@/types/journey';
+import StatCard from '../insights/StatCard';
+import PlacesChart from '../insights/PlacesChart';
+
+interface InsightsTabProps {
+  stats: JourneyStats;
+  placeFrequencies: PlaceFrequency[];
+}
+
+export default function InsightsTab({ 
+  stats, 
+  placeFrequencies, 
+}: InsightsTabProps) {
+  // Format distance
+  const formatDistance = (km: number): string => {
+    if (km < 1) return '0 km';
+    if (km >= 1000) return `${(km / 1000).toFixed(1)}k km`;
+    return `${Math.round(km)} km`;
+  };
+
+  // Format date range
+  const formatDateRange = (): string => {
+    if (!stats.firstTripDate || !stats.lastTripDate) return 'No trips yet';
+    
+    const first = stats.firstTripDate.toLocaleDateString('en-US', { 
+      month: 'short', 
+      year: 'numeric' 
+    });
+    const last = stats.lastTripDate.toLocaleDateString('en-US', { 
+      month: 'short', 
+      year: 'numeric' 
+    });
+    
+    return first === last ? first : `${first} - ${last}`;
+  };
+
+  return (
+    <motion.div
+      initial={{ x: 20, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: -20, opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="px-4 pb-4 overflow-y-auto"
+    >
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <StatCard
+          icon="📍"
+          label="Places"
+          value={stats.totalPlaces}
+          subtitle={`${stats.citiesVisited} cities`}
+        />
+        <StatCard
+          icon="🌍"
+          label="Countries"
+          value={stats.countriesVisited}
+        />
+        <StatCard
+          icon="📸"
+          label="Photos"
+          value={stats.totalPhotos}
+        />
+        <StatCard
+          icon="🛣️"
+          label="Distance"
+          value={formatDistance(stats.totalDistance)}
+        />
+      </div>
+
+      {/* Date Range Card */}
+      <div className="p-4 rounded-2xl bg-white/10 border border-white/20 mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+            <span className="text-xl">📅</span>
+          </div>
+          <div>
+            <p className="text-xs text-slate-400 uppercase tracking-wide">
+              Journey Period
+            </p>
+            <p className="text-white font-medium">
+              {formatDateRange()}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Places Frequency Chart */}
+      <PlacesChart data={placeFrequencies} />
+    </motion.div>
+  );
+}

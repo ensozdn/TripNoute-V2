@@ -154,9 +154,10 @@ export class FirebaseStorageService implements IStorageService {
         );
       }
 
-      // Return Photo object (without Firestore ID - that will be added by DatabaseService)
+      // Return Photo object with temporary ID (will be overwritten by DatabaseService)
+      // Using storagePath as temporary unique identifier during upload
       const photo: Photo = {
-        id: '', // Will be set by DatabaseService when saving to Firestore
+        id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Temporary unique ID
         url,
         thumbnailUrl,
         storagePath,
