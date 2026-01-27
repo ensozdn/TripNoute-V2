@@ -48,32 +48,21 @@ export default function GalleryTab({ photos }: GalleryTabProps) {
 
   if (photos.length === 0) {
     return (
-      <motion.div
-        initial={{ x: 20, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        exit={{ x: -20, opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="flex flex-col items-center justify-center py-12 px-4"
-      >
+      <div className="flex flex-col items-center justify-center py-12 px-4">
         <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-4">
           <span className="text-3xl">🖼️</span>
         </div>
         <p className="text-slate-400 text-center">
           No photos yet. Add photos to your places!
         </p>
-      </motion.div>
+      </div>
     );
   }
 
   return (
     <>
-      <motion.div
-        initial={{ x: 20, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        exit={{ x: -20, opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="px-4 pb-4 overflow-y-auto"
-      >
+      <div>
+        {/* Padding handled by parent JourneyHub */}
         {/* Square Grid */}
         <div className="grid grid-cols-3 gap-2">
           {photos.map((photo, index) => (
@@ -97,7 +86,7 @@ export default function GalleryTab({ photos }: GalleryTabProps) {
             </motion.button>
           ))}
         </div>
-      </motion.div>
+      </div>
 
       {/* Lightbox */}
       <AnimatePresence>

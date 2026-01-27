@@ -28,6 +28,7 @@ class MapboxService implements IMapboxService {
 
   /**
    * Haritayı başlat
+   * Enhanced: Mobile-optimized globe projection with dynamic zoom/padding
    */
   async initializeMap(config: MapboxConfig): Promise<mapboxgl.Map> {
     if (this.map) {
@@ -37,18 +38,35 @@ class MapboxService implements IMapboxService {
     mapboxgl.accessToken = config.accessToken;
 
     try {
+      // Detect mobile device
+      const isMobile = window.innerWidth < 768;
+
+      // Mobile-optimized settings: wider globe view, less cramped
+      const mobileZoom = 1.2;  // Slightly zoomed out for wider cinematic view
+      const desktopZoom = config.zoom || 1.5;
+
       this.map = new mapboxgl.Map({
         container: config.container,
         style: config.style || 'mapbox://styles/mapbox/dark-v11',
-        center: config.center || [0, 0],
-        zoom: config.zoom || 1.5, // Globe view zoom
+        center: config.center || [0, 20],  // Center at 20° N for better world view
+        zoom: isMobile ? mobileZoom : desktopZoom,
         pitch: config.pitch || 0,
         bearing: config.bearing || 0,
-        projection: 'globe' as any, // Enable globe projection
+        projection: 'globe' as any,  // Enable globe projection
+        // Mobile-optimized padding for better screen utilization
+        maxPitch: 85,
+        antialias: true,
       });
 
-      this.map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-      this.map.addControl(new mapboxgl.FullscreenControl(), 'top-right');
+      // Apply mobile-specific padding for safer clickable areas
+      if (isMobile) {
+        // Reduce padding on mobile to maximize map visibility
+        this.map.setPadding({ top: 0, bottom: 0, left: 0, right: 0 });
+      }
+
+      // Removed Mapbox controls (NavigationControl, FullscreenControl) 
+      // to prevent UI blocking on mobile
+      // User location button is handled separately as custom button
 
       // Setup interrupt listeners for rotation
       this.setupRotationInterrupts();
@@ -352,22 +370,41 @@ class MapboxService implements IMapboxService {
   /**
    * Kullanıcı konumunu aktif et (mavi nokta)
    * NOT: Globe rotation için otomatik trigger KAPALI
+   * Enhanced: Better error handling and permission feedback
    */
   enableUserLocation(): void {
     if (!this.map) {
       throw new Error('Map not initialized');
     }
 
+    // Check geolocation support first
+    if (!('geolocation' in navigator)) {
+      console.warn('Geolocation not supported in this browser');
+      return;
+    }
+
     const geolocateControl = new mapboxgl.GeolocateControl({
       positionOptions: {
         enableHighAccuracy: true,
+        timeout: 10000, // Extend timeout for mobile
       },
-      trackUserLocation: true,
+      trackUserLocation: false, // We handle location manually
       showUserHeading: true,
       showUserLocation: true,
     });
 
     this.map.addControl(geolocateControl, 'top-right');
+
+    // Better error handling for geolocation
+    geolocateControl.on('error', () => {
+      // Silent fail - permission denied or geolocation unavailable
+      // User will see X icon but this is expected behavior
+      // They can try custom location button instead
+    });
+
+    geolocateControl.on('geolocate', () => {
+      // Geolocation successful - optional logging only
+    });
 
     // REMOVED: Automatic trigger that was forcing map to user location
     // User can manually click the geolocate button if they want to see their location
@@ -378,35 +415,76 @@ class MapboxService implements IMapboxService {
 
   /**
    * Kullanıcının konumuna git
+   * Enhanced: Robust geolocation with permission handling and mobile optimization
    */
-  async flyToUserLocation(zoom: number = 14): Promise<{ lat: number; lng: number } | null> {
+  async flyToUserLocation(zoom: number = 12): Promise<{ lat: number; lng: number } | null> {
     return new Promise((resolve) => {
-      if ('geolocation' in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-
-            if (this.map) {
-              this.flyTo(lat, lng, zoom);
-            }
-
-            resolve({ lat, lng });
-          },
-          (error) => {
-            console.warn('Geolocation error:', error);
-            resolve(null);
-          },
-          {
-            enableHighAccuracy: true,
-            timeout: 5000,
-            maximumAge: 0,
-          }
-        );
-      } else {
-        console.warn('Geolocation not supported');
+      // Check if geolocation is supported
+      if (!('geolocation' in navigator)) {
+        console.error('❌ Geolocation not supported in this browser');
         resolve(null);
+        return;
       }
+
+      console.log('🔍 Geolocation request starting...');
+
+      // Stop any ongoing rotation for cinematic transition
+      this.stopRotation();
+
+      // Get current position with enhanced error handling
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          console.log('✅ getCurrentPosition SUCCESS callback triggered');
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          const accuracy = position.coords.accuracy;
+
+          console.log(`📍 Location: ${lat}, ${lng} (±${accuracy}m)`);
+
+          if (!this.map) {
+            console.warn('⚠️ Map not initialized, returning location only');
+            resolve({ lat, lng });
+            return;
+          }
+
+          // Fly to user location with essential: true for mobile
+          console.log('🚀 Flying to location with zoom:', zoom);
+          this.map.flyTo({
+            center: [lng, lat],
+            zoom,
+            duration: 2000,
+            essential: true, // Required for autoplay on mobile
+            maxZoom: 16,
+          });
+
+          resolve({ lat, lng });
+        },
+        (error) => {
+          console.log('❌ getCurrentPosition ERROR callback triggered:', error.code);
+          // Handle different geolocation errors
+          let errorMessage = 'Geolocation error';
+          
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = 'Location permission denied. Enable GPS in settings.';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = 'Location unavailable. Please try again.';
+              break;
+            case error.TIMEOUT:
+              errorMessage = 'Location request timed out. Please try again.';
+              break;
+          }
+          
+          console.warn('⚠️ ' + errorMessage);
+          resolve(null);
+        },
+        {
+          enableHighAccuracy: true,  // Request precise location
+          timeout: 10000,             // Extended timeout for mobile
+          maximumAge: 0,              // Always get fresh location
+        }
+      );
     });
   }
 

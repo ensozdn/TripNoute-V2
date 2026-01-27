@@ -26,6 +26,8 @@ export default function MapboxLocationPicker({
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedLocation, setSelectedLocation] = useState(initialLocation || null);
   const [isGeocodingAddress, setIsGeocodingAddress] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
   const googlePlaces = useRef(getGooglePlacesService());
 
   const accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
@@ -72,6 +74,28 @@ export default function MapboxLocationPicker({
     });
   };
 
+  // Handle locate button click with error handling
+  const handleLocateMe = async () => {
+    setIsLocating(true);
+    setLocationError(null);
+    
+    try {
+      const result = await flyToUserLocation(12);
+      
+      if (!result) {
+        setLocationError('Konumunuz alınamadı. GPS\'i açın ve tekrar deneyin.');
+      } else {
+        setSelectedLocation({ lat: result.lat, lng: result.lng });
+        setLocationError(null);
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Bilinmeyen bir hata oluştu';
+      setLocationError(errorMsg);
+    } finally {
+      setIsLocating(false);
+    }
+  };
+
   // Mapbox hook
   const { isLoaded, error, flyTo, flyToUserLocation } = useMapbox(containerRef, {
     accessToken,
@@ -79,7 +103,7 @@ export default function MapboxLocationPicker({
     center: initialLocation ? [initialLocation.lng, initialLocation.lat] : [0, 0],
     zoom: initialLocation ? 14 : 2,
     markers,
-    enableUserLocation: true,
+    enableUserLocation: false, // Custom location button kullanıyoruz
     onMapClick: handleMapClick,
   });
 
@@ -139,16 +163,33 @@ export default function MapboxLocationPicker({
 
           {/* My Location Button */}
           {isLoaded && (
-            <button
-              onClick={() => flyToUserLocation(14)}
-              className="absolute top-4 right-4 bg-white hover:bg-slate-50 text-slate-900 p-3 rounded-lg shadow-lg transition-all hover:shadow-xl active:scale-95 z-10"
-              title="Konumuma Git"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </button>
+            <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+              <button
+                onClick={handleLocateMe}
+                disabled={isLocating}
+                className="bg-white hover:bg-slate-50 disabled:bg-slate-100 text-slate-900 p-3 rounded-lg shadow-lg transition-all hover:shadow-xl active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Konumuma Git"
+              >
+                {isLocating ? (
+                  <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
+                    <path strokeLinecap="round" d="M12 2a10 10 0 0110 10" stroke="currentColor" strokeWidth="2" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                )}
+              </button>
+              
+              {/* Error message */}
+              {locationError && (
+                <div className="bg-red-500/90 text-white px-3 py-2 rounded-lg text-xs max-w-xs shadow-lg">
+                  {locationError}
+                </div>
+              )}
+            </div>
           )}
 
           {/* Geocoding Indicator */}

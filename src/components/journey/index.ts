@@ -5,7 +5,6 @@
  */
 
 export { default as JourneyHub } from './JourneyHub';
-export { default as JourneyTabs } from './JourneyTabs';
 
 // Tab components
 export { default as TimelineTab } from './tabs/TimelineTab';

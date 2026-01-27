@@ -1,20 +1,34 @@
 /**
- * JourneyHub Component
+ * JourneyHub Component - Premium Mobile Experience
  * 
- * Main container for the tabbed journey interface.
- * Single Responsibility: Manages tab state and coordinates sub-components.
+ * Native Mobile Features:
+ * - Haptic Gesture Sheet with 3 snap points (Peek/Half/Full)
+ * - Magic Pill Tab Bar with spring animations
+ * - Grab Handle with breathing animation
+ * - Data sanity checks for consistent statistics
  */
 
 'use client';
 
-import { useState, useMemo } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { useState, useMemo, useRef } from 'react';
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { Place } from '@/types';
-import { TabType, JourneyStats, PlaceFrequency, GalleryPhoto } from '@/types/journey';
-import JourneyTabs from './JourneyTabs';
+import { JourneyStats, PlaceFrequency, GalleryPhoto } from '@/types/journey';
 import TimelineTab from './tabs/TimelineTab';
 import InsightsTab from './tabs/InsightsTab';
 import GalleryTab from './tabs/GalleryTab';
+import { Map, BarChart3, ImageIcon } from 'lucide-react';
+import { deduplicateCountries, sortByFrequency } from '@/utils/dataNormalizer';
+
+type TabType = 'timeline' | 'insights' | 'gallery';
+type SheetState = 'peek' | 'half' | 'full';
+
+interface TabConfig {
+  id: TabType;
+  label: string;
+  icon: React.ReactNode;
+  expandsTo: SheetState;
+}
 
 interface JourneyHubProps {
   places: Place[];
@@ -24,6 +38,19 @@ interface JourneyHubProps {
   onPlaceEdit?: (place: Place) => void;
 }
 
+const TABS: TabConfig[] = [
+  { id: 'timeline', label: 'Timeline', icon: <Map className="w-5 h-5" />, expandsTo: 'half' },
+  { id: 'insights', label: 'Insights', icon: <BarChart3 className="w-5 h-5" />, expandsTo: 'full' },
+  { id: 'gallery', label: 'Gallery', icon: <ImageIcon className="w-5 h-5" />, expandsTo: 'full' },
+];
+
+// Snap points: Peek (10%), Half (50%), Full (95%)
+const SNAP_POINTS: Record<SheetState, number> = {
+  peek: 0.1,    // ~10% - Grab handle only, peek at content
+  half: 0.5,    // 50% - Half screen
+  full: 0.95,   // 95% - Full screen
+};
+
 export default function JourneyHub({
   places,
   selectedPlaceId,
@@ -31,9 +58,14 @@ export default function JourneyHub({
   onPlaceDelete,
   onPlaceEdit,
 }: JourneyHubProps) {
-  const [activeTab, setActiveTab] = useState<TabType>('timeline');
+  const [activeTabIndex, setActiveTabIndex] = useState(0);
+  const [sheetState, setSheetState] = useState<SheetState>('peek');
+  const sheetRef = useRef<HTMLDivElement>(null);
 
-  // Calculate journey stats from places
+  // ============================================
+  // MEMOIZED DATA WITH SANITY CHECKS
+  // ============================================
+
   const stats: JourneyStats = useMemo(() => {
     const countries = new Set<string>();
     const cities = new Set<string>();
@@ -42,14 +74,19 @@ export default function JourneyHub({
     let lastDate: Date | null = null;
 
     places.forEach((place) => {
-      // Count countries and cities
-      if (place.address?.country) countries.add(place.address.country);
-      if (place.address?.city) cities.add(place.address.city);
+      // Normalize country and city names for accurate counting
+      const normalizedCountry = place.address?.country
+        ? place.address.country.trim().toLowerCase().replace(/\s+/g, ' ')
+        : null;
+      const normalizedCity = place.address?.city
+        ? place.address.city.trim().toLowerCase().replace(/\s+/g, ' ')
+        : null;
 
-      // Count photos
+      if (normalizedCountry) countries.add(normalizedCountry);
+      if (normalizedCity) cities.add(normalizedCity);
+
       totalPhotos += place.photos?.length || 0;
 
-      // Track date range
       if (place.visitDate?.seconds) {
         const date = new Date(place.visitDate.seconds * 1000);
         if (!firstDate || date < firstDate) firstDate = date;
@@ -60,7 +97,7 @@ export default function JourneyHub({
     return {
       totalPlaces: places.length,
       totalPhotos,
-      totalDistance: 0, // TODO: Calculate actual distance
+      totalDistance: 0,
       countriesVisited: countries.size,
       citiesVisited: cities.size,
       firstTripDate: firstDate,
@@ -68,24 +105,18 @@ export default function JourneyHub({
     };
   }, [places]);
 
-  // Calculate place frequencies by country
   const placeFrequencies: PlaceFrequency[] = useMemo(() => {
-    const countryMap = new Map<string, number>();
-
-    places.forEach((place) => {
-      const country = place.address?.country || 'Unknown';
-      countryMap.set(country, (countryMap.get(country) || 0) + 1);
-    });
-
-    return Array.from(countryMap.entries())
-      .map(([country, count]) => ({ country, count }))
-      .sort((a, b) => b.count - a.count);
+    const countryMap = deduplicateCountries(places);
+    const sorted = sortByFrequency(countryMap);
+    
+    return sorted.map(([country, count]) => ({
+      country,
+      count,
+    }));
   }, [places]);
 
-  // Collect all photos from places
   const galleryPhotos: GalleryPhoto[] = useMemo(() => {
     const photos: GalleryPhoto[] = [];
-
     places.forEach((place) => {
       place.photos?.forEach((photo) => {
         photos.push({
@@ -99,17 +130,72 @@ export default function JourneyHub({
         });
       });
     });
-
     return photos;
   }, [places]);
 
-  // Render active tab content
+  // ============================================
+  // GESTURE HANDLERS
+  // ============================================
+
+  /**
+   * Handle vertical drag with velocity-based snapping
+   */
+  const handleDrag = (
+    _event: MouseEvent | TouchEvent | PointerEvent,
+    info: { offset: { y: number }; velocity: { y: number } }
+  ) => {
+    const viewportHeight = window.innerHeight;
+    const currentHeight = SNAP_POINTS[sheetState] * viewportHeight;
+    const newHeight = currentHeight - info.offset.y;
+    const newHeightRatio = newHeight / viewportHeight;
+
+    let nextState: SheetState = sheetState;
+
+    // Fast upward swipe (velocity < -300px/s) → expand
+    if (info.velocity.y < -300) {
+      if (sheetState === 'peek') nextState = 'half';
+      else if (sheetState === 'half') nextState = 'full';
+    }
+    // Fast downward swipe (velocity > 300px/s) → collapse
+    else if (info.velocity.y > 300) {
+      if (sheetState === 'full') nextState = 'half';
+      else if (sheetState === 'half') nextState = 'peek';
+    }
+    // Position-based snapping
+    else {
+      if (newHeightRatio > 0.7) {
+        nextState = 'full';
+      } else if (newHeightRatio > 0.3) {
+        nextState = 'half';
+      } else {
+        nextState = 'peek';
+      }
+    }
+
+    setSheetState(nextState);
+  };
+
+  /**
+   * Tab click → auto-expand to preferred height
+   */
+  const handleTabClick = (tabIndex: number) => {
+    setActiveTabIndex(tabIndex);
+    const expandsTo = TABS[tabIndex].expandsTo;
+    setSheetState(expandsTo);
+  };
+
+  // ============================================
+  // RENDER LOGIC
+  // ============================================
+
+  const activeTab = TABS[activeTabIndex];
+  const sheetHeightPercent = SNAP_POINTS[sheetState];
+
   const renderTabContent = () => {
-    switch (activeTab) {
+    switch (activeTab.id) {
       case 'timeline':
         return (
           <TimelineTab
-            key="timeline"
             places={places}
             selectedPlaceId={selectedPlaceId}
             onPlaceSelect={onPlaceSelect}
@@ -120,7 +206,6 @@ export default function JourneyHub({
       case 'insights':
         return (
           <InsightsTab
-            key="insights"
             stats={stats}
             placeFrequencies={placeFrequencies}
           />
@@ -128,7 +213,6 @@ export default function JourneyHub({
       case 'gallery':
         return (
           <GalleryTab
-            key="gallery"
             photos={galleryPhotos}
           />
         );
@@ -137,22 +221,119 @@ export default function JourneyHub({
     }
   };
 
+  // ============================================
+  // MAIN RENDER
+  // ============================================
+
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-30 max-h-1/2 flex flex-col bg-black/40 backdrop-blur-md border-t border-white/10">
-      {/* Drag Handle */}
-      <div className="flex justify-center pt-3 pb-1">
-        <div className="w-12 h-1.5 rounded-full bg-white/30" />
-      </div>
+    <motion.div
+      ref={sheetRef}
+      initial={{ y: '100%', opacity: 0 }}
+      animate={{
+        y: 0,
+        opacity: 1,
+        height: `${sheetHeightPercent * 100}vh`,
+        transition: {
+          type: 'spring',
+          damping: 25,
+          stiffness: 200,
+          mass: 1,
+        },
+      }}
+      drag="y"
+      dragElastic={0.1}
+      dragConstraints={{ top: 0, bottom: 0 }}
+      onDrag={handleDrag}
+      className="fixed bottom-0 left-0 right-0 z-40 flex flex-col rounded-t-3xl"
+      style={{
+        touchAction: 'none',
+      }}
+    >
+      {/* ========================================
+          PREMIUM GLASSMORPHISM BACKGROUND
+          backdrop-blur-2xl + gradient
+          ======================================== */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/20 backdrop-blur-2xl border-t border-white/10 rounded-t-3xl" />
 
-      {/* Tab Navigation */}
-      <JourneyTabs activeTab={activeTab} onTabChange={setActiveTab} />
+      {/* ========================================
+          GRAB HANDLE - Haptic Indicator
+          ======================================== */}
+      <motion.div
+        className="relative z-10 flex justify-center py-3"
+        animate={{ opacity: [0.5, 0.7, 0.5] }}
+        transition={{ duration: 2, repeat: Infinity }}
+      >
+        <div className="w-12 h-1.5 rounded-full bg-white/40 cursor-grab active:cursor-grabbing" />
+      </motion.div>
 
-      {/* Tab Content */}
-      <div className="flex-1 min-h-0 overflow-hidden">
+      {/* ========================================
+          MAGIC PILL TAB BAR - Floating Pill Design
+          ======================================== */}
+      <LayoutGroup>
+        <div className="relative z-10 flex items-center border-b border-white/5 px-4 pb-0">
+          <div className="flex items-center w-full relative">
+            {/* Animated Pill Background */}
+            <motion.div
+              layoutId="active-pill"
+              className="absolute h-10 bg-white/10 border border-white/20 rounded-xl"
+              transition={{
+                type: 'spring',
+                stiffness: 400,
+                damping: 30,
+              }}
+              style={{
+                width: `${100 / TABS.length}%`,
+                left: `${(activeTabIndex * 100) / TABS.length}%`,
+              }}
+            />
+
+            {/* Tab Buttons */}
+            {TABS.map((tab, index) => (
+              <motion.button
+                key={tab.id}
+                onClick={() => handleTabClick(index)}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 px-3 text-sm font-medium relative z-20 transition-colors duration-200 ${
+                  index === activeTabIndex
+                    ? 'text-white'
+                    : 'text-slate-400 hover:text-slate-300'
+                }`}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {tab.icon}
+                <span className="hidden sm:inline">{tab.label}</span>
+              </motion.button>
+            ))}
+          </div>
+        </div>
+      </LayoutGroup>
+
+      {/* ========================================
+          CAROUSEL CONTENT WITH SCROLL
+          ======================================== */}
+      <div
+        className="relative z-10 flex-1 min-h-0 overflow-hidden"
+        style={{
+          touchAction: 'pan-y pinch-zoom',
+        }}
+      >
         <AnimatePresence mode="wait">
-          {renderTabContent()}
+          <motion.div
+            key={activeTab.id}
+            initial={{ x: '100%', opacity: 0 }}
+            animate={{ x: 0, opacity: 1, transition: { duration: 0.3 } }}
+            exit={{ x: '-100%', opacity: 0, transition: { duration: 0.3 } }}
+            className="h-full w-full overflow-y-auto px-4 pb-4"
+          >
+            {renderTabContent()}
+          </motion.div>
         </AnimatePresence>
       </div>
-    </div>
+
+      {/* ========================================
+          SAFE AREA PADDING (iOS)
+          ======================================== */}
+      <div className="relative z-10 h-safe" />
+    </motion.div>
   );
 }

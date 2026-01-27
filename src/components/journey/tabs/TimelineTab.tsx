@@ -7,7 +7,6 @@
 
 'use client';
 
-import { motion } from 'framer-motion';
 import TravelTimeline from '@/components/timeline/TravelTimeline';
 import { Place } from '@/types';
 
@@ -27,20 +26,12 @@ export default function TimelineTab({
   onPlaceEdit,
 }: TimelineTabProps) {
   return (
-    <motion.div
-      initial={{ x: 20, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      exit={{ x: -20, opacity: 0 }}
-      transition={{ duration: 0.2 }}
-      className="h-full px-4 pb-4 overflow-y-auto"
-    >
-      <TravelTimeline
-        places={places}
-        selectedPlaceId={selectedPlaceId}
-        onPlaceSelect={onPlaceSelect}
-        onPlaceDelete={onPlaceDelete}
-        onPlaceEdit={onPlaceEdit}
-      />
-    </motion.div>
+    <TravelTimeline
+      places={places}
+      selectedPlaceId={selectedPlaceId}
+      onPlaceSelect={onPlaceSelect}
+      onPlaceDelete={onPlaceDelete}
+      onPlaceEdit={onPlaceEdit}
+    />
   );
 }

@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useRef, useMemo, useEffect } from 'react';
+import { useRef, useMemo, useEffect, useState } from 'react';
 import { useMapbox } from '@/hooks/useMapbox';
 import { getMapboxService } from '@/services/maps';
 import type { MapMarker } from '@/types/maps';
@@ -36,6 +36,8 @@ export default function MapboxMap({
   // Tüm hook'lar en başta
   const containerRef = useRef<HTMLDivElement>(null);
   const accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
 
   // Places'leri MapMarker'lara dönüştür
   const markers: MapMarker[] = useMemo(() => {
@@ -63,17 +65,44 @@ export default function MapboxMap({
     };
   }, [places, onMarkerClick]);
 
-  // Mapbox hook - Geolocate butonu aktif AMA otomatik tetiklenmiyor
+  // Mapbox hook - Custom location button kullanıyoruz (GeolocateControl kaldırıldı)
   const { map, isLoaded, error, flyTo, flyToUserLocation } = useMapbox(containerRef, {
     accessToken,
     style,
     center,
     zoom,
     markers,
-    enableUserLocation: true, // Buton gösterilir ama globe view bozulmaz
+    enableUserLocation: false, // GeolocateControl devre dışı - custom button kullanıyoruz
     onMapClick,
     onMarkerClick: handleMarkerClick,
   });
+
+  // Handle locate button click with error handling
+  const handleLocateMe = async () => {
+    alert('🔍 Konum isteği başladı...');
+    setIsLocating(true);
+    setLocationError(null);
+    
+    try {
+      const result = await flyToUserLocation(12);
+      
+      if (!result) {
+        alert('❌ Konum alınamadı!');
+        setLocationError('Konumunuz alınamadı. GPS\'i açın ve tekrar deneyin.');
+      } else {
+        alert('✅ Konum bulundu! Harita hareket ediyor...');
+        setLocationError(null);
+        console.log('✅ Konumunuz başarıyla alındı:', result);
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Bilinmeyen bir hata oluştu';
+      alert('⚠️ Hata: ' + errorMsg);
+      setLocationError(errorMsg);
+      console.error('❌ Konum hatası:', err);
+    } finally {
+      setIsLocating(false);
+    }
+  };
 
   // Selected place effect
   useEffect(() => {
@@ -160,16 +189,36 @@ export default function MapboxMap({
 
       {/* My Location Button */}
       {isLoaded && (
-        <button
-          onClick={() => flyToUserLocation(14)}
-          className="absolute top-4 right-4 bg-white hover:bg-slate-50 text-slate-900 p-3 rounded-lg shadow-lg transition-all hover:shadow-xl active:scale-95 z-10"
-          title="Konumuma Git"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-        </button>
+        <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+          <button
+            onClick={() => {
+              alert('BUTTON CLICKED!');
+              handleLocateMe();
+            }}
+            disabled={isLocating}
+            className="bg-red-500 hover:bg-red-600 disabled:bg-red-400 text-white p-3 rounded-lg shadow-lg transition-all hover:shadow-xl active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Konumuma Git"
+          >
+            {isLocating ? (
+              <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
+                <path strokeLinecap="round" d="M12 2a10 10 0 0110 10" stroke="currentColor" strokeWidth="2" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            )}
+          </button>
+          
+          {/* Error message */}
+          {locationError && (
+            <div className="bg-red-500/90 text-white px-3 py-2 rounded-lg text-xs max-w-xs shadow-lg">
+              {locationError}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Info Badge */}

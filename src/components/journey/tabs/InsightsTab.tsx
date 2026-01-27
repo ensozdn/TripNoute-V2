@@ -7,7 +7,6 @@
 
 'use client';
 
-import { motion } from 'framer-motion';
 import { JourneyStats, PlaceFrequency } from '@/types/journey';
 import StatCard from '../insights/StatCard';
 import PlacesChart from '../insights/PlacesChart';
@@ -45,13 +44,7 @@ export default function InsightsTab({
   };
 
   return (
-    <motion.div
-      initial={{ x: 20, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      exit={{ x: -20, opacity: 0 }}
-      transition={{ duration: 0.2 }}
-      className="px-4 pb-4 overflow-y-auto"
-    >
+    <div>
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-3 mb-4">
         <StatCard
@@ -96,6 +89,6 @@ export default function InsightsTab({
 
       {/* Places Frequency Chart */}
       <PlacesChart data={placeFrequencies} />
-    </motion.div>
+    </div>
   );
 }
