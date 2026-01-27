@@ -187,35 +187,32 @@ export default function MapboxMap({
         </div>
       )}
 
-      {/* My Location Button */}
+      {/* My Location Button - Mobile Optimized */}
       {isLoaded && (
-        <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+        <div className="absolute bottom-24 left-4 z-10 flex flex-col gap-2">
           <button
-            onClick={() => {
-              alert('BUTTON CLICKED!');
-              handleLocateMe();
-            }}
+            onClick={handleLocateMe}
             disabled={isLocating}
-            className="bg-red-500 hover:bg-red-600 disabled:bg-red-400 text-white p-3 rounded-lg shadow-lg transition-all hover:shadow-xl active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-white/10 backdrop-blur-xl border border-white/20 hover:bg-white/20 disabled:bg-white/5 text-white p-3.5 rounded-2xl shadow-2xl shadow-black/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             title="Konumuma Git"
+            aria-label="Konumuma Git"
           >
             {isLocating ? (
-              <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
                 <path strokeLinecap="round" d="M12 2a10 10 0 0110 10" stroke="currentColor" strokeWidth="2" />
               </svg>
             ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
               </svg>
             )}
           </button>
           
           {/* Error message */}
           {locationError && (
-            <div className="bg-red-500/90 text-white px-3 py-2 rounded-lg text-xs max-w-xs shadow-lg">
-              {locationError}
+            <div className="bg-red-500/90 backdrop-blur-xl text-white px-3 py-2 rounded-xl text-xs max-w-xs shadow-xl">
+              ❌ {locationError}
             </div>
           )}
         </div>

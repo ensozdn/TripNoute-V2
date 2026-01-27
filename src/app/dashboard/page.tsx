@@ -222,58 +222,43 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Floating Glass Capsule Header - "The Frame" */}
-        <header className="absolute top-4 left-1/2 -translate-x-1/2 z-40 w-[95%] max-w-2xl">
-          <div className="rounded-full bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl shadow-black/20 px-6 py-3">
-            <div className="flex items-center justify-between">
-              {/* Logo */}
-              <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                <Image 
-                  src="/tripnoute-logo.png" 
-                  alt="TripNoute" 
-                  width={28} 
-                  height={28}
-                  className="rounded-lg"
-                />
-                <span className="text-base font-semibold text-white hidden sm:inline">TripNoute</span>
-              </Link>
+        {/* Floating Logo Only - Minimal Design */}
+        <header className="absolute top-4 left-4 z-40">
+          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity group">
+            <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-2.5 shadow-2xl shadow-black/20 group-hover:bg-white/20 transition-all">
+              <Image 
+                src="/tripnoute-logo.png" 
+                alt="TripNoute" 
+                width={28} 
+                height={28}
+                className="rounded-lg"
+              />
+            </div>
+          </Link>
+        </header>
 
-              {/* Desktop Nav */}
-              <div className="hidden md:flex items-center gap-4">
-                <span className="text-sm text-white/80">Hi, {user?.displayName?.split(' ')[0] || 'Traveler'}!</span>
-                <button 
-                  onClick={handleLogout} 
-                  className="text-sm text-white/70 hover:text-white transition-colors"
-                >
-                  Logout
-                </button>
-              </div>
+        {/* Floating Menu Button - Top Right */}
+        <button
+          onClick={() => setShowMenu(!showMenu)}
+          className="absolute top-4 right-4 z-40 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-2.5 shadow-2xl shadow-black/20 hover:bg-white/20 transition-all"
+        >
+          {showMenu ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5 text-white" />}
+        </button>
 
-              {/* Mobile Menu Button */}
-              <button
-                onClick={() => setShowMenu(!showMenu)}
-                className="md:hidden p-2 rounded-full hover:bg-white/10 transition-colors"
+        {/* Floating Menu Dropdown */}
+        {showMenu && (
+          <div className="absolute top-16 right-4 z-40 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl shadow-black/20 overflow-hidden min-w-[200px]">
+            <div className="p-4 space-y-3">
+              <p className="text-sm text-white/80 font-medium">Hi, {user?.displayName?.split(' ')[0] || 'Traveler'}! 👋</p>
+              <button 
+                onClick={handleLogout} 
+                className="w-full text-left text-sm text-white/70 hover:text-white hover:bg-white/10 transition-all py-2 px-3 rounded-lg"
               >
-                {showMenu ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5 text-white" />}
+                Logout
               </button>
             </div>
-
-            {/* Mobile Menu Dropdown */}
-            {showMenu && (
-              <div className="md:hidden mt-3 pt-3 border-t border-white/10">
-                <div className="space-y-2">
-                  <p className="text-sm text-white/80 mb-2">Hi, {user?.displayName?.split(' ')[0] || 'Traveler'}!</p>
-                  <button 
-                    onClick={handleLogout} 
-                    className="w-full text-left text-sm text-white/70 hover:text-white transition-colors py-2"
-                  >
-                    Logout
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
-        </header>
+        )}
 
         {/* Journey Hub - Premium Tabbed Interface */}
         {places.length > 0 && (
@@ -289,7 +274,7 @@ export default function DashboardPage() {
         {/* Floating Action Button - Add Place */}
         <Link
           href="/places/add"
-          className="absolute bottom-8 right-6 sm:right-8 z-40 w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-2xl shadow-blue-500/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95 group"
+          className="absolute bottom-24 right-6 sm:right-8 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-2xl shadow-blue-500/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95 group"
         >
           <Plus className="w-6 h-6 text-white group-hover:rotate-90 transition-transform duration-300" />
         </Link>
