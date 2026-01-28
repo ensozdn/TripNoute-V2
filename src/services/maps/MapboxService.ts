@@ -686,234 +686,250 @@ class MapboxService implements IMapboxService {
     visitDate: { seconds: number; nanoseconds: number } | Date;
     transportType?: 'walking' | 'bus' | 'car' | 'flight' | 'ship' | 'train';
   }>): void {
-    console.log('🗺️ DrawRouteLines called with', places.length, 'places');
+    console.log('DrawRouteLines called with', places.length, 'places');
     
     if (!this.map || places.length < 2) {
-      console.warn('⚠️ Not enough places for routes:', { 
+      console.warn('Not enough places for routes:', { 
         hasMap: !!this.map, 
         placeCount: places.length 
       });
       return;
     }
 
-    // Wait for style load
-    if (!this.map.isStyleLoaded()) {
-      console.log('⏳ Waiting for map style to load...');
-      this.map.once('style.load', () => this.drawRouteLines(places));
-      return;
-    }
-
-    console.log('✅ Map ready, drawing routes...');
-
-    // Clear existing transport markers
-    this.transportMarkers.forEach(m => m.remove());
-    this.transportMarkers = [];
-
-    const getTimestamp = (visitDate: { seconds: number; nanoseconds: number } | Date): number => {
-      if (visitDate instanceof Date) return visitDate.getTime();
-      return visitDate.seconds * 1000;
-    };
-
-    const sortedPlaces = [...places].sort((a, b) => {
-      const dateA = getTimestamp(a.visitDate);
-      const dateB = getTimestamp(b.visitDate);
-      return dateA - dateB;
-    });
-
-    console.log('📅 Sorted places by date:', sortedPlaces.map(p => ({
-      id: p.id.substring(0, 8),
-      date: getTimestamp(p.visitDate),
-      transport: p.transportType || 'NONE',
-      lat: p.location.lat.toFixed(2),
-      lng: p.location.lng.toFixed(2)
-    })));
-
-    const routeFeatures: GeoJSON.Feature[] = [];
-
-    // Create segments between consecutive places
-    for (let i = 0; i < sortedPlaces.length - 1; i++) {
-      const start = sortedPlaces[i];
-      const end = sortedPlaces[i + 1];
-
-      // Use the transport type of the END destination (how we got there)
-      // DEFAULT to 'flight' if missing for backward compatibility
-      const type = end.transportType || 'flight';
+    // FIXED: Force draw with timeout to prevent infinite wait
+    const attemptDraw = () => {
+      if (!this.map) return;
       
-      console.log(`  🔗 Creating segment ${i + 1}/${sortedPlaces.length - 1}: ${type}`);
+      console.log('Map ready, drawing routes...');
 
-      const coordinates: [number, number][] = [
-        [start.location.lng, start.location.lat],
-        [end.location.lng, end.location.lat]
-      ];
+      // Clear existing transport markers
+      this.transportMarkers.forEach(m => m.remove());
+      this.transportMarkers = [];
 
-      // Apply interpolation only for flights/ships (curved lines)
-      const geometryCoords = (type === 'flight' || type === 'ship')
-        ? this.interpolateGeodesicLine(coordinates)
-        : coordinates;
+      const getTimestamp = (visitDate: { seconds: number; nanoseconds: number } | Date): number => {
+        if (visitDate instanceof Date) return visitDate.getTime();
+        return visitDate.seconds * 1000;
+      };
 
-      routeFeatures.push({
-        type: 'Feature',
-        properties: {
-          transportType: type,
-          segmentIndex: i
-        },
-        geometry: {
-          type: 'LineString',
-          coordinates: geometryCoords
-        }
+      const sortedPlaces = [...places].sort((a, b) => {
+        const dateA = getTimestamp(a.visitDate);
+        const dateB = getTimestamp(b.visitDate);
+        return dateA - dateB;
       });
 
-      // ---------------------------------------------------------
-      // POLARSTEPS-STYLE TRANSPORT ICON AT MIDPOINT
-      // Premium small circular badge with crisp icon
-      // ---------------------------------------------------------
-      let midLat, midLng;
+      console.log('Sorted places by date:', sortedPlaces.map(p => ({
+        id: p.id.substring(0, 8),
+        date: getTimestamp(p.visitDate),
+        transport: p.transportType || 'NONE',
+        lat: p.location.lat.toFixed(2),
+        lng: p.location.lng.toFixed(2)
+      })));
 
-      // Calculate naive midpoint
-      if (geometryCoords.length > 2) {
-        const midIndex = Math.floor(geometryCoords.length / 2);
-        midLng = geometryCoords[midIndex][0];
-        midLat = geometryCoords[midIndex][1];
-      } else {
-        midLng = (start.location.lng + end.location.lng) / 2;
-        midLat = (start.location.lat + end.location.lat) / 2;
+      const routeFeatures: GeoJSON.Feature[] = [];
+
+      // Create segments between consecutive places
+      for (let i = 0; i < sortedPlaces.length - 1; i++) {
+        const start = sortedPlaces[i];
+        const end = sortedPlaces[i + 1];
+
+        // Use the transport type of the END destination (how we got there)
+        // DEFAULT to 'flight' if missing for backward compatibility
+        const type = end.transportType || 'flight';
+        
+        console.log(`Creating segment ${i + 1}/${sortedPlaces.length - 1}: ${type}`);
+
+        const coordinates: [number, number][] = [
+          [start.location.lng, start.location.lat],
+          [end.location.lng, end.location.lat]
+        ];
+
+        // Apply interpolation only for flights/ships (curved lines)
+        const geometryCoords = (type === 'flight' || type === 'ship')
+          ? this.interpolateGeodesicLine(coordinates)
+          : coordinates;
+
+        routeFeatures.push({
+          type: 'Feature',
+          properties: {
+            transportType: type,
+            segmentIndex: i
+          },
+          geometry: {
+            type: 'LineString',
+            coordinates: geometryCoords
+          }
+        });
+
+        // ---------------------------------------------------------
+        // POLARSTEPS-STYLE TRANSPORT ICON AT MIDPOINT
+        // Premium small circular badge with crisp icon
+        // ---------------------------------------------------------
+        let midLat, midLng;
+
+        // Calculate naive midpoint
+        if (geometryCoords.length > 2) {
+          const midIndex = Math.floor(geometryCoords.length / 2);
+          midLng = geometryCoords[midIndex][0];
+          midLat = geometryCoords[midIndex][1];
+        } else {
+          midLng = (start.location.lng + end.location.lng) / 2;
+          midLat = (start.location.lat + end.location.lat) / 2;
+        }
+
+        // POLARSTEPS-STYLE: Compact premium badge
+        const iconWrapper = document.createElement('div');
+        iconWrapper.className = 'transport-icon-wrapper';
+        iconWrapper.style.width = '32px';
+        iconWrapper.style.height = '32px';
+        iconWrapper.style.backgroundColor = '#1e293b';
+        iconWrapper.style.border = '3px solid white';
+        iconWrapper.style.borderRadius = '50%';
+        iconWrapper.style.display = 'flex';
+        iconWrapper.style.alignItems = 'center';
+        iconWrapper.style.justifyContent = 'center';
+        iconWrapper.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2)';
+        iconWrapper.style.zIndex = '10';
+        iconWrapper.style.cursor = 'default';
+
+        // Get raw SVG (without data URI wrapper)
+        const rawSvg = this.getRawTransportIcon(type);
+
+        // Inject inline SVG
+        iconWrapper.innerHTML = rawSvg;
+
+        // Style the injected SVG directly
+        const svgEl = iconWrapper.querySelector('svg');
+        if (svgEl) {
+          svgEl.style.width = '18px';
+          svgEl.style.height = '18px';
+          svgEl.style.color = 'white';
+        }
+
+        const marker = new mapboxgl.Marker({ element: iconWrapper })
+          .setLngLat([midLng, midLat])
+          .addTo(this.map!);
+
+        this.transportMarkers.push(marker);
+        
+        console.log(`Segment ${i}: ${type} from [${start.location.lat.toFixed(2)}, ${start.location.lng.toFixed(2)}] to [${end.location.lat.toFixed(2)}, ${end.location.lng.toFixed(2)}]`);
       }
 
-      // POLARSTEPS-STYLE: Compact premium badge
-      const iconWrapper = document.createElement('div');
-      iconWrapper.className = 'transport-icon-wrapper';
-      iconWrapper.style.width = '32px'; // Slightly bigger
-      iconWrapper.style.height = '32px';
-      iconWrapper.style.backgroundColor = '#1e293b'; // Slate-800 (darker)
-      iconWrapper.style.border = '3px solid white'; // Thicker border
-      iconWrapper.style.borderRadius = '50%';
-      iconWrapper.style.display = 'flex';
-      iconWrapper.style.alignItems = 'center';
-      iconWrapper.style.justifyContent = 'center';
-      iconWrapper.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2)'; // Deeper shadow
-      iconWrapper.style.zIndex = '10';
-      iconWrapper.style.cursor = 'default';
+      console.log(`Created ${routeFeatures.length} route segments with ${this.transportMarkers.length} icons`);
 
-      // Get raw SVG (without data URI wrapper)
-      const rawSvg = this.getRawTransportIcon(type);
+      const geojson: GeoJSON.FeatureCollection = {
+        type: 'FeatureCollection',
+        features: routeFeatures
+      };
 
-      // Inject inline SVG
-      iconWrapper.innerHTML = rawSvg;
-
-      // Style the injected SVG directly
-      const svgEl = iconWrapper.querySelector('svg');
-      if (svgEl) {
-        svgEl.style.width = '18px'; // Slightly bigger icon
-        svgEl.style.height = '18px';
-        svgEl.style.color = 'white';
+      // Remove existing layers/sources
+      const layers = ['route-shadow', 'route-flight', 'route-road', 'route-path'];
+      layers.forEach(layer => {
+        if (this.map!.getLayer(layer)) this.map!.removeLayer(layer);
+      });
+      if (this.map!.getSource(this.routeSourceId)) {
+        this.map!.removeSource(this.routeSourceId);
       }
 
-      const marker = new mapboxgl.Marker({ element: iconWrapper })
-        .setLngLat([midLng, midLat])
-        .addTo(this.map);
+      // Add unified Source
+      this.map!.addSource(this.routeSourceId, {
+        type: 'geojson',
+        data: geojson,
+        lineMetrics: true,
+      });
 
-      this.transportMarkers.push(marker);
-      
-      console.log(`  ➡️ Segment ${i}: ${type} from [${start.location.lat.toFixed(2)}, ${start.location.lng.toFixed(2)}] to [${end.location.lat.toFixed(2)}, ${end.location.lng.toFixed(2)}]`);
-    }
+      // POLARSTEPS-STYLE PREMIUM ROUTE LAYERS
+      // Layer Order: Shadow → Main Line (bottom to top)
 
-    console.log(`✨ Created ${routeFeatures.length} route segments with ${this.transportMarkers.length} icons`);
+      // 1. SHADOW LAYER (All routes) - Gives depth like Polarsteps
+      this.map!.addLayer({
+        id: 'route-shadow',
+        type: 'line',
+        source: this.routeSourceId,
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round',
+        },
+        paint: {
+          'line-color': '#000000',
+          'line-width': 7,
+          'line-opacity': 0.25,
+          'line-blur': 4,
+        },
+      });
 
-    const geojson: GeoJSON.FeatureCollection = {
-      type: 'FeatureCollection',
-      features: routeFeatures
+      // 2. FLIGHT LAYER (Curved, Dashed, Thick White)
+      this.map!.addLayer({
+        id: 'route-flight',
+        type: 'line',
+        source: this.routeSourceId,
+        filter: ['in', 'transportType', 'flight', 'ship'],
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round',
+        },
+        paint: {
+          'line-color': '#ffffff',
+          'line-width': 5,
+          'line-opacity': 0.95,
+          'line-dasharray': [3, 2],
+        },
+      });
+
+      // 3. ROAD LAYER (Car/Bus/Train - Solid, Thick White)
+      this.map!.addLayer({
+        id: 'route-road',
+        type: 'line',
+        source: this.routeSourceId,
+        filter: ['in', 'transportType', 'car', 'bus', 'train'],
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round',
+        },
+        paint: {
+          'line-color': '#ffffff',
+          'line-width': 5,
+          'line-opacity': 0.95,
+        },
+      });
+
+      // 4. WALKING LAYER (Dotted, Premium Green)
+      this.map!.addLayer({
+        id: 'route-path',
+        type: 'line',
+        source: this.routeSourceId,
+        filter: ['==', 'transportType', 'walking'],
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round',
+        },
+        paint: {
+          'line-color': '#10b981',
+          'line-width': 4,
+          'line-dasharray': [0.5, 2.5],
+          'line-opacity': 0.9,
+        },
+      });
+
+      console.log('Route layers added successfully!');
     };
 
-    // Remove existing layers/sources
-    const layers = ['route-flight', 'route-road', 'route-path'];
-    layers.forEach(layer => {
-      if (this.map!.getLayer(layer)) this.map!.removeLayer(layer);
-    });
-    if (this.map.getSource(this.routeSourceId)) {
-      this.map.removeSource(this.routeSourceId);
+    // Try to draw immediately, or wait max 2 seconds
+    if (this.map.isStyleLoaded()) {
+      attemptDraw();
+    } else {
+      console.log('Waiting for map style to load...');
+      
+      // Set timeout fallback to prevent infinite wait
+      const timeout = setTimeout(() => {
+        console.warn('Style load timeout, forcing draw anyway');
+        attemptDraw();
+      }, 2000);
+      
+      this.map.once('style.load', () => {
+        clearTimeout(timeout);
+        attemptDraw();
+      });
     }
-
-    // Add unified Source
-    this.map.addSource(this.routeSourceId, {
-      type: 'geojson',
-      data: geojson,
-      lineMetrics: true, // Enable gradient/metrics if needed
-    });
-
-    // POLARSTEPS-STYLE PREMIUM ROUTE LAYERS
-    // Layer Order: Shadow → Main Line (bottom to top)
-
-    // 1. SHADOW LAYER (All routes) - Gives depth like Polarsteps
-    this.map.addLayer({
-      id: 'route-shadow',
-      type: 'line',
-      source: this.routeSourceId,
-      layout: {
-        'line-join': 'round',
-        'line-cap': 'round',
-      },
-      paint: {
-        'line-color': '#000000',
-        'line-width': 7,
-        'line-opacity': 0.25,
-        'line-blur': 4, // Soft shadow blur
-      },
-    });
-
-    // 2. FLIGHT LAYER (Curved, Dashed, Thick White)
-    this.map.addLayer({
-      id: 'route-flight',
-      type: 'line',
-      source: this.routeSourceId,
-      filter: ['in', 'transportType', 'flight', 'ship'],
-      layout: {
-        'line-join': 'round',
-        'line-cap': 'round',
-      },
-      paint: {
-        'line-color': '#ffffff',
-        'line-width': 5, // Thicker like Polarsteps
-        'line-opacity': 0.95,
-        'line-dasharray': [3, 2], // Longer dashes for premium look
-      },
-    });
-
-    // 3. ROAD LAYER (Car/Bus/Train - Solid, Thick White)
-    this.map.addLayer({
-      id: 'route-road',
-      type: 'line',
-      source: this.routeSourceId,
-      filter: ['in', 'transportType', 'car', 'bus', 'train'],
-      layout: {
-        'line-join': 'round',
-        'line-cap': 'round',
-      },
-      paint: {
-        'line-color': '#ffffff',
-        'line-width': 5,
-        'line-opacity': 0.95,
-      },
-    });
-
-    // 4. WALKING LAYER (Dotted, Premium Green)
-    this.map.addLayer({
-      id: 'route-path',
-      type: 'line',
-      source: this.routeSourceId,
-      filter: ['==', 'transportType', 'walking'],
-      layout: {
-        'line-join': 'round',
-        'line-cap': 'round',
-      },
-      paint: {
-        'line-color': '#10b981', // Emerald Green
-        'line-width': 4,
-        'line-dasharray': [0.5, 2.5], // Subtle dots
-        'line-opacity': 0.9,
-      },
-    });
-
-    console.log('🎉 Route layers added successfully!');
   }
 
   /**
