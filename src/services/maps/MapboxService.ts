@@ -17,14 +17,56 @@ class MapboxService implements IMapboxService {
   private markers: Map<string, mapboxgl.Marker> = new Map();
   private clickCallback: ((lat: number, lng: number) => void) | null = null;
   private markerClickCallback: ((markerId: string) => void) | null = null;
-  private routeLayerId: string = 'route-line';
+  private markerClickCallback: ((markerId: string) => void) | null = null;
+  // private routeLayerId: string = 'route-line'; // Replaced by multi-mode layers
   private routeSourceId: string = 'route-source';
-  
+
   // Cinematic Globe Rotation
   private rotationAnimationId: number | null = null;
   private isRotating: boolean = false;
   private lastFrameTime: number = 0;
   private rotationSpeed: number = 0.05; // degrees per frame at 60fps
+
+  // User Location Marker
+  private userLocationMarker: mapboxgl.Marker | null = null;
+  private transportMarkers: mapboxgl.Marker[] = []; // Track route icon markers
+
+  // Icon SVG Definitions (Polarsteps style: Clean white icons on dark bg)
+  private getTransportIcon(type: string): string {
+    const icons: Record<string, string> = {
+      flight: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20"/><path d="M13 5v7"/><path d="M6 8l4-3"/><path d="M4 21a2 2 0 0 1-2-2"/></svg>`, // Simplified Plane
+      car: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M5 17h2"/><path d="M15 17h2"/></svg>`,
+      bus: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4-.2-.8-.6-.8h-2.4c-.4 0-.8.4-.9.8L18 18z"/><path d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7c0-1.1.9-2 2-2z"/><path d="M8 21v-2"/><path d="M16 21v-2"/></svg>`,
+      train: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="16" rx="2" /><path d="M4 11h16" /><path d="M12 3v8" /><path d="m8 19-2 3" /><path d="m18 22-2-3" /><circle cx="8" cy="15" r="1" /><circle cx="16" cy="15" r="1" /></svg>`,
+      ship: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.9 5.8 2.38 6"/><path d="M12 4v6"/><path d="M17 14l-4-5 1-6"/><path d="M6 14l4-5-1-6"/></svg>`,
+      walking: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16v-2.38C4 11.5 5.9 10.1 7.43 10a2 2 0 0 1 1.62.9l.61.9a2 2 0 0 0 2.9.7l3.78-1.9a2 2 0 1 1 1.12 3.84l-2.07 1a2 2 0 0 0-.91 1.07L13 21"/><path d="M8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/><path d="M12 5.5l.3-.6a2 2 0 0 1 2.4-1.1l3 .9a2 2 0 0 1 1.4 1.9V10"/><path d="M8 21v-3.5"/></svg>`,
+    };
+
+    // Fallback to Plane logic map
+    const iconSvg = icons[type.toLowerCase()] || icons['flight'];
+
+    // Return encoded SVG - using single quote for CSS url('') compat
+    const coloredSvg = iconSvg.replace(/stroke="currentColor"/g, 'stroke="white"');
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(coloredSvg)}`;
+  }
+
+  /**
+   * Helper to get RAW SVG string for inline injection
+   */
+  private getRawTransportIcon(type: string): string {
+    const icons: Record<string, string> = {
+      flight: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20"/><path d="M13 5v7"/><path d="M6 8l4-3"/><path d="M4 21a2 2 0 0 1-2-2"/></svg>`,
+      car: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M5 17h2"/><path d="M15 17h2"/></svg>`,
+      bus: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4-.2-.8-.6-.8h-2.4c-.4 0-.8.4-.9.8L18 18z"/><path d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7c0-1.1.9-2 2-2z"/><path d="M8 21v-2"/><path d="M16 21v-2"/></svg>`,
+      train: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="16" rx="2" /><path d="M4 11h16" /><path d="M12 3v8" /><path d="m8 19-2 3" /><path d="m18 22-2-3" /><circle cx="8" cy="15" r="1" /><circle cx="16" cy="15" r="1" /></svg>`,
+      ship: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.9 5.8 2.38 6"/><path d="M12 4v6"/><path d="M17 14l-4-5 1-6"/><path d="M6 14l4-5-1-6"/></svg>`,
+      walking: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16v-2.38C4 11.5 5.9 10.1 7.43 10a2 2 0 0 1 1.62.9l.61.9a2 2 0 0 0 2.9.7l3.78-1.9a2 2 0 1 1 1.12 3.84l-2.07 1a2 2 0 0 0-.91 1.07L13 21"/><path d="M8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/><path d="M12 5.5l.3-.6a2 2 0 0 1 2.4-1.1l3 .9a2 2 0 0 1 1.4 1.9V10"/><path d="M8 21v-3.5"/></svg>`,
+    };
+
+    const iconSvg = icons[type.toLowerCase()] || icons['flight'];
+    // Replace currentColor with white inside the SVG string
+    return iconSvg.replace(/stroke="currentColor"/g, 'stroke="white"');
+  }
 
   /**
    * Haritayı başlat
@@ -189,44 +231,92 @@ class MapboxService implements IMapboxService {
       throw new Error('Map not initialized');
     }
 
-    // Özel marker elementi oluştur
-    const el = document.createElement('div');
-    el.className = 'custom-marker';
-    el.style.width = '32px';
-    el.style.height = '32px';
-    el.style.cursor = 'pointer';
-    
-    // Icon varsa kullan, yoksa default
-    if (marker.icon) {
-      el.style.backgroundImage = `url(${marker.icon})`;
-      el.style.backgroundSize = 'cover';
-      el.style.borderRadius = '50%';
+    // Özel marker wrapper oluştur (Mapbox pozisyonlama için bunu kullanır)
+    const wrapper = document.createElement('div');
+    wrapper.className = 'marker-wrapper';
+    wrapper.style.cursor = 'pointer';
+
+    // İç element (Görsel ve animasyon için)
+    const inner = document.createElement('div');
+    inner.className = 'marker-inner';
+    inner.style.transition = 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)'; // Bouncy hover
+
+    // Icon varsa (Photo URL) kullan
+    if (marker.icon && (marker.icon.startsWith('http') || marker.icon.startsWith('/'))) {
+      // Wrapper size (positioning anchor)
+      wrapper.style.width = '48px';
+      wrapper.style.height = '48px';
+
+      // Inner Style (Photo bubble)
+      inner.style.width = '100%';
+      inner.style.height = '100%';
+      inner.style.backgroundImage = `url(${marker.icon})`;
+      inner.style.backgroundSize = 'cover';
+      inner.style.backgroundPosition = 'center';
+      inner.style.borderRadius = '50%';
+      inner.style.border = '3px solid white';
+      inner.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.16)';
     } else {
-      // Default marker (pin şeklinde)
-      el.innerHTML = `
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="${marker.color || '#3b82f6'}">
-          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-        </svg>
+      // Default Pin Style
+      wrapper.style.width = '32px';
+      wrapper.style.height = '32px';
+
+      inner.style.width = '100%';
+      inner.style.height = '100%';
+      inner.innerHTML = `
+        <div style="
+          background-color: ${marker.color || '#3b82f6'};
+          width: 100%;
+          height: 100%;
+          border-radius: 50% 50% 50% 0;
+          transform: rotate(-45deg);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+          border: 2px solid white;
+        ">
+          <div style="
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+            transform: rotate(45deg);
+          "></div>
+        </div>
       `;
     }
 
-    // Mapbox marker oluştur
-    const mapboxMarker = new mapboxgl.Marker(el)
+    // Append inner to wrapper
+    wrapper.appendChild(inner);
+
+    // Hover effect applied to INNER element (Safe from Mapbox conflict)
+    wrapper.onmouseenter = () => inner.style.transform = 'scale(1.15)';
+    wrapper.onmouseleave = () => inner.style.transform = 'scale(1)';
+
+    // Mapbox marker oluştur - Offset calculations
+    const offset: [number, number] = marker.icon?.startsWith('http') ? [0, 0] : [0, -16];
+
+    const mapboxMarker = new mapboxgl.Marker({ element: wrapper, offset })
       .setLngLat([marker.position.lng, marker.position.lat]);
 
     // Popup varsa ekle
-    if (marker.title || marker.description) {
-      const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
-        <div style="padding: 8px;">
-          ${marker.title ? `<h3 style="margin: 0 0 4px 0; font-weight: 600;">${marker.title}</h3>` : ''}
-          ${marker.description ? `<p style="margin: 0; font-size: 14px;">${marker.description}</p>` : ''}
+    if (marker.title) {
+      const popup = new mapboxgl.Popup({ offset: 25, closeButton: false }).setHTML(`
+        <div style="padding: 8px 4px;">
+          <h3 style="margin: 0; font-weight: 600; font-size: 14px; font-family: ui-sans-serif, system-ui, sans-serif;">${marker.title}</h3>
+          ${marker.description ? `<p style="margin: 4px 0 0 0; font-size: 12px; opacity: 0.7;">${marker.description}</p>` : ''}
         </div>
       `);
       mapboxMarker.setPopup(popup);
+
+      // Show popup on hover
+      wrapper.addEventListener('mouseenter', () => mapboxMarker.getPopup().addTo(this.map!));
+      wrapper.addEventListener('mouseleave', () => mapboxMarker.getPopup().remove());
     }
 
     // Click event
-    el.addEventListener('click', (e) => {
+    wrapper.addEventListener('click', (e) => {
       e.stopPropagation();
       if (this.markerClickCallback) {
         this.markerClickCallback(marker.id);
@@ -259,7 +349,7 @@ class MapboxService implements IMapboxService {
   updateMarker(updatedMarker: MapMarker): void {
     // Önce eski marker'ı kaldır
     this.removeMarker(updatedMarker.id);
-    
+
     // Yeni marker'ı ekle
     this.addMarker(updatedMarker);
   }
@@ -447,6 +537,9 @@ class MapboxService implements IMapboxService {
             return;
           }
 
+          // Show user location marker on the map
+          this.showUserLocationMarker(lat, lng);
+
           // Fly to user location with essential: true for mobile
           console.log('🚀 Flying to location with zoom:', zoom);
           this.map.flyTo({
@@ -463,7 +556,7 @@ class MapboxService implements IMapboxService {
           console.log('❌ getCurrentPosition ERROR callback triggered:', error.code);
           // Handle different geolocation errors
           let errorMessage = 'Geolocation error';
-          
+
           switch (error.code) {
             case error.PERMISSION_DENIED:
               errorMessage = 'Location permission denied. Enable GPS in settings.';
@@ -475,7 +568,7 @@ class MapboxService implements IMapboxService {
               errorMessage = 'Location request timed out. Please try again.';
               break;
           }
-          
+
           console.warn('⚠️ ' + errorMessage);
           resolve(null);
         },
@@ -486,6 +579,70 @@ class MapboxService implements IMapboxService {
         }
       );
     });
+  }
+
+  /**
+   * Kullanıcı konumunu haritada göster (mavi pulsing marker)
+   * Premium blue pulsing dot for user location
+   */
+  showUserLocationMarker(lat: number, lng: number): void {
+    if (!this.map) {
+      throw new Error('Map not initialized');
+    }
+
+    // Remove existing user location marker if any
+    if (this.userLocationMarker) {
+      this.userLocationMarker.remove();
+    }
+
+    // Create premium pulsing blue dot element
+    const el = document.createElement('div');
+    el.className = 'user-location-marker';
+    el.style.width = '20px';
+    el.style.height = '20px';
+    el.style.borderRadius = '50%';
+    el.style.backgroundColor = '#3b82f6';
+    el.style.border = '3px solid #ffffff';
+    el.style.boxShadow = '0 0 0 0 rgba(59, 130, 246, 1)';
+    el.style.animation = 'pulse-blue 2s infinite';
+    el.style.cursor = 'pointer';
+
+    // Add pulsing animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes pulse-blue {
+        0% {
+          box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+        }
+        50% {
+          box-shadow: 0 0 0 15px rgba(59, 130, 246, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+        }
+      }
+    `;
+    if (!document.getElementById('user-location-marker-style')) {
+      style.id = 'user-location-marker-style';
+      document.head.appendChild(style);
+    }
+
+    // Create marker
+    this.userLocationMarker = new mapboxgl.Marker(el)
+      .setLngLat([lng, lat])
+      .addTo(this.map);
+
+    console.log('✅ User location marker added to map');
+  }
+
+  /**
+   * Kullanıcı konum marker'ını kaldır
+   */
+  removeUserLocationMarker(): void {
+    if (this.userLocationMarker) {
+      this.userLocationMarker.remove();
+      this.userLocationMarker = null;
+    }
   }
 
   /**
@@ -519,81 +676,149 @@ class MapboxService implements IMapboxService {
   }
 
   /**
-   * Polarsteps-style: Kavisli rota çizgileri çiz (Geodesic lines)
-   * Zaman sırasına göre sıralanmış Place dizisi alır ve aralarında bağlantı çizer
+  /**
+   * Polarsteps-style: Multi-mode route drawing
+   * Connects places with transport-specific line styles
    */
-  drawRouteLines(places: Array<{ 
-    id: string; 
-    location: { lat: number; lng: number }; 
+  drawRouteLines(places: Array<{
+    id: string;
+    location: { lat: number; lng: number };
     visitDate: { seconds: number; nanoseconds: number } | Date;
+    transportType?: 'walking' | 'bus' | 'car' | 'flight' | 'ship' | 'train';
   }>): void {
-    if (!this.map || places.length < 2) {
-      // Intentionally silent - not an error condition, just insufficient data
-      return;
-    }
+    if (!this.map || places.length < 2) return;
 
-    // Style yüklenene kadar bekle
+    // Wait for style load
     if (!this.map.isStyleLoaded()) {
-      // Wait for style to load before drawing routes
-      this.map.once('style.load', () => {
-        this.drawRouteLines(places);
-      });
+      this.map.once('style.load', () => this.drawRouteLines(places));
       return;
     }
 
-    // Helper function to extract timestamp from visitDate
+    // Clear existing transport markers
+    this.transportMarkers.forEach(m => m.remove());
+    this.transportMarkers = [];
+
     const getTimestamp = (visitDate: { seconds: number; nanoseconds: number } | Date): number => {
-      if (visitDate instanceof Date) {
-        return visitDate.getTime();
-      }
-      // Firebase Timestamp
+      if (visitDate instanceof Date) return visitDate.getTime();
       return visitDate.seconds * 1000;
     };
 
-    // Tarihe göre sırala (eskiden yeniye)
     const sortedPlaces = [...places].sort((a, b) => {
       const dateA = getTimestamp(a.visitDate);
       const dateB = getTimestamp(b.visitDate);
       return dateA - dateB;
     });
 
-    // GeoJSON LineString oluştur
-    const coordinates: [number, number][] = sortedPlaces.map(place => [
-      place.location.lng,
-      place.location.lat
-    ]);
+    const routeFeatures: GeoJSON.Feature[] = [];
 
-    // Kavisli çizgi için ara noktalar ekle (geodesic interpolation)
-    const smoothCoordinates = this.interpolateGeodesicLine(coordinates);
+    // Create segments between consecutive places
+    for (let i = 0; i < sortedPlaces.length - 1; i++) {
+      const start = sortedPlaces[i];
+      const end = sortedPlaces[i + 1];
 
-    const geojson: GeoJSON.Feature<GeoJSON.LineString> = {
-      type: 'Feature',
-      properties: {},
-      geometry: {
-        type: 'LineString',
-        coordinates: smoothCoordinates,
-      },
+      // Use the transport type of the END destination (how we got there)
+      const type = end.transportType || 'flight';
+
+      const coordinates: [number, number][] = [
+        [start.location.lng, start.location.lat],
+        [end.location.lng, end.location.lat]
+      ];
+
+      // Apply interpolation only for flights/ships (curved lines)
+      const geometryCoords = (type === 'flight' || type === 'ship')
+        ? this.interpolateGeodesicLine(coordinates)
+        : coordinates;
+
+      routeFeatures.push({
+        type: 'Feature',
+        properties: {
+          transportType: type,
+          segmentIndex: i
+        },
+        geometry: {
+          type: 'LineString',
+          coordinates: geometryCoords
+        }
+      });
+
+      // ---------------------------------------------------------
+      // ADD TRANSPORT ICON AT MIDPOINT
+      // ---------------------------------------------------------
+      let midLat, midLng;
+
+      // Calculate naive midpoint
+      if (geometryCoords.length > 2) {
+        const midIndex = Math.floor(geometryCoords.length / 2);
+        midLng = geometryCoords[midIndex][0];
+        midLat = geometryCoords[midIndex][1];
+      } else {
+        midLng = (start.location.lng + end.location.lng) / 2;
+        midLat = (start.location.lat + end.location.lat) / 2;
+      }
+
+      // Create Icon Wrapper (Same structure as addMarker for consistency)
+      const iconWrapper = document.createElement('div');
+      iconWrapper.className = 'transport-icon-wrapper';
+      iconWrapper.style.width = '28px';
+      iconWrapper.style.height = '28px';
+      iconWrapper.style.backgroundColor = '#0f172a'; // Slate-900
+      iconWrapper.style.border = '2px solid white';
+      iconWrapper.style.borderRadius = '50%';
+      iconWrapper.style.display = 'flex';
+      iconWrapper.style.alignItems = 'center';
+      iconWrapper.style.justifyContent = 'center';
+      iconWrapper.style.boxShadow = '0 2px 4px rgba(0,0,0,0.5)';
+      iconWrapper.style.zIndex = '10'; // High z-index to be on top of lines
+      iconWrapper.style.cursor = 'default';
+
+      // Get raw SVG (without data URI wrapper)
+      const rawSvg = this.getRawTransportIcon(type);
+
+      // Inject inline SVG
+      iconWrapper.innerHTML = rawSvg;
+
+      // Style the injected SVG directly
+      const svgEl = iconWrapper.querySelector('svg');
+      if (svgEl) {
+        svgEl.style.width = '16px';
+        svgEl.style.height = '16px';
+        svgEl.style.color = 'white'; // Ensure currentColor uses white
+      }
+
+      const marker = new mapboxgl.Marker({ element: iconWrapper })
+        .setLngLat([midLng, midLat])
+        .addTo(this.map);
+
+      this.transportMarkers.push(marker);
+    }
+
+    const geojson: GeoJSON.FeatureCollection = {
+      type: 'FeatureCollection',
+      features: routeFeatures
     };
 
-    // Eski route layer/source varsa kaldır
-    if (this.map.getLayer(this.routeLayerId)) {
-      this.map.removeLayer(this.routeLayerId);
-    }
+    // Remove existing layers/sources
+    const layers = ['route-flight', 'route-road', 'route-path'];
+    layers.forEach(layer => {
+      if (this.map!.getLayer(layer)) this.map!.removeLayer(layer);
+    });
     if (this.map.getSource(this.routeSourceId)) {
       this.map.removeSource(this.routeSourceId);
     }
 
-    // Source ekle
+    // Add unified Source
     this.map.addSource(this.routeSourceId, {
       type: 'geojson',
       data: geojson,
+      lineMetrics: true, // Enable gradient/metrics if needed
     });
 
-    // Layer ekle (kesikli beyaz hat - Polarsteps style)
+    // 1. Flight Layer (Curved, Dashed, White)
     this.map.addLayer({
-      id: this.routeLayerId,
+      id: 'route-flight',
       type: 'line',
       source: this.routeSourceId,
+      filter: ['in', 'transportType', 'flight', 'ship'],
       layout: {
         'line-join': 'round',
         'line-cap': 'round',
@@ -602,11 +827,44 @@ class MapboxService implements IMapboxService {
         'line-color': '#ffffff',
         'line-width': 3,
         'line-opacity': 0.8,
-        'line-dasharray': [2, 2], // Kesikli çizgi
+        'line-dasharray': [2, 3], // Dashed
       },
     });
 
-    // Route successfully drawn with all places
+    // 2. Road Layer (Car/Bus/Train - Solid, Bright Blue/Orange)
+    this.map.addLayer({
+      id: 'route-road',
+      type: 'line',
+      source: this.routeSourceId,
+      filter: ['in', 'transportType', 'car', 'bus', 'train'],
+      layout: {
+        'line-join': 'round',
+        'line-cap': 'round',
+      },
+      paint: {
+        'line-color': '#ffffff', // Unified white style
+        'line-width': 4,
+        'line-opacity': 0.9,
+      },
+    });
+
+    // 3. Path Layer (Walking - Dotted, Small)
+    this.map.addLayer({
+      id: 'route-path',
+      type: 'line',
+      source: this.routeSourceId,
+      filter: ['==', 'transportType', 'walking'],
+      layout: {
+        'line-join': 'round',
+        'line-cap': 'round',
+      },
+      paint: {
+        'line-color': '#10b981', // Emerald Green
+        'line-width': 3,
+        'line-dasharray': [1, 2], // Very Dotted
+        'line-opacity': 0.8,
+      },
+    });
   }
 
   /**
@@ -615,18 +873,18 @@ class MapboxService implements IMapboxService {
    */
   private interpolateGeodesicLine(coordinates: [number, number][]): [number, number][] {
     const result: [number, number][] = [];
-    
+
     for (let i = 0; i < coordinates.length - 1; i++) {
       const start = coordinates[i];
       const end = coordinates[i + 1];
-      
+
       result.push(start);
-      
+
       // İki nokta arası mesafe hesapla (basit)
       const distance = Math.sqrt(
         Math.pow(end[0] - start[0], 2) + Math.pow(end[1] - start[1], 2)
       );
-      
+
       // Uzak noktalar arasına ara noktalar ekle
       if (distance > 5) {
         const steps = Math.ceil(distance / 5);
@@ -639,7 +897,7 @@ class MapboxService implements IMapboxService {
         }
       }
     }
-    
+
     result.push(coordinates[coordinates.length - 1]);
     return result;
   }
@@ -648,16 +906,22 @@ class MapboxService implements IMapboxService {
    * Rota çizgilerini temizle
    */
   clearRouteLines(): void {
+    // Clear icons
+    this.transportMarkers.forEach(m => m.remove());
+    this.transportMarkers = [];
+
     if (!this.map) return;
 
-    if (this.map.getLayer(this.routeLayerId)) {
-      this.map.removeLayer(this.routeLayerId);
-    }
+    const layers = ['route-flight', 'route-road', 'route-path'];
+    layers.forEach(layer => {
+      if (this.map!.getLayer(layer)) {
+        this.map!.removeLayer(layer);
+      }
+    });
+
     if (this.map.getSource(this.routeSourceId)) {
       this.map.removeSource(this.routeSourceId);
     }
-
-    // Route lines cleared successfully
   }
 
   /**
@@ -665,7 +929,7 @@ class MapboxService implements IMapboxService {
    * ID ile place bulur ve animasyonlu geçiş yapar
    */
   focusOnPlace(
-    placeId: string, 
+    placeId: string,
     places: Array<{ id: string; location: { lat: number; lng: number } }>,
     options?: {
       zoom?: number;

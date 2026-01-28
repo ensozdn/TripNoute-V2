@@ -18,7 +18,8 @@ import { getMapboxService } from '@/services/maps/MapboxService';
 import { Place } from '@/types';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { JourneyHub } from '@/components/journey';
-import { Plus, MapPin, Menu, X } from 'lucide-react';
+import { Plus, MapPin, Menu, X, Locate } from 'lucide-react';
+import TripCreationWizard from '@/components/journey/TripCreationWizard';
 
 // Dynamic import for MapboxMap to avoid SSR issues
 const MapboxMap = dynamic(() => import('@/components/MapboxMap'), {
@@ -38,6 +39,8 @@ export default function DashboardPage() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [showMenu, setShowMenu] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
+  const [showTripWizard, setShowTripWizard] = useState(false);
 
   useEffect(() => {
     const loadPlaces = async () => {
@@ -85,34 +88,7 @@ export default function DashboardPage() {
     };
   }, []); // Empty dependency - only run once on mount
 
-  // MANUAL ROUTE CONTROL: Auto-route drawing disabled per user feedback
-  // Users will create routes manually in future updates
-  // The map now shows markers only, without automatic dashed lines
-  /*
-  useEffect(() => {
-    const mapboxService = getMapboxService();
-    
-    if (places.length > 0) {
-      const timer = setTimeout(() => {
-        try {
-          mapboxService.drawRouteLines(places);
-          mapboxService.focusOnRoute(places);
-        } catch (error) {
-          console.error('Error drawing routes:', error);
-        }
-      }, 1000);
 
-      return () => {
-        clearTimeout(timer);
-        mapboxService.clearRouteLines();
-      };
-    }
-
-    return () => {
-      mapboxService.clearRouteLines();
-    };
-  }, [places]);
-  */
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -133,7 +109,7 @@ export default function DashboardPage() {
 
   const handleMarkerClick = (place: Place) => {
     setSelectedPlace(place);
-    
+
     const mapboxService = getMapboxService();
     mapboxService.focusOnPlace(place.id, places, {
       zoom: 15,
@@ -148,7 +124,7 @@ export default function DashboardPage() {
     try {
       // Optimistic UI update
       setPlaces(prevPlaces => prevPlaces.filter(p => p.id !== placeId));
-      
+
       // Clear selected if deleting current selection
       if (selectedPlace?.id === placeId) {
         setSelectedPlace(null);
@@ -157,7 +133,7 @@ export default function DashboardPage() {
       // Remove from map
       const mapboxService = getMapboxService();
       mapboxService.removeMarker(placeId);
-      
+
       // Re-draw routes with remaining places
       const remainingPlaces = places.filter(p => p.id !== placeId);
       if (remainingPlaces.length > 1) {
@@ -169,15 +145,15 @@ export default function DashboardPage() {
 
       // Delete from Firebase
       await databaseService.deletePlace(placeId);
-      
+
       console.log('✅ Place deleted successfully');
     } catch (error) {
       console.error('❌ Failed to delete place:', error);
-      
+
       // Revert optimistic update on error
       const response = await databaseService.getUserPlaces(user!.uid);
       setPlaces(response.items);
-      
+
       throw error; // Re-throw to let Timeline show error
     }
   };
@@ -185,6 +161,51 @@ export default function DashboardPage() {
   // Handle place edit navigation
   const handlePlaceEdit = (place: Place): void => {
     router.push(`/places/edit/${place.id}`);
+  };
+
+  // Handle go to my location
+  const handleGoToMyLocation = async (): Promise<void> => {
+    console.log('🔘 Location button clicked!');
+
+    // Check if geolocation is supported
+    if (!('geolocation' in navigator)) {
+      alert('❌ Tarayıcınız konum hizmetlerini desteklemiyor.');
+      return;
+    }
+
+    // Check if on HTTPS or localhost
+    const isSecureContext = window.isSecureContext;
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+    console.log('🔒 Secure Context:', isSecureContext);
+    console.log('🏠 Is Localhost:', isLocalhost);
+    console.log('🌐 Hostname:', window.location.hostname);
+    console.log('🔗 Protocol:', window.location.protocol);
+
+    if (!isSecureContext && !isLocalhost) {
+      alert('⚠️ Konum servisi sadece HTTPS bağlantılarında çalışır.\n\nMobile test için ngrok veya HTTPS kullanın.');
+      return;
+    }
+
+    setIsLocating(true);
+
+    try {
+      console.log('📍 Requesting location...');
+      const mapboxService = getMapboxService();
+      const result = await mapboxService.flyToUserLocation(14);
+
+      if (!result) {
+        console.warn('⚠️ Could not get user location');
+        alert('❌ Konumunuz alınamadı. GPS açık mı kontrol edin.');
+      } else {
+        console.log('✅ Location success:', result);
+      }
+    } catch (error) {
+      console.error('❌ Error getting user location:', error);
+      alert('❌ Konum hatası. Console logları kontrol edin.');
+    } finally {
+      setIsLocating(false);
+    }
   };
 
   return (
@@ -203,8 +224,8 @@ export default function DashboardPage() {
               </div>
               <h2 className="text-2xl font-semibold text-white mb-2">Start Your Journey</h2>
               <p className="text-slate-400 text-center mb-8">Add your first place to see it on the map</p>
-              <Link 
-                href="/places/add" 
+              <Link
+                href="/places/add"
                 className="py-3 px-6 rounded-full bg-blue-500 hover:bg-blue-600 text-white font-medium transition-all"
               >
                 Add First Place
@@ -226,10 +247,10 @@ export default function DashboardPage() {
         <header className="absolute top-4 left-4 z-40">
           <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity group">
             <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-2.5 shadow-2xl shadow-black/20 group-hover:bg-white/20 transition-all">
-              <Image 
-                src="/tripnoute-logo.png" 
-                alt="TripNoute" 
-                width={28} 
+              <Image
+                src="/tripnoute-logo.png"
+                alt="TripNoute"
+                width={28}
                 height={28}
                 className="rounded-lg"
               />
@@ -237,21 +258,38 @@ export default function DashboardPage() {
           </Link>
         </header>
 
-        {/* Floating Menu Button - Top Right */}
-        <button
-          onClick={() => setShowMenu(!showMenu)}
-          className="absolute top-4 right-4 z-40 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-2.5 shadow-2xl shadow-black/20 hover:bg-white/20 transition-all"
-        >
-          {showMenu ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5 text-white" />}
-        </button>
+        {/* Top Right Controls */}
+        <div className="absolute top-4 right-4 z-40 flex items-center gap-2">
+          {/* My Location Button */}
+          <button
+            onClick={handleGoToMyLocation}
+            disabled={isLocating}
+            className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-2.5 shadow-2xl shadow-black/20 hover:bg-white/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Konumuma Git"
+          >
+            {isLocating ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <Locate className="w-5 h-5 text-white" />
+            )}
+          </button>
+
+          {/* Menu Button */}
+          <button
+            onClick={() => setShowMenu(!showMenu)}
+            className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-2.5 shadow-2xl shadow-black/20 hover:bg-white/20 transition-all"
+          >
+            {showMenu ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5 text-white" />}
+          </button>
+        </div>
 
         {/* Floating Menu Dropdown */}
         {showMenu && (
           <div className="absolute top-16 right-4 z-40 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl shadow-black/20 overflow-hidden min-w-[200px]">
             <div className="p-4 space-y-3">
               <p className="text-sm text-white/80 font-medium">Hi, {user?.displayName?.split(' ')[0] || 'Traveler'}! 👋</p>
-              <button 
-                onClick={handleLogout} 
+              <button
+                onClick={handleLogout}
                 className="w-full text-left text-sm text-white/70 hover:text-white hover:bg-white/10 transition-all py-2 px-3 rounded-lg"
               >
                 Logout
@@ -271,14 +309,23 @@ export default function DashboardPage() {
           />
         )}
 
-        {/* Floating Action Button - Add Place */}
-        <Link
-          href="/places/add"
+        {/* Floating Action Button - Open Wizard */}
+        <button
+          onClick={() => setShowTripWizard(true)}
           className="absolute bottom-24 right-6 sm:right-8 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-2xl shadow-blue-500/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95 group"
         >
           <Plus className="w-6 h-6 text-white group-hover:rotate-90 transition-transform duration-300" />
-        </Link>
+        </button>
+
+        {/* Trip Creation Wizard Modal */}
+        <TripCreationWizard
+          isOpen={showTripWizard}
+          onClose={() => setShowTripWizard(false)}
+        />
+
       </div>
     </ProtectedRoute>
   );
 }
+
+

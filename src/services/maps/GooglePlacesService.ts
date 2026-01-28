@@ -259,6 +259,9 @@ class GooglePlacesService implements IGooglePlacesService {
       this.geocoder.geocode({ location: { lat, lng } }, (results, status) => {
         if (status === google.maps.GeocoderStatus.OK && results?.[0]) {
           resolve(results[0].formatted_address);
+        } else if (status === google.maps.GeocoderStatus.ZERO_RESULTS) {
+          // Handle cases with no address (ocean, desert, etc.)
+          resolve('Unknown Location');
         } else {
           reject(new Error(`Reverse geocoding failed: ${status}`));
         }

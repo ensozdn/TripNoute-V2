@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useRef, useMemo, useEffect, useState } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import { useMapbox } from '@/hooks/useMapbox';
 import { getMapboxService } from '@/services/maps';
 import type { MapMarker } from '@/types/maps';
@@ -36,23 +36,27 @@ export default function MapboxMap({
   // Tüm hook'lar en başta
   const containerRef = useRef<HTMLDivElement>(null);
   const accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
-  const [locationError, setLocationError] = useState<string | null>(null);
-  const [isLocating, setIsLocating] = useState(false);
 
   // Places'leri MapMarker'lara dönüştür
   const markers: MapMarker[] = useMemo(() => {
     return places
       .filter((place) => place.location?.lat && place.location?.lng)
-      .map((place) => ({
-        id: place.id,
-        position: {
-          lat: place.location!.lat,
-          lng: place.location!.lng,
-        },
-        title: place.title,
-        description: `${place.address?.city || ''}, ${place.address?.country || ''}`,
-        color: selectedPlace?.id === place.id ? '#10b981' : '#3b82f6',
-      }));
+      .map((place) => {
+        // Use first photo as icon if available
+        const photoUrl = place.photos?.[0]?.thumbnailUrl || place.photos?.[0]?.url;
+
+        return {
+          id: place.id,
+          position: {
+            lat: place.location!.lat,
+            lng: place.location!.lng,
+          },
+          title: place.title,
+          description: `${place.address?.city || ''}, ${place.address?.country || ''}`,
+          color: selectedPlace?.id === place.id ? '#10b981' : '#3b82f6',
+          icon: photoUrl, // Pass URL or undefined
+        };
+      });
   }, [places, selectedPlace]);
 
   // Marker click handler
@@ -65,44 +69,17 @@ export default function MapboxMap({
     };
   }, [places, onMarkerClick]);
 
-  // Mapbox hook - Custom location button kullanıyoruz (GeolocateControl kaldırıldı)
-  const { map, isLoaded, error, flyTo, flyToUserLocation } = useMapbox(containerRef, {
+  // Mapbox hook - GeolocateControl disabled, using custom button in Dashboard
+  const { map, isLoaded, error, flyTo } = useMapbox(containerRef, {
     accessToken,
     style,
     center,
     zoom,
     markers,
-    enableUserLocation: false, // GeolocateControl devre dışı - custom button kullanıyoruz
+    enableUserLocation: false, // GeolocateControl disabled - custom button in Dashboard
     onMapClick,
     onMarkerClick: handleMarkerClick,
   });
-
-  // Handle locate button click with error handling
-  const handleLocateMe = async () => {
-    alert('🔍 Konum isteği başladı...');
-    setIsLocating(true);
-    setLocationError(null);
-    
-    try {
-      const result = await flyToUserLocation(12);
-      
-      if (!result) {
-        alert('❌ Konum alınamadı!');
-        setLocationError('Konumunuz alınamadı. GPS\'i açın ve tekrar deneyin.');
-      } else {
-        alert('✅ Konum bulundu! Harita hareket ediyor...');
-        setLocationError(null);
-        console.log('✅ Konumunuz başarıyla alındı:', result);
-      }
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Bilinmeyen bir hata oluştu';
-      alert('⚠️ Hata: ' + errorMsg);
-      setLocationError(errorMsg);
-      console.error('❌ Konum hatası:', err);
-    } finally {
-      setIsLocating(false);
-    }
-  };
 
   // Selected place effect
   useEffect(() => {
@@ -116,7 +93,7 @@ export default function MapboxMap({
     if (!isLoaded || !map) return;
 
     const mapboxService = getMapboxService();
-    
+
     // Start rotation after a delay for dramatic effect
     const timer = setTimeout(() => {
       // Start if we're in globe view (zoom < 3) - regardless of places
@@ -129,7 +106,26 @@ export default function MapboxMap({
       clearTimeout(timer);
       mapboxService.stopRotation();
     };
+    return () => {
+      clearTimeout(timer);
+      mapboxService.stopRotation();
+    };
   }, [isLoaded, map]);
+
+  // Draw multi-mode routes when places change
+  useEffect(() => {
+    if (!isLoaded || !map || places.length < 2) return;
+
+    const mapboxService = getMapboxService();
+
+    // Convert Place[] to the format expected by drawRouteLines 
+    // (Place type matches, but we pass it directly to be safe)
+    mapboxService.drawRouteLines(places);
+
+    return () => {
+      mapboxService.clearRouteLines();
+    };
+  }, [isLoaded, map, places]);
 
   // No token
   if (!accessToken) {
@@ -171,8 +167,8 @@ export default function MapboxMap({
   return (
     <div className={`relative w-full h-full ${className}`} style={{ minHeight: '400px' }}>
       {/* Map Container */}
-      <div 
-        ref={containerRef} 
+      <div
+        ref={containerRef}
         className="absolute inset-0 w-full h-full"
         style={{ minHeight: '400px' }}
       />
@@ -184,37 +180,6 @@ export default function MapboxMap({
             <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
             <p className="text-white font-medium">Harita yükleniyor...</p>
           </div>
-        </div>
-      )}
-
-      {/* My Location Button - Mobile Optimized */}
-      {isLoaded && (
-        <div className="absolute bottom-24 left-4 z-10 flex flex-col gap-2">
-          <button
-            onClick={handleLocateMe}
-            disabled={isLocating}
-            className="bg-white/10 backdrop-blur-xl border border-white/20 hover:bg-white/20 disabled:bg-white/5 text-white p-3.5 rounded-2xl shadow-2xl shadow-black/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Konumuma Git"
-            aria-label="Konumuma Git"
-          >
-            {isLocating ? (
-              <svg className="w-6 h-6 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
-                <path strokeLinecap="round" d="M12 2a10 10 0 0110 10" stroke="currentColor" strokeWidth="2" />
-              </svg>
-            ) : (
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-              </svg>
-            )}
-          </button>
-          
-          {/* Error message */}
-          {locationError && (
-            <div className="bg-red-500/90 backdrop-blur-xl text-white px-3 py-2 rounded-xl text-xs max-w-xs shadow-xl">
-              ❌ {locationError}
-            </div>
-          )}
         </div>
       )}
 

@@ -106,7 +106,11 @@ export interface Place {
   tags: string[];
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  transportType?: TransportType;
+  order?: number;
 }
+
+export type TransportType = 'walking' | 'bus' | 'car' | 'flight' | 'ship' | 'train';
 
 export type PlaceCategory =
   | 'restaurant'
@@ -151,6 +155,8 @@ export interface CreatePlaceInput {
   rating?: number;
   isPublic: boolean;
   tags?: string[];
+  transportType?: TransportType;
+  order?: number;
 }
 
 export interface UpdatePlaceInput extends Partial<CreatePlaceInput> {

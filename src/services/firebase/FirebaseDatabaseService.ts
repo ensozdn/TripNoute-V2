@@ -97,6 +97,12 @@ export class FirebaseDatabaseService implements IDatabaseService {
       if (input.rating !== undefined) {
         placeData.rating = input.rating;
       }
+      if (input.transportType !== undefined) {
+        placeData.transportType = input.transportType;
+      }
+      if (input.order !== undefined) {
+        placeData.order = input.order;
+      }
 
       await setDoc(newPlaceRef, placeData);
 
@@ -154,7 +160,10 @@ export class FirebaseDatabaseService implements IDatabaseService {
       if (input.category !== undefined) updateData.category = input.category;
       if (input.rating !== undefined) updateData.rating = input.rating;
       if (input.isPublic !== undefined) updateData.isPublic = input.isPublic;
+      if (input.isPublic !== undefined) updateData.isPublic = input.isPublic;
       if (input.tags !== undefined) updateData.tags = input.tags;
+      if (input.transportType !== undefined) updateData.transportType = input.transportType;
+      if (input.order !== undefined) updateData.order = input.order;
 
       // Convert visitDate if provided
       if (input.visitDate) {
@@ -187,13 +196,13 @@ export class FirebaseDatabaseService implements IDatabaseService {
       }
 
       const placeData = placeDoc.data() as Place;
-      
+
       // Delete associated photos from storage
       if (placeData.photos && placeData.photos.length > 0) {
         try {
           // Import storage service to delete photos
           const { storageService } = await import('@/services/firebase/FirebaseStorageService');
-          
+
           // Delete all photos for this place
           const photoDeletePromises = placeData.photos.map((photo) =>
             storageService.deletePhoto(photo.id, photo.storagePath)
@@ -202,14 +211,14 @@ export class FirebaseDatabaseService implements IDatabaseService {
                 // Continue deleting other photos even if one fails
               })
           );
-          
+
           await Promise.allSettled(photoDeletePromises);
         } catch (storageError) {
           console.error('Error deleting photos from storage:', storageError);
           // Continue with place deletion even if photo deletion fails
         }
       }
-      
+
       // Delete place document from Firestore
       await deleteDoc(placeRef);
 
@@ -317,7 +326,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
       // For production, consider using Firestore GeoFire or similar solution
 
       const allPlaces = await this.getPlaces(filters, undefined, { limit: 1000 });
-      
+
       return allPlaces.items.filter((place) => {
         const { lat, lng } = place.location;
         return lat <= north && lat >= south && lng <= east && lng >= west;
@@ -502,7 +511,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
       }
 
       const place = placeDoc.data() as Place;
-      
+
       // Find the photo to delete
       const photoToDelete = place.photos.find(p => p.id === photoId);
       if (!photoToDelete) {
@@ -541,7 +550,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
       }
 
       const place = placeDoc.data() as Place;
-      
+
       // Find and update the photo
       const updatedPhotos = place.photos.map(photo => {
         if (photo.id === photoId) {
