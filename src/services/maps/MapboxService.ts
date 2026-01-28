@@ -686,13 +686,24 @@ class MapboxService implements IMapboxService {
     visitDate: { seconds: number; nanoseconds: number } | Date;
     transportType?: 'walking' | 'bus' | 'car' | 'flight' | 'ship' | 'train';
   }>): void {
-    if (!this.map || places.length < 2) return;
+    console.log('🗺️ DrawRouteLines called with', places.length, 'places');
+    
+    if (!this.map || places.length < 2) {
+      console.warn('⚠️ Not enough places for routes:', { 
+        hasMap: !!this.map, 
+        placeCount: places.length 
+      });
+      return;
+    }
 
     // Wait for style load
     if (!this.map.isStyleLoaded()) {
+      console.log('⏳ Waiting for map style to load...');
       this.map.once('style.load', () => this.drawRouteLines(places));
       return;
     }
+
+    console.log('✅ Map ready, drawing routes...');
 
     // Clear existing transport markers
     this.transportMarkers.forEach(m => m.remove());
@@ -709,6 +720,14 @@ class MapboxService implements IMapboxService {
       return dateA - dateB;
     });
 
+    console.log('📅 Sorted places by date:', sortedPlaces.map(p => ({
+      id: p.id.substring(0, 8),
+      date: getTimestamp(p.visitDate),
+      transport: p.transportType || 'NONE',
+      lat: p.location.lat.toFixed(2),
+      lng: p.location.lng.toFixed(2)
+    })));
+
     const routeFeatures: GeoJSON.Feature[] = [];
 
     // Create segments between consecutive places
@@ -717,7 +736,10 @@ class MapboxService implements IMapboxService {
       const end = sortedPlaces[i + 1];
 
       // Use the transport type of the END destination (how we got there)
+      // DEFAULT to 'flight' if missing for backward compatibility
       const type = end.transportType || 'flight';
+      
+      console.log(`  🔗 Creating segment ${i + 1}/${sortedPlaces.length - 1}: ${type}`);
 
       const coordinates: [number, number][] = [
         [start.location.lng, start.location.lat],
@@ -791,7 +813,11 @@ class MapboxService implements IMapboxService {
         .addTo(this.map);
 
       this.transportMarkers.push(marker);
+      
+      console.log(`  ➡️ Segment ${i}: ${type} from [${start.location.lat.toFixed(2)}, ${start.location.lng.toFixed(2)}] to [${end.location.lat.toFixed(2)}, ${end.location.lng.toFixed(2)}]`);
     }
+
+    console.log(`✨ Created ${routeFeatures.length} route segments with ${this.transportMarkers.length} icons`);
 
     const geojson: GeoJSON.FeatureCollection = {
       type: 'FeatureCollection',
@@ -886,6 +912,8 @@ class MapboxService implements IMapboxService {
         'line-opacity': 0.9,
       },
     });
+
+    console.log('🎉 Route layers added successfully!');
   }
 
   /**

@@ -48,6 +48,14 @@ export default function DashboardPage() {
         try {
           const response = await databaseService.getUserPlaces(user.uid);
           setPlaces(response.items);
+          
+          console.log('📍 Loaded', response.items.length, 'places for user');
+          console.log('🔍 Places data:', response.items.map(p => ({
+            title: p.title,
+            date: p.visitDate,
+            transport: p.transportType || 'MISSING',
+            hasLocation: !!(p.location?.lat && p.location?.lng)
+          })));
         } catch (error) {
           console.error('Error loading places:', error);
         } finally {
