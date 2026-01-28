@@ -243,23 +243,23 @@ class MapboxService implements IMapboxService {
 
     // Icon varsa (Photo URL) kullan
     if (marker.icon && (marker.icon.startsWith('http') || marker.icon.startsWith('/'))) {
-      // Wrapper size (positioning anchor)
-      wrapper.style.width = '48px';
-      wrapper.style.height = '48px';
+      // POLARSTEPS-STYLE: Bigger photo bubbles
+      wrapper.style.width = '56px'; // Increased from 48px
+      wrapper.style.height = '56px';
 
-      // Inner Style (Photo bubble)
+      // Premium Photo Bubble Style
       inner.style.width = '100%';
       inner.style.height = '100%';
       inner.style.backgroundImage = `url(${marker.icon})`;
       inner.style.backgroundSize = 'cover';
       inner.style.backgroundPosition = 'center';
       inner.style.borderRadius = '50%';
-      inner.style.border = '3px solid white';
-      inner.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.16)';
+      inner.style.border = '4px solid white'; // Thicker border
+      inner.style.boxShadow = '0 6px 16px -4px rgba(0, 0, 0, 0.4), 0 4px 8px -2px rgba(0, 0, 0, 0.24)'; // Deeper shadow
     } else {
-      // Default Pin Style
-      wrapper.style.width = '32px';
-      wrapper.style.height = '32px';
+      // Default Pin Style (if no photo)
+      wrapper.style.width = '40px'; // Slightly bigger
+      wrapper.style.height = '40px';
 
       inner.style.width = '100%';
       inner.style.height = '100%';
@@ -273,12 +273,12 @@ class MapboxService implements IMapboxService {
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-          border: 2px solid white;
+          box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+          border: 3px solid white;
         ">
           <div style="
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
             background: white;
             border-radius: 50%;
             transform: rotate(45deg);
@@ -290,12 +290,12 @@ class MapboxService implements IMapboxService {
     // Append inner to wrapper
     wrapper.appendChild(inner);
 
-    // Hover effect applied to INNER element (Safe from Mapbox conflict)
-    wrapper.onmouseenter = () => inner.style.transform = 'scale(1.15)';
+    // POLARSTEPS-STYLE HOVER: More dramatic scale
+    wrapper.onmouseenter = () => inner.style.transform = 'scale(1.2)';
     wrapper.onmouseleave = () => inner.style.transform = 'scale(1)';
 
     // Mapbox marker oluştur - Offset calculations
-    const offset: [number, number] = marker.icon?.startsWith('http') ? [0, 0] : [0, -16];
+    const offset: [number, number] = marker.icon?.startsWith('http') ? [0, 0] : [0, -20]; // Adjusted for bigger pins
 
     const mapboxMarker = new mapboxgl.Marker({ element: wrapper, offset })
       .setLngLat([marker.position.lng, marker.position.lat]);
@@ -742,7 +742,8 @@ class MapboxService implements IMapboxService {
       });
 
       // ---------------------------------------------------------
-      // ADD TRANSPORT ICON AT MIDPOINT
+      // POLARSTEPS-STYLE TRANSPORT ICON AT MIDPOINT
+      // Premium small circular badge with crisp icon
       // ---------------------------------------------------------
       let midLat, midLng;
 
@@ -756,19 +757,19 @@ class MapboxService implements IMapboxService {
         midLat = (start.location.lat + end.location.lat) / 2;
       }
 
-      // Create Icon Wrapper (Same structure as addMarker for consistency)
+      // POLARSTEPS-STYLE: Compact premium badge
       const iconWrapper = document.createElement('div');
       iconWrapper.className = 'transport-icon-wrapper';
-      iconWrapper.style.width = '28px';
-      iconWrapper.style.height = '28px';
-      iconWrapper.style.backgroundColor = '#0f172a'; // Slate-900
-      iconWrapper.style.border = '2px solid white';
+      iconWrapper.style.width = '32px'; // Slightly bigger
+      iconWrapper.style.height = '32px';
+      iconWrapper.style.backgroundColor = '#1e293b'; // Slate-800 (darker)
+      iconWrapper.style.border = '3px solid white'; // Thicker border
       iconWrapper.style.borderRadius = '50%';
       iconWrapper.style.display = 'flex';
       iconWrapper.style.alignItems = 'center';
       iconWrapper.style.justifyContent = 'center';
-      iconWrapper.style.boxShadow = '0 2px 4px rgba(0,0,0,0.5)';
-      iconWrapper.style.zIndex = '10'; // High z-index to be on top of lines
+      iconWrapper.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2)'; // Deeper shadow
+      iconWrapper.style.zIndex = '10';
       iconWrapper.style.cursor = 'default';
 
       // Get raw SVG (without data URI wrapper)
@@ -780,9 +781,9 @@ class MapboxService implements IMapboxService {
       // Style the injected SVG directly
       const svgEl = iconWrapper.querySelector('svg');
       if (svgEl) {
-        svgEl.style.width = '16px';
-        svgEl.style.height = '16px';
-        svgEl.style.color = 'white'; // Ensure currentColor uses white
+        svgEl.style.width = '18px'; // Slightly bigger icon
+        svgEl.style.height = '18px';
+        svgEl.style.color = 'white';
       }
 
       const marker = new mapboxgl.Marker({ element: iconWrapper })
@@ -813,7 +814,27 @@ class MapboxService implements IMapboxService {
       lineMetrics: true, // Enable gradient/metrics if needed
     });
 
-    // 1. Flight Layer (Curved, Dashed, White)
+    // POLARSTEPS-STYLE PREMIUM ROUTE LAYERS
+    // Layer Order: Shadow → Main Line (bottom to top)
+
+    // 1. SHADOW LAYER (All routes) - Gives depth like Polarsteps
+    this.map.addLayer({
+      id: 'route-shadow',
+      type: 'line',
+      source: this.routeSourceId,
+      layout: {
+        'line-join': 'round',
+        'line-cap': 'round',
+      },
+      paint: {
+        'line-color': '#000000',
+        'line-width': 7,
+        'line-opacity': 0.25,
+        'line-blur': 4, // Soft shadow blur
+      },
+    });
+
+    // 2. FLIGHT LAYER (Curved, Dashed, Thick White)
     this.map.addLayer({
       id: 'route-flight',
       type: 'line',
@@ -825,13 +846,13 @@ class MapboxService implements IMapboxService {
       },
       paint: {
         'line-color': '#ffffff',
-        'line-width': 3,
-        'line-opacity': 0.8,
-        'line-dasharray': [2, 3], // Dashed
+        'line-width': 5, // Thicker like Polarsteps
+        'line-opacity': 0.95,
+        'line-dasharray': [3, 2], // Longer dashes for premium look
       },
     });
 
-    // 2. Road Layer (Car/Bus/Train - Solid, Bright Blue/Orange)
+    // 3. ROAD LAYER (Car/Bus/Train - Solid, Thick White)
     this.map.addLayer({
       id: 'route-road',
       type: 'line',
@@ -842,13 +863,13 @@ class MapboxService implements IMapboxService {
         'line-cap': 'round',
       },
       paint: {
-        'line-color': '#ffffff', // Unified white style
-        'line-width': 4,
-        'line-opacity': 0.9,
+        'line-color': '#ffffff',
+        'line-width': 5,
+        'line-opacity': 0.95,
       },
     });
 
-    // 3. Path Layer (Walking - Dotted, Small)
+    // 4. WALKING LAYER (Dotted, Premium Green)
     this.map.addLayer({
       id: 'route-path',
       type: 'line',
@@ -860,16 +881,17 @@ class MapboxService implements IMapboxService {
       },
       paint: {
         'line-color': '#10b981', // Emerald Green
-        'line-width': 3,
-        'line-dasharray': [1, 2], // Very Dotted
-        'line-opacity': 0.8,
+        'line-width': 4,
+        'line-dasharray': [0.5, 2.5], // Subtle dots
+        'line-opacity': 0.9,
       },
     });
   }
 
   /**
-   * Geodesic line interpolation (kavisli çizgi için ara noktalar)
-   * Basit linear interpolation - production'da Turf.js kullanılabilir
+   * POLARSTEPS-STYLE GEODESIC CURVE
+   * Creates beautiful curved lines for long-distance routes (flights/ships)
+   * Uses Great Circle path approximation with bezier-like smoothing
    */
   private interpolateGeodesicLine(coordinates: [number, number][]): [number, number][] {
     const result: [number, number][] = [];
@@ -880,19 +902,47 @@ class MapboxService implements IMapboxService {
 
       result.push(start);
 
-      // İki nokta arası mesafe hesapla (basit)
-      const distance = Math.sqrt(
-        Math.pow(end[0] - start[0], 2) + Math.pow(end[1] - start[1], 2)
-      );
+      // Calculate distance (in degrees for rough estimate)
+      const dx = end[0] - start[0];
+      const dy = end[1] - start[1];
+      const distance = Math.sqrt(dx * dx + dy * dy);
 
-      // Uzak noktalar arasına ara noktalar ekle
-      if (distance > 5) {
-        const steps = Math.ceil(distance / 5);
+      // Only interpolate for long distances (> 3 degrees ~ 330km)
+      if (distance > 3) {
+        // Calculate midpoint elevation for great circle effect
+        const midLng = (start[0] + end[0]) / 2;
+        const midLat = (start[1] + end[1]) / 2;
+        
+        // Add curvature based on distance (the farther, the more curve)
+        const curvatureOffset = distance * 0.08; // 8% elevation
+        const curvedMidLat = midLat + curvatureOffset;
+
+        // Create smooth bezier-like curve with multiple steps
+        const steps = Math.max(Math.ceil(distance * 3), 20); // More steps = smoother
+
+        for (let j = 1; j < steps; j++) {
+          const t = j / steps;
+          
+          // Quadratic Bezier formula: B(t) = (1-t)²P₀ + 2(1-t)tP₁ + t²P₂
+          const oneMinusT = 1 - t;
+          const lng = oneMinusT * oneMinusT * start[0] + 
+                      2 * oneMinusT * t * midLng + 
+                      t * t * end[0];
+          
+          const lat = oneMinusT * oneMinusT * start[1] + 
+                      2 * oneMinusT * t * curvedMidLat + 
+                      t * t * end[1];
+
+          result.push([lng, lat]);
+        }
+      } else {
+        // Short distances: simple linear interpolation
+        const steps = Math.max(Math.ceil(distance * 5), 3);
         for (let j = 1; j < steps; j++) {
           const ratio = j / steps;
           result.push([
-            start[0] + (end[0] - start[0]) * ratio,
-            start[1] + (end[1] - start[1]) * ratio,
+            start[0] + dx * ratio,
+            start[1] + dy * ratio,
           ]);
         }
       }
@@ -912,7 +962,7 @@ class MapboxService implements IMapboxService {
 
     if (!this.map) return;
 
-    const layers = ['route-flight', 'route-road', 'route-path'];
+    const layers = ['route-shadow', 'route-flight', 'route-road', 'route-path'];
     layers.forEach(layer => {
       if (this.map!.getLayer(layer)) {
         this.map!.removeLayer(layer);
