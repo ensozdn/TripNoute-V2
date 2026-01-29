@@ -22,14 +22,11 @@ import { ImageUploader } from '@/components/place';
 
 import { TransportType } from '@/types';
 import TransportSelector from '@/components/journey/TransportSelector';
-import { useSearchParams } from 'next/navigation';
 
 type AddPlaceFormData = z.infer<typeof addPlaceSchema>;
 
 export default function AddPlacePage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const mode = searchParams.get('mode'); // 'future', 'current', 'past'
 
   const { user } = useAuth();
   const [loadingForm, setLoadingForm] = useState(false);

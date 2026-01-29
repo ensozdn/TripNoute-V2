@@ -1,13 +1,3 @@
-/**
- * JourneyHub Component - Premium Mobile Experience
- * 
- * Native Mobile Features:
- * - Haptic Gesture Sheet with 3 snap points (Peek/Half/Full)
- * - Magic Pill Tab Bar with spring animations
- * - Grab Handle with breathing animation
- * - Data sanity checks for consistent statistics
- */
-
 'use client';
 
 import { useState, useMemo, useRef } from 'react';
@@ -44,11 +34,10 @@ const TABS: TabConfig[] = [
   { id: 'gallery', label: 'Gallery', icon: <ImageIcon className="w-5 h-5" />, expandsTo: 'full' },
 ];
 
-// Snap points: Peek (10%), Half (50%), Full (95%)
 const SNAP_POINTS: Record<SheetState, number> = {
-  peek: 0.1,    // ~10% - Grab handle only, peek at content
-  half: 0.5,    // 50% - Half screen
-  full: 0.95,   // 95% - Full screen
+  peek: 0.1,
+  half: 0.5,
+  full: 0.95,
 };
 
 export default function JourneyHub({
@@ -61,10 +50,6 @@ export default function JourneyHub({
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [sheetState, setSheetState] = useState<SheetState>('peek');
   const sheetRef = useRef<HTMLDivElement>(null);
-
-  // ============================================
-  // MEMOIZED DATA WITH SANITY CHECKS
-  // ============================================
 
   const stats: JourneyStats = useMemo(() => {
     const countries = new Set<string>();

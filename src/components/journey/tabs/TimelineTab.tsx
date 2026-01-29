@@ -1,10 +1,3 @@
-/**
- * TimelineTab Component
- * 
- * Wrapper for TravelTimeline within JourneyHub.
- * Single Responsibility: Only manages timeline display within tab context.
- */
-
 'use client';
 
 import TravelTimeline from '@/components/timeline/TravelTimeline';

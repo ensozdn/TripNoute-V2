@@ -11,44 +11,25 @@ import type {
   MapMarker,
   MapViewport,
 } from '@/types/maps';
+import { Journey, TransportMode } from '@/types/journeyData';
 
 class MapboxService implements IMapboxService {
   private map: mapboxgl.Map | null = null;
   private markers: Map<string, mapboxgl.Marker> = new Map();
   private clickCallback: ((lat: number, lng: number) => void) | null = null;
   private markerClickCallback: ((markerId: string) => void) | null = null;
-  private markerClickCallback: ((markerId: string) => void) | null = null;
-  // private routeLayerId: string = 'route-line'; // Replaced by multi-mode layers
   private routeSourceId: string = 'route-source';
 
-  // Cinematic Globe Rotation
   private rotationAnimationId: number | null = null;
   private isRotating: boolean = false;
   private lastFrameTime: number = 0;
-  private rotationSpeed: number = 0.05; // degrees per frame at 60fps
+  private rotationSpeed: number = 0.05;
 
-  // User Location Marker
   private userLocationMarker: mapboxgl.Marker | null = null;
-  private transportMarkers: mapboxgl.Marker[] = []; // Track route icon markers
-
-  // Icon SVG Definitions (Polarsteps style: Clean white icons on dark bg)
-  private getTransportIcon(type: string): string {
-    const icons: Record<string, string> = {
-      flight: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20"/><path d="M13 5v7"/><path d="M6 8l4-3"/><path d="M4 21a2 2 0 0 1-2-2"/></svg>`, // Simplified Plane
-      car: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M5 17h2"/><path d="M15 17h2"/></svg>`,
-      bus: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4-.2-.8-.6-.8h-2.4c-.4 0-.8.4-.9.8L18 18z"/><path d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7c0-1.1.9-2 2-2z"/><path d="M8 21v-2"/><path d="M16 21v-2"/></svg>`,
-      train: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="16" rx="2" /><path d="M4 11h16" /><path d="M12 3v8" /><path d="m8 19-2 3" /><path d="m18 22-2-3" /><circle cx="8" cy="15" r="1" /><circle cx="16" cy="15" r="1" /></svg>`,
-      ship: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.9 5.8 2.38 6"/><path d="M12 4v6"/><path d="M17 14l-4-5 1-6"/><path d="M6 14l4-5-1-6"/></svg>`,
-      walking: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16v-2.38C4 11.5 5.9 10.1 7.43 10a2 2 0 0 1 1.62.9l.61.9a2 2 0 0 0 2.9.7l3.78-1.9a2 2 0 1 1 1.12 3.84l-2.07 1a2 2 0 0 0-.91 1.07L13 21"/><path d="M8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/><path d="M12 5.5l.3-.6a2 2 0 0 1 2.4-1.1l3 .9a2 2 0 0 1 1.4 1.9V10"/><path d="M8 21v-3.5"/></svg>`,
-    };
-
-    // Fallback to Plane logic map
-    const iconSvg = icons[type.toLowerCase()] || icons['flight'];
-
-    // Return encoded SVG - using single quote for CSS url('') compat
-    const coloredSvg = iconSvg.replace(/stroke="currentColor"/g, 'stroke="white"');
-    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(coloredSvg)}`;
-  }
+  private transportMarkers: mapboxgl.Marker[] = [];
+  private journeyLayers: Map<string, string[]> = new Map();
+  private journeySources: Set<string> = new Set();
+  private medallionMarkers: Map<string, mapboxgl.Marker[]> = new Map();
 
   /**
    * Helper to get RAW SVG string for inline injection
@@ -90,12 +71,11 @@ class MapboxService implements IMapboxService {
       this.map = new mapboxgl.Map({
         container: config.container,
         style: config.style || 'mapbox://styles/mapbox/dark-v11',
-        center: config.center || [0, 20],  // Center at 20° N for better world view
+        center: config.center || [0, 20],
         zoom: isMobile ? mobileZoom : desktopZoom,
         pitch: config.pitch || 0,
         bearing: config.bearing || 0,
-        projection: 'globe' as any,  // Enable globe projection
-        // Mobile-optimized padding for better screen utilization
+        projection: 'globe' as any,
         maxPitch: 85,
         antialias: true,
       });
@@ -311,8 +291,18 @@ class MapboxService implements IMapboxService {
       mapboxMarker.setPopup(popup);
 
       // Show popup on hover
-      wrapper.addEventListener('mouseenter', () => mapboxMarker.getPopup().addTo(this.map!));
-      wrapper.addEventListener('mouseleave', () => mapboxMarker.getPopup().remove());
+      wrapper.addEventListener('mouseenter', () => {
+        const popupInstance = mapboxMarker.getPopup();
+        if (popupInstance && this.map) {
+          popupInstance.addTo(this.map);
+        }
+      });
+      wrapper.addEventListener('mouseleave', () => {
+        const popupInstance = mapboxMarker.getPopup();
+        if (popupInstance) {
+          popupInstance.remove();
+        }
+      });
     }
 
     // Click event
@@ -1108,9 +1098,256 @@ class MapboxService implements IMapboxService {
       duration: 1500,
     });
   }
+
+  renderJourney(journey: Journey): void {
+    if (!this.map) return;
+
+    this.clearJourney(journey.id);
+    this.drawJourneyRoute(journey);
+    this.addJourneyStopMarkers(journey);
+    this.addTransportMedallions(journey);
+  }
+
+  private drawJourneyRoute(journey: Journey): void {
+    if (!this.map || journey.steps.length < 2) return;
+
+    const segments: any[] = [];
+
+    for (let i = 0; i < journey.steps.length - 1; i++) {
+      const current = journey.steps[i];
+      const next = journey.steps[i + 1];
+
+      segments.push({
+        type: 'Feature',
+        properties: {
+          transportMode: current.transportToNext,
+          color: journey.color,
+        },
+        geometry: {
+          type: 'LineString',
+          coordinates: [current.coordinates, next.coordinates],
+        },
+      });
+    }
+
+    const sourceId = `journey-source-${journey.id}`;
+    this.journeySources.add(sourceId);
+
+    if (this.map.getSource(sourceId)) {
+      (this.map.getSource(sourceId) as mapboxgl.GeoJSONSource).setData({
+        type: 'FeatureCollection',
+        features: segments,
+      });
+    } else {
+      this.map.addSource(sourceId, {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: segments,
+        },
+      });
+    }
+
+    const layerIds: string[] = [];
+
+    segments.forEach((segment, index) => {
+      const layerId = `journey-layer-${journey.id}-${index}`;
+      layerIds.push(layerId);
+
+      if (this.map!.getLayer(layerId)) {
+        return;
+      }
+
+      const style = this.getRouteStyle(segment.properties.transportMode);
+
+      this.map!.addLayer({
+        id: layerId,
+        type: 'line',
+        source: sourceId,
+        filter: ['==', ['get', 'transportMode'], segment.properties.transportMode],
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round',
+        },
+        paint: style,
+      });
+    });
+
+    this.journeyLayers.set(journey.id, layerIds);
+  }
+
+  private getRouteStyle(transport: TransportMode | null): any {
+    const styles: Record<string, any> = {
+      flight: {
+        'line-color': '#4ECDC4',
+        'line-width': 2,
+        'line-dasharray': [2, 2],
+        'line-blur': 2,
+        'line-opacity': 0.9,
+      },
+      car: {
+        'line-color': '#FF6B6B',
+        'line-width': 4,
+        'line-opacity': 0.9,
+      },
+      bus: {
+        'line-color': '#FFA07A',
+        'line-width': 4,
+        'line-opacity': 0.9,
+      },
+      train: {
+        'line-color': '#45B7D1',
+        'line-width': 3,
+        'line-dasharray': [4, 2],
+        'line-opacity': 0.9,
+      },
+      ship: {
+        'line-color': '#85C1E2',
+        'line-width': 3,
+        'line-dasharray': [6, 3],
+        'line-opacity': 0.9,
+      },
+      walk: {
+        'line-color': '#95E1D3',
+        'line-width': 1.5,
+        'line-dasharray': [1, 3],
+        'line-opacity': 0.8,
+      },
+    };
+
+    return styles[transport || 'car'] || styles.car;
+  }
+
+  private addJourneyStopMarkers(journey: Journey): void {
+    if (!this.map) return;
+
+    journey.steps.forEach((step, index) => {
+      const isFirst = index === 0;
+      const isLast = index === journey.steps.length - 1;
+
+      const el = document.createElement('div');
+      el.className = 'journey-stop-marker';
+      el.style.width = '24px';
+      el.style.height = '24px';
+      el.style.borderRadius = '50%';
+      el.style.backgroundColor = journey.color;
+      el.style.border = '3px solid white';
+      el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+      el.style.cursor = 'pointer';
+
+      if (isFirst || isLast) {
+        el.style.width = '32px';
+        el.style.height = '32px';
+        el.style.border = '4px solid white';
+      }
+
+      const marker = new mapboxgl.Marker({ element: el })
+        .setLngLat(step.coordinates)
+        .addTo(this.map!);
+
+      const popup = new mapboxgl.Popup({ offset: 25, closeButton: false })
+        .setHTML(`
+          <div style="padding: 8px;">
+            <h3 style="margin: 0; font-size: 14px; font-weight: 600;">${step.name}</h3>
+            ${step.address?.city ? `<p style="margin: 4px 0 0 0; font-size: 12px; opacity: 0.7;">${step.address.city}</p>` : ''}
+          </div>
+        `);
+
+      marker.setPopup(popup);
+
+      if (!this.medallionMarkers.has(journey.id)) {
+        this.medallionMarkers.set(journey.id, []);
+      }
+      this.medallionMarkers.get(journey.id)!.push(marker);
+    });
+  }
+
+  private addTransportMedallions(journey: Journey): void {
+    if (!this.map) return;
+
+    for (let i = 0; i < journey.steps.length - 1; i++) {
+      const current = journey.steps[i];
+      const next = journey.steps[i + 1];
+
+      if (!current.transportToNext) continue;
+
+      const midpoint = this.calculateMidpoint(current.coordinates, next.coordinates);
+
+      const el = document.createElement('div');
+      el.style.width = '32px';
+      el.style.height = '32px';
+      el.style.borderRadius = '50%';
+      el.style.backgroundColor = 'white';
+      el.style.display = 'flex';
+      el.style.alignItems = 'center';
+      el.style.justifyContent = 'center';
+      el.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+      el.style.backdropFilter = 'blur(8px)';
+
+      const iconSvg = this.getRawTransportIcon(current.transportToNext);
+      el.innerHTML = iconSvg;
+
+      const marker = new mapboxgl.Marker({ element: el })
+        .setLngLat(midpoint)
+        .addTo(this.map!);
+
+      if (!this.medallionMarkers.has(journey.id)) {
+        this.medallionMarkers.set(journey.id, []);
+      }
+      this.medallionMarkers.get(journey.id)!.push(marker);
+    }
+  }
+
+  private calculateMidpoint(from: [number, number], to: [number, number]): [number, number] {
+    return [
+      (from[0] + to[0]) / 2,
+      (from[1] + to[1]) / 2,
+    ];
+  }
+
+  clearJourney(journeyId: string): void {
+    if (!this.map) return;
+
+    const layerIds = this.journeyLayers.get(journeyId);
+    if (layerIds) {
+      layerIds.forEach(layerId => {
+        if (this.map!.getLayer(layerId)) {
+          this.map!.removeLayer(layerId);
+        }
+      });
+      this.journeyLayers.delete(journeyId);
+    }
+
+    const sourceId = `journey-source-${journeyId}`;
+    if (this.map.getSource(sourceId)) {
+      this.map.removeSource(sourceId);
+      this.journeySources.delete(sourceId);
+    }
+
+    const markers = this.medallionMarkers.get(journeyId);
+    if (markers) {
+      markers.forEach(marker => marker.remove());
+      this.medallionMarkers.delete(journeyId);
+    }
+  }
+
+  renderAllJourneys(journeys: Journey[]): void {
+    if (!this.map) return;
+
+    journeys.forEach(journey => {
+      this.renderJourney(journey);
+    });
+  }
+
+  clearAllJourneys(): void {
+    if (!this.map) return;
+
+    this.journeyLayers.forEach((_, journeyId) => {
+      this.clearJourney(journeyId);
+    });
+  }
 }
 
-// Singleton instance
 let mapboxServiceInstance: MapboxService | null = null;
 
 export const getMapboxService = (): MapboxService => {

@@ -1,15 +1,3 @@
-/**
- * TravelTimeline Component
- * 
- * Interactive timeline slider for navigating through travel places chronologically.
- * Features:
- * - Horizontal scrollable timeline
- * - Date-based navigation
- * - Syncs with map focus
- * - Edit/Delete actions with optimistic UI
- * - Polarsteps-inspired design
- */
-
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -40,14 +28,12 @@ export default function TravelTimeline({
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [deletingPlaceId, setDeletingPlaceId] = useState<string | null>(null);
 
-  // Sort places by visit date (oldest to newest)
   const sortedPlaces = [...places].sort((a, b) => {
     const dateA = a.visitDate?.seconds || 0;
     const dateB = b.visitDate?.seconds || 0;
     return dateA - dateB;
   });
 
-  // Update scroll buttons visibility
   const updateScrollButtons = () => {
     const container = scrollContainerRef.current;
     if (!container) return;
@@ -68,7 +54,6 @@ export default function TravelTimeline({
     return undefined;
   }, [sortedPlaces]);
 
-  // Scroll to selected place
   useEffect(() => {
     if (selectedPlaceId && scrollContainerRef.current) {
       const selectedElement = document.getElementById(`timeline-place-${selectedPlaceId}`);

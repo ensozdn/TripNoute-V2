@@ -112,6 +112,16 @@ export interface Place {
 
 export type TransportType = 'walking' | 'bus' | 'car' | 'flight' | 'ship' | 'train';
 
+export type TransportMode =
+  | 'flight'
+  | 'car'
+  | 'bus'
+  | 'train'
+  | 'ship'
+  | 'walk'
+  | 'walking'
+  | 'bike';
+
 export type PlaceCategory =
   | 'restaurant'
   | 'hotel'
@@ -127,16 +137,35 @@ export type PlaceCategory =
 // ============================================
 // TRIP TYPES (For Phase 2)
 // ============================================
+export interface JourneyStep {
+  id: string;
+  name: string;
+  coordinates: [number, number];
+  transportToNext: TransportMode | null;
+  timestamp: number;
+  order: number;
+  notes?: string;
+  address?: {
+    city?: string;
+    country?: string;
+    formatted?: string;
+  };
+}
+
 export interface Trip {
   id: string;
   userId: string;
-  title: string;
-  description: string;
-  startDate: Timestamp;
-  endDate: Timestamp;
-  placeIds: string[];
-  coverPhotoUrl?: string;
+  name: string;
+  title?: string;
+  description?: string;
+  color: string;
+  steps: JourneyStep[];
+  placeIds?: string[];
+  startDate?: Timestamp;
+  endDate?: Timestamp;
   isPublic: boolean;
+  tags?: string[];
+  coverPhotoUrl?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
