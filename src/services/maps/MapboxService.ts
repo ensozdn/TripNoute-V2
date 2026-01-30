@@ -508,8 +508,12 @@ class MapboxService implements IMapboxService {
 
       console.log('🔍 Geolocation request starting...');
 
-      // Stop any ongoing rotation for cinematic transition
-      this.stopRotation();
+      // CRITICAL: Force stop ALL animations immediately
+      if (this.map) {
+        console.log('🛑 Stopping all map animations');
+        this.map.stop();
+        this.stopRotation();
+      }
 
       // Get current position with enhanced error handling
       navigator.geolocation.getCurrentPosition(
@@ -532,13 +536,27 @@ class MapboxService implements IMapboxService {
 
           // Fly to user location with essential: true for mobile
           console.log('🚀 Flying to location with zoom:', zoom);
+          
+          if (!this.map) {
+            console.error('⚠️ Map is null');
+            resolve({ lat, lng });
+            return;
+          }
+          
+          // Double-check: stop any remaining animations right before flyTo
+          console.log('🛑 Final stop before flyTo');
+          this.map.stop();
+          
+          console.log('✈️ Executing flyTo with center:', [lng, lat], 'zoom:', zoom);
           this.map.flyTo({
             center: [lng, lat],
             zoom,
             duration: 2000,
-            essential: true, // Required for autoplay on mobile
-            maxZoom: 16,
+            essential: true,
+            pitch: 0,
+            bearing: 0,
           });
+          console.log('✈️ flyTo command sent');
 
           resolve({ lat, lng });
         },
