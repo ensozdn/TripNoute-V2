@@ -85,7 +85,7 @@ export interface GalleryTabProps {
 }
 
 export interface StatCardProps {
-  icon: string;
+  icon: React.ReactNode;
   label: string;
   value: string | number;
   subtitle?: string;

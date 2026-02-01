@@ -175,11 +175,6 @@ export default function DashboardPage() {
     const isSecureContext = window.isSecureContext;
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
-    console.log('Secure Context:', isSecureContext);
-    console.log('Is Localhost:', isLocalhost);
-    console.log('Hostname:', window.location.hostname);
-    console.log('Protocol:', window.location.protocol);
-
     if (!isSecureContext && !isLocalhost) {
       alert('Konum servisi sadece HTTPS baglantislarinda calisir. Mobile test icin ngrok veya HTTPS kullanin.');
       return;
@@ -190,13 +185,24 @@ export default function DashboardPage() {
     try {
       console.log('Requesting location...');
       const mapboxService = getMapboxService();
-      const result = await mapboxService.flyToUserLocation(14);
+
+      // Use getUserLocation to separate coordinates retrieval from animation
+      const result = await mapboxService.getUserLocation();
 
       if (!result) {
         console.warn('Could not get user location');
         alert('Konumunuz alinamadi. GPS acik mi kontrol edin.');
       } else {
         console.log('Location success:', result);
+
+        // Show marker first
+        mapboxService.showUserLocationMarker(result.lat, result.lng);
+
+        // Force stop any existing animations (like rotation)
+        mapboxService.stopRotation();
+
+        // Manual flyTo ensures we override any other map state
+        mapboxService.flyTo(result.lat, result.lng, 14);
       }
     } catch (error) {
       console.error('Error getting user location:', error);
@@ -226,17 +232,21 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <header className="absolute top-4 left-4 z-40">
-          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity group">
-            <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-2.5 shadow-2xl shadow-black/20 group-hover:bg-white/20 transition-all">
-              <Image
-                src="/tripnoute-logo.png"
-                alt="TripNoute"
-                width={28}
-                height={28}
-                className="rounded-lg"
-              />
-            </div>
+        <header className="absolute top-6 left-6 z-40">
+          <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity group">
+            {/* Logo Icon - No Container, just the image */}
+            <Image
+              src="/tripnoute-logo-v2.jpg"
+              alt="TripNoute"
+              width={42}
+              height={42}
+              className="rounded-[10px] shadow-lg shadow-black/20"
+            />
+
+            {/* Text - Clean, Bold, White like Polarsteps */}
+            <span className="text-3xl font-bold text-white tracking-tighter drop-shadow-md font-sans">
+              TripNoute
+            </span>
           </Link>
         </header>
 

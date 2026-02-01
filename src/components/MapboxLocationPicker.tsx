@@ -84,7 +84,9 @@ export default function MapboxLocationPicker({
     setShowHint(false);
 
     try {
-      const result = await flyToUserLocation(14); // Slightly closer zoom for precision
+      // Use getUserLocation to get coords without conflicting animations
+      // The useEffect hook will handle the flyTo animation when selectedLocation updates
+      const result = await getUserLocation();
 
       if (!result) {
         // Show silent error toast instead of alert
@@ -103,7 +105,7 @@ export default function MapboxLocationPicker({
   };
 
   // Mapbox hook
-  const { isLoaded, error, flyTo, flyToUserLocation } = useMapbox(containerRef, {
+  const { isLoaded, error, flyTo, getUserLocation } = useMapbox(containerRef, {
     accessToken,
     style: 'mapbox://styles/mapbox/satellite-streets-v12', // Premium Satellite View
     center: initialLocation ? [initialLocation.lng, initialLocation.lat] : [0, 0],

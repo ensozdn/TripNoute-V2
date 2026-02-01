@@ -7,6 +7,7 @@
 
 'use client';
 
+import { MapPin, Globe, Camera, Route, Calendar } from 'lucide-react';
 import { JourneyStats, PlaceFrequency } from '@/types/journey';
 import StatCard from '../insights/StatCard';
 import PlacesChart from '../insights/PlacesChart';
@@ -16,9 +17,9 @@ interface InsightsTabProps {
   placeFrequencies: PlaceFrequency[];
 }
 
-export default function InsightsTab({ 
-  stats, 
-  placeFrequencies, 
+export default function InsightsTab({
+  stats,
+  placeFrequencies,
 }: InsightsTabProps) {
   // Format distance
   const formatDistance = (km: number): string => {
@@ -30,16 +31,16 @@ export default function InsightsTab({
   // Format date range
   const formatDateRange = (): string => {
     if (!stats.firstTripDate || !stats.lastTripDate) return 'No trips yet';
-    
-    const first = stats.firstTripDate.toLocaleDateString('en-US', { 
-      month: 'short', 
-      year: 'numeric' 
+
+    const first = stats.firstTripDate.toLocaleDateString('en-US', {
+      month: 'short',
+      year: 'numeric'
     });
-    const last = stats.lastTripDate.toLocaleDateString('en-US', { 
-      month: 'short', 
-      year: 'numeric' 
+    const last = stats.lastTripDate.toLocaleDateString('en-US', {
+      month: 'short',
+      year: 'numeric'
     });
-    
+
     return first === last ? first : `${first} - ${last}`;
   };
 
@@ -48,23 +49,23 @@ export default function InsightsTab({
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-3 mb-4">
         <StatCard
-          icon="📍"
+          icon={<MapPin className="w-5 h-5 text-red-400" />}
           label="Places"
           value={stats.totalPlaces}
           subtitle={`${stats.citiesVisited} cities`}
         />
         <StatCard
-          icon="🌍"
+          icon={<Globe className="w-5 h-5 text-blue-400" />}
           label="Countries"
           value={stats.countriesVisited}
         />
         <StatCard
-          icon="📸"
+          icon={<Camera className="w-5 h-5 text-purple-400" />}
           label="Photos"
           value={stats.totalPhotos}
         />
         <StatCard
-          icon="🛣️"
+          icon={<Route className="w-5 h-5 text-green-400" />}
           label="Distance"
           value={formatDistance(stats.totalDistance)}
         />
@@ -74,7 +75,7 @@ export default function InsightsTab({
       <div className="p-4 rounded-2xl bg-white/10 border border-white/20 mb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-            <span className="text-xl">📅</span>
+            <Calendar className="w-5 h-5 text-orange-400" />
           </div>
           <div>
             <p className="text-xs text-slate-400 uppercase tracking-wide">

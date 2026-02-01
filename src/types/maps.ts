@@ -97,21 +97,21 @@ export interface IMapboxService {
   initializeMap(config: MapboxConfig): Promise<MapboxMap>;
   destroyMap(): void;
   getMap(): MapboxMap | null;
-  
+
   // Markers
   addMarker(marker: MapMarker): MapboxMarker;
   removeMarker(markerId: string): void;
   clearMarkers(): void;
-  
+
   // Navigation
   flyTo(lat: number, lng: number, zoom?: number): void;
   jumpTo(lat: number, lng: number, zoom?: number): void;
   fitBounds(markers: MapMarker[]): void;
-  
+
   // Route Lines (Polarsteps-style)
-  drawRouteLines(places: Array<{ 
-    id: string; 
-    location: { lat: number; lng: number }; 
+  drawRouteLines(places: Array<{
+    id: string;
+    location: { lat: number; lng: number };
     visitDate: { seconds: number; nanoseconds: number } | Date;
   }>): void;
   clearRouteLines(): void;
@@ -121,11 +121,12 @@ export interface IMapboxService {
     options?: { zoom?: number; pitch?: number; bearing?: number; duration?: number }
   ): void;
   focusOnRoute(places: Array<{ location: { lat: number; lng: number } }>): void;
-  
+
   // User Location
   enableUserLocation(): void;
+  getUserLocation(): Promise<{ lat: number; lng: number } | null>;
   flyToUserLocation(zoom?: number): Promise<{ lat: number; lng: number } | null>;
-  
+
   // Events
   onClick(callback: (lat: number, lng: number) => void): void;
   onMarkerClick(callback: (markerId: string) => void): void;
@@ -138,13 +139,13 @@ export interface IMapboxService {
 export interface IGooglePlacesService {
   // Search
   searchPlaces(request: GooglePlaceSearchRequest): Promise<GooglePlaceResult[]>;
-  
+
   // Autocomplete
   autocomplete(request: GooglePlaceAutocompleteRequest): Promise<GooglePlaceResult[]>;
-  
+
   // Details
   getPlaceDetails(placeId: string): Promise<GooglePlaceDetails>;
-  
+
   // Geocoding
   geocodeAddress(address: string): Promise<{ lat: number; lng: number }>;
   reverseGeocode(lat: number, lng: number): Promise<string>;

@@ -26,6 +26,7 @@ interface UseMapboxReturn {
   flyTo: (lat: number, lng: number, zoom?: number) => void;
   jumpTo: (lat: number, lng: number, zoom?: number) => void;
   flyToUserLocation: (zoom?: number) => Promise<{ lat: number; lng: number } | null>;
+  getUserLocation: () => Promise<{ lat: number; lng: number } | null>;
   addMarker: (marker: MapMarker) => void;
   removeMarker: (markerId: string) => void;
   clearMarkers: () => void;
@@ -39,7 +40,7 @@ export const useMapbox = (
   const [map, setMap] = useState<MapboxMap | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const mapboxService = useRef(getMapboxService());
   const isInitialized = useRef(false);
 
@@ -140,6 +141,10 @@ export const useMapbox = (
     return mapboxService.current.flyToUserLocation(zoom);
   };
 
+  const getUserLocation = async (): Promise<{ lat: number; lng: number } | null> => {
+    return mapboxService.current.getUserLocation();
+  };
+
   const addMarker = (marker: MapMarker) => {
     if (!isLoaded) return;
     mapboxService.current.addMarker(marker);
@@ -167,6 +172,7 @@ export const useMapbox = (
     flyTo,
     jumpTo,
     flyToUserLocation,
+    getUserLocation,
     addMarker,
     removeMarker,
     clearMarkers,

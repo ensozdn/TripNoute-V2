@@ -26,6 +26,7 @@ export default function TravelTimeline({
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
   const [deletingPlaceId, setDeletingPlaceId] = useState<string | null>(null);
 
   const sortedPlaces = [...places].sort((a, b) => {
@@ -48,8 +49,12 @@ export default function TravelTimeline({
     updateScrollButtons();
     const container = scrollContainerRef.current;
     if (container) {
-      container.addEventListener('scroll', updateScrollButtons);
-      return () => container.removeEventListener('scroll', updateScrollButtons);
+      const handleScroll = () => {
+        updateScrollButtons();
+        setOpenMenuId(null); // Close menu on scroll
+      };
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
     }
     return undefined;
   }, [sortedPlaces]);
@@ -73,7 +78,7 @@ export default function TravelTimeline({
 
     const scrollAmount = 300;
     const newScrollLeft = container.scrollLeft + (direction === 'left' ? -scrollAmount : scrollAmount);
-    
+
     container.scrollTo({
       left: newScrollLeft,
       behavior: 'smooth',
@@ -82,10 +87,10 @@ export default function TravelTimeline({
 
   const formatDate = (timestamp: { seconds: number }) => {
     const date = new Date(timestamp.seconds * 1000);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
       day: 'numeric',
-      year: 'numeric' 
+      year: 'numeric'
     });
   };
 
@@ -103,7 +108,7 @@ export default function TravelTimeline({
     if (!confirmed) return;
 
     setDeletingPlaceId(place.id);
-    
+
     try {
       await onPlaceDelete(place.id);
       // Success feedback handled by parent (Dashboard)
@@ -128,7 +133,17 @@ export default function TravelTimeline({
   // Toggle menu
   const toggleMenu = (placeId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setOpenMenuId(openMenuId === placeId ? null : placeId);
+    if (openMenuId === placeId) {
+      setOpenMenuId(null);
+      setMenuPosition(null);
+    } else {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      setMenuPosition({
+        x: rect.right,
+        y: rect.bottom + 8
+      });
+      setOpenMenuId(placeId);
+    }
   };
 
   // Close menu when clicking outside
@@ -165,11 +180,10 @@ export default function TravelTimeline({
           <button
             onClick={() => scroll('left')}
             disabled={!canScrollLeft}
-            className={`p-2 rounded-full transition-all ${
-              canScrollLeft
-                ? 'bg-white/10 hover:bg-white/20 text-white hover:scale-110'
-                : 'bg-white/5 text-white/30 cursor-not-allowed'
-            }`}
+            className={`p-2 rounded-full transition-all ${canScrollLeft
+              ? 'bg-white/10 hover:bg-white/20 text-white hover:scale-110'
+              : 'bg-white/5 text-white/30 cursor-not-allowed'
+              }`}
             aria-label="Scroll left"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -177,11 +191,10 @@ export default function TravelTimeline({
           <button
             onClick={() => scroll('right')}
             disabled={!canScrollRight}
-            className={`p-2 rounded-full transition-all ${
-              canScrollRight
-                ? 'bg-white/10 hover:bg-white/20 text-white hover:scale-110'
-                : 'bg-white/5 text-white/30 cursor-not-allowed'
-            }`}
+            className={`p-2 rounded-full transition-all ${canScrollRight
+              ? 'bg-white/10 hover:bg-white/20 text-white hover:scale-110'
+              : 'bg-white/5 text-white/30 cursor-not-allowed'
+              }`}
             aria-label="Scroll right"
           >
             <ChevronRight className="w-4 h-4" />
@@ -205,8 +218,7 @@ export default function TravelTimeline({
         >
           {sortedPlaces.map((place, index) => {
             const isSelected = place.id === selectedPlaceId;
-            const isFirst = index === 0;
-            const isLast = index === sortedPlaces.length - 1;
+
 
             return (
               <div
@@ -219,11 +231,10 @@ export default function TravelTimeline({
                   {/* Photo Thumbnail or Pulsing Dot */}
                   {place.photos && place.photos.length > 0 && place.photos[0]?.url ? (
                     <div
-                      className={`relative w-12 h-12 rounded-full transition-all duration-300 z-10 ${
-                        isSelected
-                          ? 'ring-4 ring-blue-400/50 scale-110 shadow-xl shadow-blue-500/30'
-                          : 'ring-2 ring-white/20 hover:ring-blue-400/30 hover:scale-105'
-                      }`}
+                      className={`relative w-12 h-12 rounded-full transition-all duration-300 z-10 ${isSelected
+                        ? 'ring-4 ring-blue-400/50 scale-110 shadow-xl shadow-blue-500/30'
+                        : 'ring-2 ring-white/20 hover:ring-blue-400/30 hover:scale-105'
+                        }`}
                     >
                       <Image
                         src={place.photos[0].url}
@@ -239,11 +250,10 @@ export default function TravelTimeline({
                     </div>
                   ) : (
                     <div
-                      className={`w-3 h-3 rounded-full transition-all duration-300 relative z-10 ${
-                        isSelected
-                          ? 'bg-blue-400 scale-150 shadow-lg shadow-blue-500/50'
-                          : 'bg-gradient-to-br from-blue-400 to-purple-400 hover:scale-125'
-                      }`}
+                      className={`w-3 h-3 rounded-full transition-all duration-300 relative z-10 ${isSelected
+                        ? 'bg-blue-400 scale-150 shadow-lg shadow-blue-500/50'
+                        : 'bg-gradient-to-br from-blue-400 to-purple-400 hover:scale-125'
+                        }`}
                     >
                       {/* Pulse animation for selected */}
                       {isSelected && (
@@ -266,29 +276,7 @@ export default function TravelTimeline({
                     </button>
                   )}
 
-                  {/* Dropdown Menu */}
-                  {openMenuId === place.id && (
-                    <div className="absolute top-10 right-2 bg-slate-900/95 backdrop-blur-xl border border-white/20 rounded-lg shadow-2xl overflow-hidden z-30 min-w-[140px]">
-                      {onPlaceEdit && (
-                        <button
-                          onClick={(e) => handleEdit(place, e)}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-white hover:bg-white/10 transition-colors"
-                        >
-                          <Edit2 className="w-3.5 h-3.5 text-blue-400" />
-                          <span>Edit</span>
-                        </button>
-                      )}
-                      {onPlaceDelete && (
-                        <button
-                          onClick={(e) => handleDelete(place, e)}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>Delete</span>
-                        </button>
-                      )}
-                    </div>
-                  )}
+
 
                   {/* Loading Indicator */}
                   {deletingPlaceId === place.id && (
@@ -301,50 +289,39 @@ export default function TravelTimeline({
                   <button
                     onClick={() => onPlaceSelect(place)}
                     disabled={deletingPlaceId === place.id}
-                    className={`w-full text-left p-3 rounded-xl border transition-all duration-300 ${
-                      deletingPlaceId === place.id
-                        ? 'opacity-50 cursor-not-allowed bg-white/5 border-red-400/30'
-                        : isSelected
+                    className={`w-full text-left p-3 rounded-xl border transition-all duration-300 ${deletingPlaceId === place.id
+                      ? 'opacity-50 cursor-not-allowed bg-white/5 border-red-400/30'
+                      : isSelected
                         ? 'bg-white/10 border-blue-400/50 shadow-xl shadow-blue-500/20 scale-105'
                         : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 hover:shadow-lg'
-                    }`}
+                      }`}
                   >
-                  {/* Badge for first/last */}
-                  {(isFirst || isLast) && (
+
+
+                    {/* Place Info */}
                     <div className="mb-2">
-                      <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                        isFirst ? 'bg-green-400/20 text-green-300' : 'bg-blue-400/20 text-blue-300'
-                      }`}>
-                        {isFirst && '🚀 Start'}
-                        {isLast && '✨ Latest'}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Place Info */}
-                  <div className="mb-2">
-                    <h4 className="text-sm font-bold text-white mb-1 line-clamp-2 leading-tight">
-                      {place.title}
-                    </h4>
-                    <p className="text-xs text-white/70 line-clamp-1 flex items-center gap-1">
-                      📍 {place.address.city}
-                    </p>
-                  </div>
-
-                  {/* Date & Photos Row */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1 text-white/50 text-[10px]">
-                      <Calendar className="w-3 h-3" />
-                      <span>{formatDate(place.visitDate)}</span>
+                      <h4 className="text-sm font-bold text-white mb-1 line-clamp-2 leading-tight">
+                        {place.title}
+                      </h4>
+                      <p className="text-xs text-white/70 line-clamp-1 flex items-center gap-1">
+                        📍 {place.address.city}
+                      </p>
                     </div>
 
-                    {place.photos.length > 0 && (
+                    {/* Date & Photos Row */}
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1 text-white/50 text-[10px]">
-                        <Camera className="w-3 h-3" />
-                        <span>{place.photos.length}</span>
+                        <Calendar className="w-3 h-3" />
+                        <span>{formatDate(place.visitDate)}</span>
                       </div>
-                    )}
-                  </div>
+
+                      {place.photos.length > 0 && (
+                        <div className="flex items-center gap-1 text-white/50 text-[10px]">
+                          <Camera className="w-3 h-3" />
+                          <span>{place.photos.length}</span>
+                        </div>
+                      )}
+                    </div>
                   </button>
                 </div>
               </div>
@@ -352,6 +329,46 @@ export default function TravelTimeline({
           })}
         </div>
       </div>
+
+      {/* Portal/Fixed Menu */}
+      {openMenuId && menuPosition && (
+        <div
+          className="fixed w-36 bg-[#1e293b] border border-white/10 rounded-xl shadow-[0_8px_16px_rgba(0,0,0,0.5)] overflow-hidden z-[100] animate-in fade-in zoom-in-95 duration-200"
+          style={{
+            top: menuPosition.y,
+            left: menuPosition.x - 144, // Align right edge (144px = w-36)
+          }}
+        >
+          <div className="p-1">
+            {onPlaceEdit && (() => {
+              const place = places.find(p => p.id === openMenuId);
+              if (!place) return null;
+              return (
+                <button
+                  onClick={(e) => handleEdit(place, e)}
+                  className="w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-200 hover:bg-white/5 hover:text-white rounded-lg transition-all"
+                >
+                  <Edit2 className="w-4 h-4 text-blue-400" />
+                  <span className="font-medium">Edit</span>
+                </button>
+              );
+            })()}
+            {onPlaceDelete && (() => {
+              const place = places.find(p => p.id === openMenuId);
+              if (!place) return null;
+              return (
+                <button
+                  onClick={(e) => handleDelete(place, e)}
+                  className="w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-200 hover:bg-red-500/10 hover:text-red-400 rounded-lg transition-all"
+                >
+                  <Trash2 className="w-4 h-4 text-red-500/70" />
+                  <span className="font-medium">Delete</span>
+                </button>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* Custom scrollbar styles */}
       <style jsx>{`

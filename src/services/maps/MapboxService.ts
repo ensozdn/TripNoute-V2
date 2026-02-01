@@ -95,8 +95,8 @@ class MapboxService implements IMapboxService {
 
       await new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => {
-          reject(new Error('Map load timeout after 10 seconds'));
-        }, 10000);
+          reject(new Error('Map load timeout after 30 seconds'));
+        }, 30000);
 
         this.map!.on('load', () => {
           clearTimeout(timeout);
@@ -497,7 +497,10 @@ class MapboxService implements IMapboxService {
    * Kullanıcının konumuna git
    * Enhanced: Robust geolocation with permission handling and mobile optimization
    */
-  async flyToUserLocation(zoom: number = 12): Promise<{ lat: number; lng: number } | null> {
+  /**
+   * Get user location without flying
+   */
+  async getUserLocation(): Promise<{ lat: number; lng: number } | null> {
     return new Promise((resolve) => {
       // Check if geolocation is supported
       if (!('geolocation' in navigator)) {
@@ -506,87 +509,63 @@ class MapboxService implements IMapboxService {
         return;
       }
 
-      console.log('🔍 Geolocation request starting...');
-
-      // CRITICAL: Force stop ALL animations immediately
-      if (this.map) {
-        console.log('🛑 Stopping all map animations');
-        this.map.stop();
-        this.stopRotation();
-      }
-
-      // Get current position with enhanced error handling
+      // Get current position with standard error handling
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          console.log('✅ getCurrentPosition SUCCESS callback triggered');
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
-          const accuracy = position.coords.accuracy;
-
-          console.log(`📍 Location: ${lat}, ${lng} (±${accuracy}m)`);
-
-          if (!this.map) {
-            console.warn('⚠️ Map not initialized, returning location only');
-            resolve({ lat, lng });
-            return;
-          }
-
-          // Show user location marker on the map
-          this.showUserLocationMarker(lat, lng);
-
-          // Fly to user location with essential: true for mobile
-          console.log('🚀 Flying to location with zoom:', zoom);
-          
-          if (!this.map) {
-            console.error('⚠️ Map is null');
-            resolve({ lat, lng });
-            return;
-          }
-          
-          // Double-check: stop any remaining animations right before flyTo
-          console.log('🛑 Final stop before flyTo');
-          this.map.stop();
-          
-          console.log('✈️ Executing flyTo with center:', [lng, lat], 'zoom:', zoom);
-          this.map.flyTo({
-            center: [lng, lat],
-            zoom,
-            duration: 2000,
-            essential: true,
-            pitch: 0,
-            bearing: 0,
-          });
-          console.log('✈️ flyTo command sent');
-
           resolve({ lat, lng });
         },
         (error) => {
-          console.log('❌ getCurrentPosition ERROR callback triggered:', error.code);
-          // Handle different geolocation errors
-          let errorMessage = 'Geolocation error';
-
-          switch (error.code) {
-            case error.PERMISSION_DENIED:
-              errorMessage = 'Location permission denied. Enable GPS in settings.';
-              break;
-            case error.POSITION_UNAVAILABLE:
-              errorMessage = 'Location unavailable. Please try again.';
-              break;
-            case error.TIMEOUT:
-              errorMessage = 'Location request timed out. Please try again.';
-              break;
-          }
-
-          console.warn('⚠️ ' + errorMessage);
+          console.warn('⚠️ Geolocation error:', error.message);
           resolve(null);
         },
         {
-          enableHighAccuracy: true,  // Request precise location
-          timeout: 10000,             // Extended timeout for mobile
-          maximumAge: 0,              // Always get fresh location
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
         }
       );
     });
+  }
+
+  /**
+   * Kullanıcının konumuna git
+   * Enhanced: Robust geolocation with permission handling and mobile optimization
+   */
+  async flyToUserLocation(zoom: number = 12): Promise<{ lat: number; lng: number } | null> {
+
+    // Stop animations before getting location
+    if (this.map) {
+      this.map.stop();
+      this.stopRotation();
+    }
+
+    const location = await this.getUserLocation();
+
+    if (!location) return null;
+
+    const { lat, lng } = location;
+
+    if (!this.map) {
+      console.warn('⚠️ Map not initialized, returning location only');
+      return { lat, lng };
+    }
+
+    // Show user location marker
+    this.showUserLocationMarker(lat, lng);
+
+    // Fly to location
+    this.map.flyTo({
+      center: [lng, lat],
+      zoom,
+      duration: 2000,
+      essential: true,
+      pitch: 0,
+      bearing: 0,
+    });
+
+    return { lat, lng };
   }
 
   /**
@@ -688,256 +667,15 @@ class MapboxService implements IMapboxService {
    * Polarsteps-style: Multi-mode route drawing
    * Connects places with transport-specific line styles
    */
+  /* eslint-disable @typescript-eslint/no-unused-vars */
   drawRouteLines(places: Array<{
     id: string;
     location: { lat: number; lng: number };
     visitDate: { seconds: number; nanoseconds: number } | Date;
     transportType?: 'walking' | 'bus' | 'car' | 'flight' | 'ship' | 'train';
   }>): void {
-    console.log('DrawRouteLines called with', places.length, 'places');
-    
-    if (!this.map || places.length < 2) {
-      console.warn('Not enough places for routes:', { 
-        hasMap: !!this.map, 
-        placeCount: places.length 
-      });
-      return;
-    }
-
-    // FIXED: Force draw with timeout to prevent infinite wait
-    const attemptDraw = () => {
-      if (!this.map) return;
-      
-      console.log('Map ready, drawing routes...');
-
-      // Clear existing transport markers
-      this.transportMarkers.forEach(m => m.remove());
-      this.transportMarkers = [];
-
-      const getTimestamp = (visitDate: { seconds: number; nanoseconds: number } | Date): number => {
-        if (visitDate instanceof Date) return visitDate.getTime();
-        return visitDate.seconds * 1000;
-      };
-
-      const sortedPlaces = [...places].sort((a, b) => {
-        const dateA = getTimestamp(a.visitDate);
-        const dateB = getTimestamp(b.visitDate);
-        return dateA - dateB;
-      });
-
-      console.log('Sorted places by date:', sortedPlaces.map(p => ({
-        id: p.id.substring(0, 8),
-        date: getTimestamp(p.visitDate),
-        transport: p.transportType || 'NONE',
-        lat: p.location.lat.toFixed(2),
-        lng: p.location.lng.toFixed(2)
-      })));
-
-      const routeFeatures: GeoJSON.Feature[] = [];
-
-      // Create segments between consecutive places
-      for (let i = 0; i < sortedPlaces.length - 1; i++) {
-        const start = sortedPlaces[i];
-        const end = sortedPlaces[i + 1];
-
-        // Use the transport type of the END destination (how we got there)
-        // DEFAULT to 'flight' if missing for backward compatibility
-        const type = end.transportType || 'flight';
-        
-        console.log(`Creating segment ${i + 1}/${sortedPlaces.length - 1}: ${type}`);
-
-        const coordinates: [number, number][] = [
-          [start.location.lng, start.location.lat],
-          [end.location.lng, end.location.lat]
-        ];
-
-        // Apply interpolation only for flights/ships (curved lines)
-        const geometryCoords = (type === 'flight' || type === 'ship')
-          ? this.interpolateGeodesicLine(coordinates)
-          : coordinates;
-
-        routeFeatures.push({
-          type: 'Feature',
-          properties: {
-            transportType: type,
-            segmentIndex: i
-          },
-          geometry: {
-            type: 'LineString',
-            coordinates: geometryCoords
-          }
-        });
-
-        // ---------------------------------------------------------
-        // POLARSTEPS-STYLE TRANSPORT ICON AT MIDPOINT
-        // Premium small circular badge with crisp icon
-        // ---------------------------------------------------------
-        let midLat, midLng;
-
-        // Calculate naive midpoint
-        if (geometryCoords.length > 2) {
-          const midIndex = Math.floor(geometryCoords.length / 2);
-          midLng = geometryCoords[midIndex][0];
-          midLat = geometryCoords[midIndex][1];
-        } else {
-          midLng = (start.location.lng + end.location.lng) / 2;
-          midLat = (start.location.lat + end.location.lat) / 2;
-        }
-
-        // POLARSTEPS-STYLE: Compact premium badge
-        const iconWrapper = document.createElement('div');
-        iconWrapper.className = 'transport-icon-wrapper';
-        iconWrapper.style.width = '32px';
-        iconWrapper.style.height = '32px';
-        iconWrapper.style.backgroundColor = '#1e293b';
-        iconWrapper.style.border = '3px solid white';
-        iconWrapper.style.borderRadius = '50%';
-        iconWrapper.style.display = 'flex';
-        iconWrapper.style.alignItems = 'center';
-        iconWrapper.style.justifyContent = 'center';
-        iconWrapper.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2)';
-        iconWrapper.style.zIndex = '10';
-        iconWrapper.style.cursor = 'default';
-
-        // Get raw SVG (without data URI wrapper)
-        const rawSvg = this.getRawTransportIcon(type);
-
-        // Inject inline SVG
-        iconWrapper.innerHTML = rawSvg;
-
-        // Style the injected SVG directly
-        const svgEl = iconWrapper.querySelector('svg');
-        if (svgEl) {
-          svgEl.style.width = '18px';
-          svgEl.style.height = '18px';
-          svgEl.style.color = 'white';
-        }
-
-        const marker = new mapboxgl.Marker({ element: iconWrapper })
-          .setLngLat([midLng, midLat])
-          .addTo(this.map!);
-
-        this.transportMarkers.push(marker);
-        
-        console.log(`Segment ${i}: ${type} from [${start.location.lat.toFixed(2)}, ${start.location.lng.toFixed(2)}] to [${end.location.lat.toFixed(2)}, ${end.location.lng.toFixed(2)}]`);
-      }
-
-      console.log(`Created ${routeFeatures.length} route segments with ${this.transportMarkers.length} icons`);
-
-      const geojson: GeoJSON.FeatureCollection = {
-        type: 'FeatureCollection',
-        features: routeFeatures
-      };
-
-      // Remove existing layers/sources
-      const layers = ['route-shadow', 'route-flight', 'route-road', 'route-path'];
-      layers.forEach(layer => {
-        if (this.map!.getLayer(layer)) this.map!.removeLayer(layer);
-      });
-      if (this.map!.getSource(this.routeSourceId)) {
-        this.map!.removeSource(this.routeSourceId);
-      }
-
-      // Add unified Source
-      this.map!.addSource(this.routeSourceId, {
-        type: 'geojson',
-        data: geojson,
-        lineMetrics: true,
-      });
-
-      // POLARSTEPS-STYLE PREMIUM ROUTE LAYERS
-      // Layer Order: Shadow → Main Line (bottom to top)
-
-      // 1. SHADOW LAYER (All routes) - Gives depth like Polarsteps
-      this.map!.addLayer({
-        id: 'route-shadow',
-        type: 'line',
-        source: this.routeSourceId,
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
-        paint: {
-          'line-color': '#000000',
-          'line-width': 7,
-          'line-opacity': 0.25,
-          'line-blur': 4,
-        },
-      });
-
-      // 2. FLIGHT LAYER (Curved, Dashed, Thick White)
-      this.map!.addLayer({
-        id: 'route-flight',
-        type: 'line',
-        source: this.routeSourceId,
-        filter: ['in', 'transportType', 'flight', 'ship'],
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
-        paint: {
-          'line-color': '#ffffff',
-          'line-width': 5,
-          'line-opacity': 0.95,
-          'line-dasharray': [3, 2],
-        },
-      });
-
-      // 3. ROAD LAYER (Car/Bus/Train - Solid, Thick White)
-      this.map!.addLayer({
-        id: 'route-road',
-        type: 'line',
-        source: this.routeSourceId,
-        filter: ['in', 'transportType', 'car', 'bus', 'train'],
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
-        paint: {
-          'line-color': '#ffffff',
-          'line-width': 5,
-          'line-opacity': 0.95,
-        },
-      });
-
-      // 4. WALKING LAYER (Dotted, Premium Green)
-      this.map!.addLayer({
-        id: 'route-path',
-        type: 'line',
-        source: this.routeSourceId,
-        filter: ['==', 'transportType', 'walking'],
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
-        paint: {
-          'line-color': '#10b981',
-          'line-width': 4,
-          'line-dasharray': [0.5, 2.5],
-          'line-opacity': 0.9,
-        },
-      });
-
-      console.log('Route layers added successfully!');
-    };
-
-    // Try to draw immediately, or wait max 2 seconds
-    if (this.map.isStyleLoaded()) {
-      attemptDraw();
-    } else {
-      console.log('Waiting for map style to load...');
-      
-      // Set timeout fallback to prevent infinite wait
-      const timeout = setTimeout(() => {
-        console.warn('Style load timeout, forcing draw anyway');
-        attemptDraw();
-      }, 2000);
-      
-      this.map.once('style.load', () => {
-        clearTimeout(timeout);
-        attemptDraw();
-      });
-    }
+    // Disabled as per user request: No route lines or transport icons
+    console.log('Route drawing disabled');
   }
 
   /**
@@ -964,7 +702,7 @@ class MapboxService implements IMapboxService {
         // Calculate midpoint elevation for great circle effect
         const midLng = (start[0] + end[0]) / 2;
         const midLat = (start[1] + end[1]) / 2;
-        
+
         // Add curvature based on distance (the farther, the more curve)
         const curvatureOffset = distance * 0.08; // 8% elevation
         const curvedMidLat = midLat + curvatureOffset;
@@ -974,16 +712,16 @@ class MapboxService implements IMapboxService {
 
         for (let j = 1; j < steps; j++) {
           const t = j / steps;
-          
+
           // Quadratic Bezier formula: B(t) = (1-t)²P₀ + 2(1-t)tP₁ + t²P₂
           const oneMinusT = 1 - t;
-          const lng = oneMinusT * oneMinusT * start[0] + 
-                      2 * oneMinusT * t * midLng + 
-                      t * t * end[0];
-          
-          const lat = oneMinusT * oneMinusT * start[1] + 
-                      2 * oneMinusT * t * curvedMidLat + 
-                      t * t * end[1];
+          const lng = oneMinusT * oneMinusT * start[0] +
+            2 * oneMinusT * t * midLng +
+            t * t * end[0];
+
+          const lat = oneMinusT * oneMinusT * start[1] +
+            2 * oneMinusT * t * curvedMidLat +
+            t * t * end[1];
 
           result.push([lng, lat]);
         }
