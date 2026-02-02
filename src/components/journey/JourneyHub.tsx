@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useRef } from 'react';
-import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
+import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
 import { Place } from '@/types';
 import { JourneyStats, PlaceFrequency, GalleryPhoto } from '@/types/journey';
 import TimelineTab from './tabs/TimelineTab';
@@ -11,7 +11,7 @@ import { Map, BarChart3, ImageIcon } from 'lucide-react';
 import { deduplicateCountries, sortByFrequency } from '@/utils/dataNormalizer';
 
 type TabType = 'timeline' | 'insights' | 'gallery';
-type SheetState = 'peek' | 'half' | 'full';
+type SheetState = 'closed' | 'middle' | 'full';
 
 interface TabConfig {
   id: TabType;
@@ -29,15 +29,15 @@ interface JourneyHubProps {
 }
 
 const TABS: TabConfig[] = [
-  { id: 'timeline', label: 'Timeline', icon: <Map className="w-5 h-5" />, expandsTo: 'half' },
+  { id: 'timeline', label: 'Timeline', icon: <Map className="w-5 h-5" />, expandsTo: 'middle' },
   { id: 'insights', label: 'Insights', icon: <BarChart3 className="w-5 h-5" />, expandsTo: 'full' },
   { id: 'gallery', label: 'Gallery', icon: <ImageIcon className="w-5 h-5" />, expandsTo: 'full' },
 ];
 
 const SNAP_POINTS: Record<SheetState, number> = {
-  peek: 0.1,
-  half: 0.5,
-  full: 0.95,
+  closed: 0.08,  // Only handle + tabs visible
+  middle: 0.5,   // 50% of screen
+  full: 0.95,    // 95% of screen
 };
 
 export default function JourneyHub({
@@ -48,7 +48,7 @@ export default function JourneyHub({
   onPlaceEdit,
 }: JourneyHubProps) {
   const [activeTabIndex, setActiveTabIndex] = useState(0);
-  const [sheetState, setSheetState] = useState<SheetState>('peek');
+  const [sheetState, setSheetState] = useState<SheetState>('closed');
   const sheetRef = useRef<HTMLDivElement>(null);
 
   const stats: JourneyStats = useMemo(() => {
@@ -138,22 +138,22 @@ export default function JourneyHub({
 
     // Fast upward swipe (velocity < -300px/s) → expand
     if (info.velocity.y < -300) {
-      if (sheetState === 'peek') nextState = 'half';
-      else if (sheetState === 'half') nextState = 'full';
+      if (sheetState === 'closed') nextState = 'middle';
+      else if (sheetState === 'middle') nextState = 'full';
     }
     // Fast downward swipe (velocity > 300px/s) → collapse
     else if (info.velocity.y > 300) {
-      if (sheetState === 'full') nextState = 'half';
-      else if (sheetState === 'half') nextState = 'peek';
+      if (sheetState === 'full') nextState = 'middle';
+      else if (sheetState === 'middle') nextState = 'closed';
     }
     // Position-based snapping
     else {
       if (newHeightRatio > 0.7) {
         nextState = 'full';
-      } else if (newHeightRatio > 0.3) {
-        nextState = 'half';
+      } else if (newHeightRatio > 0.25) {
+        nextState = 'middle';
       } else {
-        nextState = 'peek';
+        nextState = 'closed';
       }
     }
 
@@ -294,7 +294,8 @@ export default function JourneyHub({
       </LayoutGroup>
 
       {/* ========================================
-          CAROUSEL CONTENT WITH SCROLL
+          SMOOTH CONTENT TRANSITIONS
+          Slide in from right with fade effect
           ======================================== */}
       <div
         className="relative z-10 flex-1 min-h-0 overflow-hidden"
@@ -305,12 +306,32 @@ export default function JourneyHub({
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab.id}
-            initial={{ x: '100%', opacity: 0 }}
-            animate={{ x: 0, opacity: 1, transition: { duration: 0.3 } }}
-            exit={{ x: '-100%', opacity: 0, transition: { duration: 0.3 } }}
-            className="h-full w-full overflow-y-auto px-4 pb-4"
+            initial={{ x: 20, opacity: 0 }}
+            animate={{ 
+              x: 0, 
+              opacity: 1,
+              transition: { 
+                type: 'spring',
+                stiffness: 300,
+                damping: 30,
+              }
+            }}
+            exit={{ 
+              x: -20, 
+              opacity: 0,
+              transition: { 
+                duration: 0.2,
+              }
+            }}
+            className="h-full w-full overflow-y-auto px-4 pb-8"
           >
-            {renderTabContent()}
+            {/* Fade-to-bottom gradient overlay */}
+            <div className="relative">
+              {renderTabContent()}
+              
+              {/* Bottom fade gradient for visual polish */}
+              <div className="sticky bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+            </div>
           </motion.div>
         </AnimatePresence>
       </div>

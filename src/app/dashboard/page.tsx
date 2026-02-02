@@ -10,7 +10,7 @@ import { databaseService } from '@/lib/database';
 import { getMapboxService } from '@/services/maps/MapboxService';
 import { journeyDatabaseService } from '@/services/firebase/JourneyDatabaseService';
 import { Place } from '@/types';
-import { Journey } from '@/types/journeyData';
+import { Trip } from '@/types/trip';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { JourneyHub } from '@/components/journey';
 import { Plus, Menu, X, Locate } from 'lucide-react';
@@ -28,7 +28,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const [places, setPlaces] = useState<Place[]>([]);
-  const [journeys, setJourneys] = useState<Journey[]>([]);
+  const [journeys, setJourneys] = useState<Trip[]>([]);
   const [loadingPlaces, setLoadingPlaces] = useState(true);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
@@ -101,9 +101,9 @@ export default function DashboardPage() {
 
     if (!map || journeys.length === 0) return;
 
-    const renderJourneys = () => {
+    const renderJourneys = async () => {
       mapboxService.clearAllJourneys();
-      mapboxService.renderAllJourneys(journeys);
+      await mapboxService.renderAllJourneys(journeys);
     };
 
     if (map.isStyleLoaded()) {
@@ -140,14 +140,7 @@ export default function DashboardPage() {
 
       const mapboxService = getMapboxService();
       mapboxService.removeMarker(placeId);
-
-      const remainingPlaces = places.filter(p => p.id !== placeId);
-      if (remainingPlaces.length > 1) {
-        mapboxService.clearRouteLines();
-        mapboxService.drawRouteLines(remainingPlaces);
-      } else {
-        mapboxService.clearRouteLines();
-      }
+      mapboxService.clearRouteLines();
 
       await databaseService.deletePlace(placeId);
 

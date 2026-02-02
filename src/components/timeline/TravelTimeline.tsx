@@ -216,7 +216,7 @@ export default function TravelTimeline({
             msOverflowStyle: 'none',
           }}
         >
-          {sortedPlaces.map((place, index) => {
+          {sortedPlaces.map((place) => {
             const isSelected = place.id === selectedPlaceId;
 
 

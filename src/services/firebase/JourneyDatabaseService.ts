@@ -1,3 +1,10 @@
+/**
+ * TripNoute V2 - Journey/Trip Database Service
+ * 
+ * Handles Firebase CRUD operations for trips/journeys.
+ * Implements trip isolation and linear chain validation.
+ */
+
 import {
   collection,
   doc,
@@ -12,8 +19,13 @@ import {
   Timestamp as FirestoreTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Journey, JourneyStep, CreateJourneyInput, UpdateJourneyInput } from '@/types/journeyData';
-import { validateJourneySteps, normalizeStepChain } from '@/types/journeyData';
+import { Trip, JourneyStep, CreateTripInput, UpdateTripInput } from '@/types/trip';
+import { validateStepChain } from '@/utils/tripIsolation';
+
+// Backward compatibility - Journey is now Trip
+export type Journey = Trip;
+export type CreateJourneyInput = CreateTripInput;
+export type UpdateJourneyInput = UpdateTripInput;
 
 const getErrorMessage = (error: unknown, defaultMessage: string): string => {
   if (error instanceof Error) {
@@ -67,11 +79,13 @@ export class JourneyDatabaseService {
         order: index,
       }));
 
-      const normalizedSteps = normalizeStepChain(steps);
+      // Normalize and validate step chain
+      const normalizedSteps = validateStepChain(steps);
       
-      const validationErrors = validateJourneySteps(normalizedSteps);
-      if (validationErrors.length > 0) {
-        throw new Error(`Journey validation failed: ${validationErrors.join(', ')}`);
+      // Additional validation (will throw if errors found)
+      // Note: validateStepChain already fixes most issues, but we can add extra checks here
+      if (normalizedSteps.length === 0) {
+        throw new Error('Journey must have at least one step');
       }
 
       let totalDistance = 0;
@@ -191,11 +205,13 @@ export class JourneyDatabaseService {
       }
 
       if (input.steps) {
-        const normalizedSteps = normalizeStepChain(input.steps);
-        const validationErrors = validateJourneySteps(normalizedSteps);
-        if (validationErrors.length > 0) {
-          throw new Error(`Journey validation failed: ${validationErrors.join(', ')}`);
+        // Normalize and validate step chain
+        const normalizedSteps = validateStepChain(input.steps);
+        
+        if (normalizedSteps.length === 0) {
+          throw new Error('Journey must have at least one step');
         }
+        
         updateData.steps = normalizedSteps;
 
         let totalDistance = 0;

@@ -18,7 +18,7 @@ import {
   X,
   Check,
 } from 'lucide-react';
-import { TripStop, TransportMode, TRIP_COLORS } from '@/types/trip';
+import { TransportMode, TRIP_COLORS } from '@/types/trip';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -28,11 +28,20 @@ interface MultiStopRoutePlannerProps {
     name: string;
     description: string;
     color: string;
-    stops: Omit<TripStop, 'id'>[];
+    stops: StopData[];
   }) => Promise<void>;
   onCancel?: () => void;
   onClose?: () => void;
 }
+
+type StopData = {
+  order: number;
+  location: { lat: number; lng: number };
+  title: string;
+  address?: { formatted: string };
+  description?: string;
+  transportToNext?: TransportMode | null;
+};
 
 const TRANSPORT_ICONS: Record<TransportMode, React.ReactNode> = {
   flight: <Plane className="w-5 h-5" />,
@@ -64,7 +73,7 @@ export default function MultiStopRoutePlanner({
   const [tripName, setTripName] = useState('');
   const [tripDescription, setTripDescription] = useState('');
   const [selectedColor, setSelectedColor] = useState<string>(TRIP_COLORS[0]);
-  const [stops, setStops] = useState<Omit<TripStop, 'id'>[]>([]);
+  const [stops, setStops] = useState<StopData[]>([]);
   const [saving, setSaving] = useState(false);
 
   const handleClose = () => {
@@ -73,13 +82,13 @@ export default function MultiStopRoutePlanner({
   };
 
   const handleAddStop = useCallback((location: { lat: number; lng: number }, title: string) => {
-    const newStop: Omit<TripStop, 'id'> = {
+    const newStop: StopData = {
       order: stops.length,
       location,
       title,
       address: { formatted: title },
       description: '',
-      transportToNext: stops.length > 0 ? 'flight' : undefined,
+      transportToNext: stops.length > 0 ? 'flight' : null,
     };
 
     setStops(prev => [...prev, newStop]);
@@ -98,13 +107,13 @@ export default function MultiStopRoutePlanner({
     ));
   };
 
-  const handleStopUpdate = (index: number, updates: Partial<Omit<TripStop, 'id'>>) => {
+  const handleStopUpdate = (index: number, updates: Partial<StopData>) => {
     setStops(prev => prev.map((stop, i) => 
       i === index ? { ...stop, ...updates } : stop
     ));
   };
 
-  const handleReorder = (newOrder: Omit<TripStop, 'id'>[]) => {
+  const handleReorder = (newOrder: StopData[]) => {
     setStops(newOrder.map((stop, i) => ({ ...stop, order: i })));
   };
 

@@ -1,7 +1,40 @@
+/**
+ * TripNoute V2 - Trip Isolation Utilities
+ * 
+ * CRITICAL: These functions ensure each trip is handled as a SANDBOX.
+ * No data bleeding between trips. Linear chain logic (A → B → C).
+ * 
+ * Core Principles:
+ * 1. Each trip operates independently
+ * 2. Steps are always sorted by order/timestamp
+ * 3. Validation ensures data integrity
+ * 4. Chain must be linear (no gaps, no duplicates)
+ */
 
 import { Trip, JourneyStep, TransportMode } from '@/types/trip';
 
+// ============================================
+// VALIDATION ERRORS
+// ============================================
+export class TripValidationError extends Error {
+  constructor(
+    message: string,
+    public errors: string[]
+  ) {
+    super(message);
+    this.name = 'TripValidationError';
+  }
+}
 
+// ============================================
+// CORE ISOLATION FUNCTION
+// ============================================
+
+/**
+ * Get isolated trip data for a specific trip ID
+ * CRITICAL: Ensures no data bleeding from other trips
+ * Returns a CLEAN, validated copy
+ */
 export function getIsolatedRoute(tripId: string, allTrips: Trip[]): Trip | null {
   const trip = allTrips.find(t => t.id === tripId);
   
@@ -10,6 +43,7 @@ export function getIsolatedRoute(tripId: string, allTrips: Trip[]): Trip | null 
     return null;
   }
 
+  // Deep clone and validate
   const validatedSteps = validateStepChain(trip.steps);
   
   return {
@@ -18,11 +52,39 @@ export function getIsolatedRoute(tripId: string, allTrips: Trip[]): Trip | null 
   };
 }
 
+/**
+ * Get isolated trip data directly from a trip object
+ * Use this when you already have the trip object
+ */
+export function getIsolatedTripData(trip: Trip): Trip {
+  return {
+    ...trip,
+    steps: validateStepChain([...trip.steps]),
+  };
+}
+
+/**
+ * Get isolated steps for a specific trip
+ * Returns ONLY the steps, normalized and validated
+ */
+export function getIsolatedSteps(trip: Trip): JourneyStep[] {
+  return validateStepChain([...trip.steps]);
+}
+
+// ============================================
+// STEP VALIDATION & NORMALIZATION
+// ============================================
+
+/**
+ * Validate and normalize step chain
+ * Ensures linear order (A → B → C) with no gaps
+ */
 export function validateStepChain(steps: JourneyStep[]): JourneyStep[] {
   if (steps.length === 0) {
     return [];
   }
 
+  // Sort by order first, then timestamp
   const sorted = [...steps].sort((a, b) => {
     if (a.order !== b.order) {
       return a.order - b.order;
@@ -30,6 +92,7 @@ export function validateStepChain(steps: JourneyStep[]): JourneyStep[] {
     return a.timestamp - b.timestamp;
   });
 
+  // Fix order indices
   sorted.forEach((step, index) => {
     if (step.order !== index) {
       console.warn(`⚠️ Step order mismatch at index ${index}: expected ${index}, got ${step.order}`);
@@ -37,6 +100,7 @@ export function validateStepChain(steps: JourneyStep[]): JourneyStep[] {
     }
   });
 
+  // Ensure last step has null transport
   if (sorted.length > 0) {
     const lastStep = sorted[sorted.length - 1];
     if (lastStep.transportToNext !== null) {

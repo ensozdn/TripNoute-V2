@@ -108,12 +108,7 @@ export interface IMapboxService {
   jumpTo(lat: number, lng: number, zoom?: number): void;
   fitBounds(markers: MapMarker[]): void;
 
-  // Route Lines (Polarsteps-style)
-  drawRouteLines(places: Array<{
-    id: string;
-    location: { lat: number; lng: number };
-    visitDate: { seconds: number; nanoseconds: number } | Date;
-  }>): void;
+  // Route Lines
   clearRouteLines(): void;
   focusOnPlace(
     placeId: string,

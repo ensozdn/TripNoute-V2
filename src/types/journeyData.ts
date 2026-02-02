@@ -1,12 +1,7 @@
 import { Timestamp } from './index';
+import { TransportMode as BaseTransportMode } from './trip';
 
-export type TransportMode = 
-  | 'flight' 
-  | 'car' 
-  | 'bus' 
-  | 'train' 
-  | 'ship' 
-  | 'walk';
+export type TransportMode = BaseTransportMode;
 
 export interface JourneyStep {
   id: string;

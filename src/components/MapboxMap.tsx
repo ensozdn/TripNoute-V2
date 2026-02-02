@@ -112,20 +112,16 @@ export default function MapboxMap({
     };
   }, [isLoaded, map]);
 
-  // Draw multi-mode routes when places change
+  // Clear route lines when component unmounts
   useEffect(() => {
-    if (!isLoaded || !map || places.length < 2) return;
+    if (!isLoaded || !map) return;
 
     const mapboxService = getMapboxService();
-
-    // Convert Place[] to the format expected by drawRouteLines 
-    // (Place type matches, but we pass it directly to be safe)
-    mapboxService.drawRouteLines(places);
 
     return () => {
       mapboxService.clearRouteLines();
     };
-  }, [isLoaded, map, places]);
+  }, [isLoaded, map]);
 
   // No token
   if (!accessToken) {
