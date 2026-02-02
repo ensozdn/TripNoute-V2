@@ -1,8 +1,3 @@
-/**
- * TripNoute v2 - Photo Model Types
- * Detailed photo-related type definitions
- */
-
 import { Timestamp } from '../index';
 
 export interface Photo {
@@ -11,20 +6,20 @@ export interface Photo {
   thumbnailUrl: string;
   storagePath: string;
   filename: string;
-  size: number; // bytes
+  size: number;
   mimeType: string;
   width: number;
   height: number;
-  description?: string; // Optional photo caption/description
+  description?: string;
   uploadedAt: Timestamp;
-  uploadedBy: string; // userId
+  uploadedBy: string;
 }
 
 export interface PhotoUploadOptions {
   file: File;
   maxWidth?: number;
   maxHeight?: number;
-  quality?: number; // 0-1
+  quality?: number;
   generateThumbnail?: boolean;
   thumbnailSize?: number;
 }

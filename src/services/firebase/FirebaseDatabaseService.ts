@@ -1,10 +1,3 @@
-/**
- * TripNoute v2 - Firebase Database Service Implementation
- * 
- * This service implements the IDatabaseService interface using Firestore.
- * Provider-specific logic is encapsulated here.
- */
-
 import {
   collection,
   doc,
@@ -36,9 +29,6 @@ import {
 } from '@/types';
 import { Photo } from '@/types/models/Photo';
 
-/**
- * Helper to safely extract error message
- */
 const getErrorMessage = (error: unknown, defaultMessage: string): string => {
   if (error instanceof Error) {
     return error.message;
@@ -50,19 +40,12 @@ const getErrorMessage = (error: unknown, defaultMessage: string): string => {
 };
 
 export class FirebaseDatabaseService implements IDatabaseService {
-  // ============================================
-  // PLACE OPERATIONS
-  // ============================================
 
-  /**
-   * Create a new place
-   */
   async createPlace(input: CreatePlaceInput, userId: string): Promise<Place> {
     try {
       const placesRef = collection(db, 'places');
       const newPlaceRef = doc(placesRef);
 
-      // Convert visitDate to Firestore Timestamp
       let visitDateTimestamp;
       if (input.visitDate instanceof Date) {
         console.log('Converting Date to Timestamp:', input.visitDate);
@@ -70,7 +53,7 @@ export class FirebaseDatabaseService implements IDatabaseService {
         console.log('Converted Timestamp:', visitDateTimestamp);
       } else {
         console.log('Using existing timestamp:', input.visitDate);
-        // If it's already a timestamp-like object, use it
+
         visitDateTimestamp = input.visitDate;
       }
 
@@ -90,7 +73,6 @@ export class FirebaseDatabaseService implements IDatabaseService {
         updatedAt: serverTimestamp(),
       };
 
-      // Only add optional fields if they are defined
       if (input.category !== undefined) {
         placeData.category = input.category;
       }
@@ -111,7 +93,6 @@ export class FirebaseDatabaseService implements IDatabaseService {
         throw new Error('Failed to create place');
       }
 
-      // Update user stats
       await this.updateUserStats(userId);
 
       return createdPlace;
@@ -119,10 +100,6 @@ export class FirebaseDatabaseService implements IDatabaseService {
       throw new Error(`Failed to create place: ${getErrorMessage(error, 'Unknown error')}`);
     }
   }
-
-  /**
-   * Get a single place by ID
-   */
   async getPlaceById(placeId: string): Promise<Place | null> {
     try {
       const placeRef = doc(db, 'places', placeId);
@@ -140,10 +117,6 @@ export class FirebaseDatabaseService implements IDatabaseService {
       throw new Error(`Failed to get place: ${getErrorMessage(error, 'Unknown error')}`);
     }
   }
-
-  /**
-   * Update a place
-   */
   async updatePlace(input: UpdatePlaceInput): Promise<Place> {
     try {
       const placeRef = doc(db, 'places', input.id);
@@ -152,7 +125,6 @@ export class FirebaseDatabaseService implements IDatabaseService {
         updatedAt: serverTimestamp(),
       };
 
-      // Only add defined fields
       if (input.title !== undefined) updateData.title = input.title;
       if (input.description !== undefined) updateData.description = input.description;
       if (input.location !== undefined) updateData.location = input.location;
@@ -165,7 +137,6 @@ export class FirebaseDatabaseService implements IDatabaseService {
       if (input.transportType !== undefined) updateData.transportType = input.transportType;
       if (input.order !== undefined) updateData.order = input.order;
 
-      // Convert visitDate if provided
       if (input.visitDate) {
         updateData.visitDate = FirestoreTimestamp.fromDate(input.visitDate);
       }
@@ -182,10 +153,6 @@ export class FirebaseDatabaseService implements IDatabaseService {
       throw new Error(`Failed to update place: ${getErrorMessage(error, 'Unknown error')}`);
     }
   }
-
-  /**
-   * Delete a place and its associated photos from storage
-   */
   async deletePlace(placeId: string): Promise<void> {
     try {
       const placeRef = doc(db, 'places', placeId);
@@ -197,41 +164,33 @@ export class FirebaseDatabaseService implements IDatabaseService {
 
       const placeData = placeDoc.data() as Place;
 
-      // Delete associated photos from storage
       if (placeData.photos && placeData.photos.length > 0) {
         try {
-          // Import storage service to delete photos
+
           const { storageService } = await import('@/services/firebase/FirebaseStorageService');
 
-          // Delete all photos for this place
           const photoDeletePromises = placeData.photos.map((photo) =>
             storageService.deletePhoto(photo.id, photo.storagePath)
               .catch((error) => {
                 console.error(`Failed to delete photo ${photo.id}:`, error);
-                // Continue deleting other photos even if one fails
+
               })
           );
 
           await Promise.allSettled(photoDeletePromises);
         } catch (storageError) {
           console.error('Error deleting photos from storage:', storageError);
-          // Continue with place deletion even if photo deletion fails
+
         }
       }
 
-      // Delete place document from Firestore
       await deleteDoc(placeRef);
 
-      // Update user stats
       await this.updateUserStats(placeData.userId);
     } catch (error: unknown) {
       throw new Error(`Failed to delete place: ${getErrorMessage(error, 'Unknown error')}`);
     }
   }
-
-  /**
-   * Get places with filters, sorting, and pagination
-   */
   async getPlaces(
     filters?: PlaceFilters,
     sort?: PlaceSortOptions,
@@ -241,7 +200,6 @@ export class FirebaseDatabaseService implements IDatabaseService {
       const placesRef = collection(db, 'places');
       let q = query(placesRef);
 
-      // Apply filters
       if (filters) {
         if (filters.userId) {
           q = query(q, where('userId', '==', filters.userId));
@@ -263,14 +221,12 @@ export class FirebaseDatabaseService implements IDatabaseService {
         }
       }
 
-      // Apply sorting
       const sortField = sort?.field || 'createdAt';
       const sortOrder = sort?.order || 'desc';
       q = query(q, orderBy(sortField, sortOrder));
 
-      // Apply pagination
       const pageLimit = pagination?.limit || 20;
-      q = query(q, limit(pageLimit + 1)); // +1 to check if there are more
+      q = query(q, limit(pageLimit + 1));
 
       if (pagination?.cursor) {
         const cursorDoc = await getDoc(doc(db, 'places', pagination.cursor));
@@ -298,10 +254,6 @@ export class FirebaseDatabaseService implements IDatabaseService {
       throw new Error(`Failed to get places: ${getErrorMessage(error, 'Unknown error')}`);
     }
   }
-
-  /**
-   * Get all places for a specific user
-   */
   async getUserPlaces(
     userId: string,
     sort?: PlaceSortOptions,
@@ -309,10 +261,6 @@ export class FirebaseDatabaseService implements IDatabaseService {
   ): Promise<PaginatedResponse<Place>> {
     return this.getPlaces({ userId }, sort, pagination);
   }
-
-  /**
-   * Get places within a geographic boundary
-   */
   async getPlacesInBounds(
     north: number,
     south: number,
@@ -321,9 +269,6 @@ export class FirebaseDatabaseService implements IDatabaseService {
     filters?: PlaceFilters
   ): Promise<Place[]> {
     try {
-      // Note: Firestore doesn't support complex geo queries natively
-      // For MVP, we'll fetch all places and filter in memory
-      // For production, consider using Firestore GeoFire or similar solution
 
       const allPlaces = await this.getPlaces(filters, undefined, { limit: 1000 });
 
@@ -336,13 +281,6 @@ export class FirebaseDatabaseService implements IDatabaseService {
     }
   }
 
-  // ============================================
-  // USER OPERATIONS
-  // ============================================
-
-  /**
-   * Create a new user document
-   */
   async createUser(
     userId: string,
     email: string,
@@ -378,10 +316,6 @@ export class FirebaseDatabaseService implements IDatabaseService {
       throw new Error(`Failed to create user: ${getErrorMessage(error, 'Unknown error')}`);
     }
   }
-
-  /**
-   * Get user by ID
-   */
   async getUserById(userId: string): Promise<any> {
     try {
       const userRef = doc(db, 'users', userId);
@@ -399,10 +333,6 @@ export class FirebaseDatabaseService implements IDatabaseService {
       throw new Error(`Failed to get user: ${getErrorMessage(error, 'Unknown error')}`);
     }
   }
-
-  /**
-   * Update user preferences
-   */
   async updateUserPreferences(userId: string, preferences: any): Promise<void> {
     try {
       const userRef = doc(db, 'users', userId);
@@ -414,17 +344,12 @@ export class FirebaseDatabaseService implements IDatabaseService {
       throw new Error(`Failed to update user preferences: ${getErrorMessage(error, 'Unknown error')}`);
     }
   }
-
-  /**
-   * Update user stats (called after place creation/deletion)
-   */
   async updateUserStats(userId: string): Promise<void> {
     try {
-      // Get user places with a reasonable limit for stats calculation
+
       const userPlaces = await this.getUserPlaces(userId, undefined, { limit: 1000 });
       const places = userPlaces.items;
 
-      // Calculate stats
       const countries = new Set(places.map((p) => p.address.country).filter(Boolean));
       const cities = new Set(places.map((p) => p.address.city).filter(Boolean));
       const totalPhotos = places.reduce((sum, p) => sum + p.photos.length, 0);
@@ -441,7 +366,6 @@ export class FirebaseDatabaseService implements IDatabaseService {
       const firstTripDate = visitDates.length > 0 ? visitDates[0] : null;
       const lastTripDate = visitDates.length > 0 ? visitDates[visitDates.length - 1] : null;
 
-      // Update user document
       const userRef = doc(db, 'users', userId);
       await updateDoc(userRef, {
         'stats.totalPlaces': places.length,
@@ -454,17 +378,10 @@ export class FirebaseDatabaseService implements IDatabaseService {
       });
     } catch (error: unknown) {
       console.error('Failed to update user stats:', error);
-      // Don't throw - stats update shouldn't break the main operation
+
     }
   }
 
-  // ============================================
-  // PHOTO OPERATIONS
-  // ============================================
-
-  /**
-   * Add a photo to a place
-   */
   async addPhotoToPlace(placeId: string, photo: Photo): Promise<Photo> {
     try {
       const placeRef = doc(db, 'places', placeId);
@@ -474,19 +391,16 @@ export class FirebaseDatabaseService implements IDatabaseService {
         throw new Error('Place not found');
       }
 
-      // Generate unique ID for photo
       const photoWithId: Photo = {
         ...photo,
         id: `${placeId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       };
 
-      // Add photo to array
       await updateDoc(placeRef, {
         photos: arrayUnion(photoWithId),
         updatedAt: serverTimestamp(),
       });
 
-      // Update user stats (increment photo count)
       const place = placeDoc.data() as Place;
       if (place.userId) {
         await this.updateUserStats(place.userId);
@@ -497,10 +411,6 @@ export class FirebaseDatabaseService implements IDatabaseService {
       throw new Error(`Failed to add photo: ${getErrorMessage(error, 'Unknown error')}`);
     }
   }
-
-  /**
-   * Delete a photo from a place
-   */
   async deletePhotoFromPlace(placeId: string, photoId: string): Promise<void> {
     try {
       const placeRef = doc(db, 'places', placeId);
@@ -512,19 +422,16 @@ export class FirebaseDatabaseService implements IDatabaseService {
 
       const place = placeDoc.data() as Place;
 
-      // Find the photo to delete
       const photoToDelete = place.photos.find(p => p.id === photoId);
       if (!photoToDelete) {
         throw new Error('Photo not found');
       }
 
-      // Remove photo from array
       await updateDoc(placeRef, {
         photos: arrayRemove(photoToDelete),
         updatedAt: serverTimestamp(),
       });
 
-      // Update user stats (decrement photo count)
       if (place.userId) {
         await this.updateUserStats(place.userId);
       }
@@ -532,10 +439,6 @@ export class FirebaseDatabaseService implements IDatabaseService {
       throw new Error(`Failed to delete photo: ${getErrorMessage(error, 'Unknown error')}`);
     }
   }
-
-  /**
-   * Update photo description
-   */
   async updatePhotoDescription(
     placeId: string,
     photoId: string,
@@ -551,7 +454,6 @@ export class FirebaseDatabaseService implements IDatabaseService {
 
       const place = placeDoc.data() as Place;
 
-      // Find and update the photo
       const updatedPhotos = place.photos.map(photo => {
         if (photo.id === photoId) {
           return { ...photo, description };
@@ -559,7 +461,6 @@ export class FirebaseDatabaseService implements IDatabaseService {
         return photo;
       });
 
-      // Update the entire photos array
       await updateDoc(placeRef, {
         photos: updatedPhotos,
         updatedAt: serverTimestamp(),
@@ -568,10 +469,6 @@ export class FirebaseDatabaseService implements IDatabaseService {
       throw new Error(`Failed to update photo description: ${getErrorMessage(error, 'Unknown error')}`);
     }
   }
-
-  /**
-   * Get all photos for a place
-   */
   async getPlacePhotos(placeId: string): Promise<Photo[]> {
     try {
       const placeRef = doc(db, 'places', placeId);
@@ -588,13 +485,6 @@ export class FirebaseDatabaseService implements IDatabaseService {
     }
   }
 
-  // ============================================
-  // BATCH OPERATIONS
-  // ============================================
-
-  /**
-   * Delete multiple places at once
-   */
   async deletePlaces(placeIds: string[]): Promise<void> {
     try {
       const deletePromises = placeIds.map((id) => this.deletePlace(id));
@@ -605,5 +495,4 @@ export class FirebaseDatabaseService implements IDatabaseService {
   }
 }
 
-// Export singleton instance
 export const databaseService = new FirebaseDatabaseService();

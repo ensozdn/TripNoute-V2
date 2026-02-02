@@ -1,8 +1,3 @@
-/**
- * TripNoute v2 - Place Model Types
- * Detailed place-related type definitions
- */
-
 import { Timestamp, Location, Address, Photo } from '../index';
 
 export interface Place {
@@ -15,7 +10,7 @@ export interface Place {
   visitDate: Timestamp;
   photos: Photo[];
   category?: PlaceCategory;
-  rating?: number; // 1-5
+  rating?: number;
   isPublic: boolean;
   tags: string[];
   createdAt: Timestamp;

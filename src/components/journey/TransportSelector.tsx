@@ -1,8 +1,3 @@
-/**
- * TransportSelector Component
- * Premium UI for selecting transport mode
- */
-
 import { motion } from 'framer-motion';
 import { Plane, Car, Bus, Footprints, Ship, Train } from 'lucide-react';
 import { TransportType } from '@/types';

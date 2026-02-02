@@ -1,10 +1,3 @@
-/**
- * InsightsTab Component
- * 
- * Travel statistics dashboard.
- * Single Responsibility: Only renders insights/stats view.
- */
-
 'use client';
 
 import { MapPin, Globe, Camera, Route, Calendar } from 'lucide-react';
@@ -21,14 +14,13 @@ export default function InsightsTab({
   stats,
   placeFrequencies,
 }: InsightsTabProps) {
-  // Format distance
+
   const formatDistance = (km: number): string => {
     if (km < 1) return '0 km';
     if (km >= 1000) return `${(km / 1000).toFixed(1)}k km`;
     return `${Math.round(km)} km`;
   };
 
-  // Format date range
   const formatDateRange = (): string => {
     if (!stats.firstTripDate || !stats.lastTripDate) return 'No trips yet';
 
@@ -46,7 +38,7 @@ export default function InsightsTab({
 
   return (
     <div>
-      {/* Stats Grid */}
+      {}
       <div className="grid grid-cols-2 gap-3 mb-4">
         <StatCard
           icon={<MapPin className="w-5 h-5 text-red-400" />}
@@ -71,7 +63,7 @@ export default function InsightsTab({
         />
       </div>
 
-      {/* Date Range Card */}
+      {}
       <div className="p-4 rounded-2xl bg-white/10 border border-white/20 mb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
@@ -88,7 +80,7 @@ export default function InsightsTab({
         </div>
       </div>
 
-      {/* Places Frequency Chart */}
+      {}
       <PlacesChart data={placeFrequencies} />
     </div>
   );

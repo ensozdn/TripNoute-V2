@@ -1,26 +1,13 @@
-/**
- * TripNoute v2 - Core Type Definitions
- * 
- * This file contains all TypeScript types and interfaces used throughout the application.
- * Following SOLID principles and German engineering discipline.
- */
 
-// ============================================
-// TIMESTAMP TYPE
-// ============================================
 export type Timestamp = {
   seconds: number;
   nanoseconds: number;
 };
 
-// Helper to convert Timestamp to Date
 export const timestampToDate = (timestamp: Timestamp): Date => {
   return new Date(timestamp.seconds * 1000);
 };
 
-// ============================================
-// LOCATION TYPES
-// ============================================
 export interface Location {
   lat: number;
   lng: number;
@@ -36,9 +23,6 @@ export interface Address {
   postalCode?: string;
 }
 
-// ============================================
-// USER TYPES
-// ============================================
 export interface UserProfile {
   uid: string;
   email: string;
@@ -71,26 +55,20 @@ export interface UserPreferences {
   allowNotifications: boolean;
 }
 
-// ============================================
-// PHOTO TYPES
-// ============================================
 export interface Photo {
   id: string;
   url: string;
   thumbnailUrl: string;
   storagePath: string;
   filename: string;
-  size: number; // bytes
+  size: number;
   mimeType: string;
   width: number;
   height: number;
   uploadedAt: Timestamp;
-  uploadedBy: string; // userId
+  uploadedBy: string;
 }
 
-// ============================================
-// PLACE TYPES
-// ============================================
 export interface Place {
   id: string;
   userId: string;
@@ -101,7 +79,7 @@ export interface Place {
   visitDate: Timestamp;
   photos: Photo[];
   category?: PlaceCategory;
-  rating?: number; // 1-5
+  rating?: number;
   isPublic: boolean;
   tags: string[];
   createdAt: Timestamp;
@@ -134,9 +112,6 @@ export type PlaceCategory =
   | 'landmark'
   | 'other';
 
-// ============================================
-// TRIP TYPES (For Phase 2)
-// ============================================
 export interface JourneyStep {
   id: string;
   name: string;
@@ -170,9 +145,6 @@ export interface Trip {
   updatedAt: Timestamp;
 }
 
-// ============================================
-// FORM TYPES
-// ============================================
 export interface CreatePlaceInput {
   title: string;
   description: string;
@@ -203,9 +175,6 @@ export interface RegisterInput {
   displayName: string;
 }
 
-// ============================================
-// API RESPONSE TYPES
-// ============================================
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
@@ -218,9 +187,6 @@ export interface ApiError {
   details?: Record<string, unknown>;
 }
 
-// ============================================
-// PAGINATION TYPES
-// ============================================
 export interface PaginationParams {
   limit: number;
   cursor?: string;
@@ -233,9 +199,6 @@ export interface PaginatedResponse<T> {
   total?: number;
 }
 
-// ============================================
-// FILTER & SORT TYPES
-// ============================================
 export interface PlaceFilters {
   userId?: string;
   category?: PlaceCategory;
@@ -255,9 +218,6 @@ export interface PlaceSortOptions {
   order: SortOrder;
 }
 
-// ============================================
-// MAP TYPES
-// ============================================
 export interface MapBounds {
   north: number;
   south: number;
@@ -272,9 +232,6 @@ export interface MapMarker {
   icon?: string;
 }
 
-// ============================================
-// ANALYTICS TYPES
-// ============================================
 export interface AnalyticsEvent {
   name: string;
   properties?: Record<string, unknown>;

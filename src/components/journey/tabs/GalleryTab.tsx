@@ -1,10 +1,3 @@
-/**
- * GalleryTab Component
- * 
- * Photo gallery grid with hover effects.
- * Single Responsibility: Only renders photo gallery view.
- */
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -30,7 +23,6 @@ export default function GalleryTab({ photos }: GalleryTabProps) {
     setLightboxIndex((prev) => (prev! < photos.length - 1 ? prev! + 1 : 0));
   };
 
-  // Handle keyboard navigation
   const handleKeyDown = (e: KeyboardEvent) => {
     if (lightboxIndex === null) return;
     if (e.key === 'Escape') setLightboxIndex(null);
@@ -38,10 +30,9 @@ export default function GalleryTab({ photos }: GalleryTabProps) {
     if (e.key === 'ArrowRight') handleNext();
   };
 
-  // Add keyboard listener when lightbox is open
   useEffect(() => {
     if (lightboxIndex === null) return;
-    
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [lightboxIndex]);
@@ -50,7 +41,7 @@ export default function GalleryTab({ photos }: GalleryTabProps) {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4">
         <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-4">
-          <span className="text-3xl">🖼️</span>
+          <span className="text-3xl">️</span>
         </div>
         <p className="text-slate-400 text-center">
           No photos yet. Add photos to your places!
@@ -62,8 +53,8 @@ export default function GalleryTab({ photos }: GalleryTabProps) {
   return (
     <>
       <div>
-        {/* Padding handled by parent JourneyHub */}
-        {/* Square Grid */}
+        {}
+        {}
         <div className="grid grid-cols-3 gap-2">
           {photos.map((photo, index) => (
             <motion.button
@@ -80,15 +71,15 @@ export default function GalleryTab({ photos }: GalleryTabProps) {
                 className="object-cover"
                 sizes="(max-width: 768px) 33vw, 20vw"
               />
-              
-              {/* Hover Overlay */}
+
+              {}
               <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors" />
             </motion.button>
           ))}
         </div>
       </div>
 
-      {/* Lightbox */}
+      {}
       <AnimatePresence>
         {lightboxIndex !== null && (
           <motion.div
@@ -98,7 +89,7 @@ export default function GalleryTab({ photos }: GalleryTabProps) {
             className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
             onClick={() => setLightboxIndex(null)}
           >
-            {/* Close Button */}
+            {}
             <button
               onClick={() => setLightboxIndex(null)}
               className="absolute top-4 right-4 p-2 text-white hover:bg-white/10 rounded-lg transition-colors z-10"
@@ -106,12 +97,12 @@ export default function GalleryTab({ photos }: GalleryTabProps) {
               <X className="w-6 h-6" />
             </button>
 
-            {/* Counter */}
+            {}
             <div className="absolute top-4 left-4 px-4 py-2 bg-white/10 rounded-lg text-white text-sm z-10">
               {lightboxIndex + 1} / {photos.length}
             </div>
 
-            {/* Navigation Buttons */}
+            {}
             {photos.length > 1 && (
               <>
                 <button
@@ -129,7 +120,7 @@ export default function GalleryTab({ photos }: GalleryTabProps) {
               </>
             )}
 
-            {/* Image */}
+            {}
             <motion.div
               key={lightboxIndex}
               initial={{ scale: 0.9, opacity: 0 }}
@@ -149,10 +140,10 @@ export default function GalleryTab({ photos }: GalleryTabProps) {
               />
             </motion.div>
 
-            {/* Place Title */}
+            {}
             {photos[lightboxIndex].placeTitle && (
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-white/10 rounded-lg text-white text-sm z-10">
-                📍 {photos[lightboxIndex].placeTitle}
+                 {photos[lightboxIndex].placeTitle}
               </div>
             )}
           </motion.div>

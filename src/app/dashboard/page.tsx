@@ -179,7 +179,6 @@ export default function DashboardPage() {
       console.log('Requesting location...');
       const mapboxService = getMapboxService();
 
-      // Use getUserLocation to separate coordinates retrieval from animation
       const result = await mapboxService.getUserLocation();
 
       if (!result) {
@@ -188,13 +187,10 @@ export default function DashboardPage() {
       } else {
         console.log('Location success:', result);
 
-        // Show marker first
         mapboxService.showUserLocationMarker(result.lat, result.lng);
 
-        // Force stop any existing animations (like rotation)
         mapboxService.stopRotation();
 
-        // Manual flyTo ensures we override any other map state
         mapboxService.flyTo(result.lat, result.lng, 14);
       }
     } catch (error) {
@@ -227,7 +223,7 @@ export default function DashboardPage() {
 
         <header className="absolute top-6 left-6 z-40">
           <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity group">
-            {/* Logo Icon - No Container, just the image */}
+            {}
             <Image
               src="/tripnoute-logo-v2.jpg"
               alt="TripNoute"
@@ -236,7 +232,7 @@ export default function DashboardPage() {
               className="rounded-[10px] shadow-lg shadow-black/20"
             />
 
-            {/* Text - Clean, Bold, White like Polarsteps */}
+            {}
             <span className="text-3xl font-bold text-white tracking-tighter drop-shadow-md font-sans">
               TripNoute
             </span>

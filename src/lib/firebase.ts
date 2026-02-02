@@ -1,17 +1,9 @@
-/**
- * TripNoute v2 - Firebase Configuration
- * 
- * This file initializes Firebase with environment variables.
- * SECURITY: Never commit actual API keys!
- */
-
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 import { getAnalytics, Analytics } from 'firebase/analytics';
 
-// Firebase configuration from environment variables
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -22,7 +14,6 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Validate Firebase configuration
 const validateConfig = (): void => {
   const requiredFields = [
     'apiKey',
@@ -45,7 +36,6 @@ const validateConfig = (): void => {
   }
 };
 
-// Initialize Firebase (singleton pattern)
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
@@ -59,22 +49,19 @@ const initializeFirebase = (): {
   storage: FirebaseStorage;
   analytics: Analytics | null;
 } => {
-  // Validate configuration first
+
   validateConfig();
 
-  // Check if Firebase is already initialized
   if (getApps().length === 0) {
     app = initializeApp(firebaseConfig);
   } else {
     app = getApps()[0];
   }
 
-  // Initialize services
   auth = getAuth(app);
   db = getFirestore(app);
   storage = getStorage(app);
 
-  // Initialize analytics only in browser and production
   if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === 'true') {
     analytics = getAnalytics(app);
   }
@@ -82,9 +69,7 @@ const initializeFirebase = (): {
   return { app, auth, db, storage, analytics };
 };
 
-// Export initialized Firebase services
 export const firebase = initializeFirebase();
 export { app, auth, db, storage, analytics };
 
-// Export types for convenience
 export type { FirebaseApp, Auth, Firestore, FirebaseStorage, Analytics };

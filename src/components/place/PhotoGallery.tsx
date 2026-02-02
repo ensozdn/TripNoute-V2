@@ -97,14 +97,13 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
     );
   }
 
-  // Defensive: filter out photos without valid URL or ID/storagePath
   const validPhotos = photos.filter(
     (photo) => (photo.url || photo.storagePath) && (photo.id || photo.storagePath)
   );
 
   return (
     <>
-      {/* Gallery Grid */}
+      {}
       <div
         className={cn(
           'grid gap-4',
@@ -131,10 +130,10 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
         ))}
       </div>
 
-      {/* Lightbox */}
+      {}
       {lightboxIndex !== null && (
         <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center">
-          {/* Close Button */}
+          {}
           <button
             onClick={() => setLightboxIndex(null)}
             className="absolute top-4 right-4 p-2 text-white hover:bg-white/10 rounded-lg transition-colors z-10"
@@ -142,7 +141,7 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
             <X className="w-6 h-6" />
           </button>
 
-          {/* Download Button */}
+          {}
           <button
             onClick={handleDownload}
             className="absolute top-4 right-16 p-2 text-white hover:bg-white/10 rounded-lg transition-colors z-10"
@@ -150,12 +149,12 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
             <Download className="w-6 h-6" />
           </button>
 
-          {/* Counter */}
+          {}
           <div className="absolute top-4 left-4 px-4 py-2 bg-white/10 rounded-lg text-white text-sm z-10">
             {lightboxIndex + 1} / {photos.length}
           </div>
 
-          {/* Previous Button */}
+          {}
           {photos.length > 1 && (
             <button
               onClick={handlePrevious}
@@ -165,7 +164,7 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
             </button>
           )}
 
-          {/* Next Button */}
+          {}
           {photos.length > 1 && (
             <button
               onClick={handleNext}
@@ -175,7 +174,7 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
             </button>
           )}
 
-          {/* Image */}
+          {}
           <div className="relative max-w-[90vw] max-h-[90vh] flex items-center justify-center">
             <img
               src={photos[lightboxIndex].url}
@@ -184,7 +183,7 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
               onClick={(e) => e.stopPropagation()}
             />
 
-            {/* Description */}
+            {}
             {photos[lightboxIndex].description && (
               <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
                 <p className="text-white text-center">{photos[lightboxIndex].description}</p>
@@ -192,7 +191,7 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
             )}
           </div>
 
-          {/* Background Close */}
+          {}
           <div
             className="absolute inset-0 -z-10"
             onClick={() => setLightboxIndex(null)}

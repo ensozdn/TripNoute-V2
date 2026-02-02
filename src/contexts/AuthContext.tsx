@@ -1,10 +1,3 @@
-/**
- * Authentication Context
- * 
- * Manages user authentication state across the application.
- * Provides auth methods and current user data to all components.
- */
-
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
@@ -31,7 +24,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Listen to auth state changes
   useEffect(() => {
     const unsubscribe = authService.onAuthStateChanged((userData) => {
       setUser(userData);
@@ -41,7 +33,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  // Helper to extract error message from unknown error
   const getErrorMessage = (err: unknown, defaultMessage: string): string => {
     if (err instanceof Error) {
       return err.message;
@@ -109,7 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setError(null);
       if (!user) throw new Error('No user logged in');
-      
+
       await authService.updateProfile(data);
       setUser({ ...user, ...data });
     } catch (err: unknown) {
@@ -122,7 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setError(null);
       if (!user) throw new Error('No user logged in');
-      
+
       await authService.deleteAccount();
       setUser(null);
     } catch (err: unknown) {

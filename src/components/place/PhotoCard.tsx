@@ -72,7 +72,7 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
         className
       )}
     >
-      {/* Image */}
+      {}
       <div
         className={cn(
           'aspect-square relative overflow-hidden bg-slate-100 dark:bg-slate-800',
@@ -87,7 +87,7 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
           loading="lazy"
         />
 
-        {/* Hover Overlay */}
+        {}
         {onClick && !isEditing && (
           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
             <span className="text-white text-sm font-medium">View Full Size</span>
@@ -95,7 +95,7 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
         )}
       </div>
 
-      {/* Description Section */}
+      {}
       <div className="p-3 space-y-2">
         {isEditing ? (
           <div className="space-y-2">
@@ -143,7 +143,7 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
           </>
         )}
 
-        {/* Action Buttons */}
+        {}
         {!isEditing && (
           <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
             {onUpdateDescription && (
@@ -173,7 +173,7 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
           </div>
         )}
 
-        {/* File Info */}
+        {}
         <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-200 dark:border-slate-800">
           <span>{(photo.size / 1024 / 1024).toFixed(2)} MB</span>
           <span>
@@ -182,7 +182,7 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
         </div>
       </div>
 
-      {/* Deleting Overlay */}
+      {}
       {isDeleting && (
         <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 flex items-center justify-center">
           <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">

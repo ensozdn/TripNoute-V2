@@ -1,10 +1,3 @@
-/**
- * JourneyTabs Component
- * 
- * Floating segmented control with magic pill animation.
- * Single Responsibility: Only handles tab navigation UI and animation.
- */
-
 'use client';
 
 import { motion } from 'framer-motion';
@@ -20,9 +13,9 @@ const ICON_MAP = {
 export default function JourneyTabs({ activeTab, onTabChange }: JourneyTabsProps) {
   return (
     <div className="px-4 pt-4 pb-2">
-      {/* Glassmorphism Tab Container */}
+      {}
       <div className="relative flex items-center justify-between p-1 rounded-2xl bg-black/40 backdrop-blur-md border border-white/10">
-        {/* Magic Pill Background */}
+        {}
         {TAB_CONFIG.map((tab) => (
           tab.id === activeTab && (
             <motion.div
@@ -42,7 +35,7 @@ export default function JourneyTabs({ activeTab, onTabChange }: JourneyTabsProps
           )
         ))}
 
-        {/* Tab Buttons */}
+        {}
         {TAB_CONFIG.map((tab) => {
           const IconComponent = ICON_MAP[tab.iconName];
           return (

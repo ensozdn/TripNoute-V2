@@ -1,31 +1,10 @@
-/**
- * TripNoute v2 - Helper Utilities
- * 
- * General-purpose helper functions.
- * Clean, reusable, single-responsibility functions.
- */
-
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-// ============================================
-// STYLING UTILITIES
-// ============================================
-
-/**
- * Merge Tailwind CSS classes intelligently
- */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// ============================================
-// DATE UTILITIES
-// ============================================
-
-/**
- * Format date to readable string
- */
 export function formatDate(date: Date, format: string = 'DD/MM/YYYY'): string {
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -43,9 +22,6 @@ export function formatDate(date: Date, format: string = 'DD/MM/YYYY'): string {
   }
 }
 
-/**
- * Get relative time string (e.g., "2 days ago")
- */
 export function getRelativeTime(date: Date): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -64,13 +40,6 @@ export function getRelativeTime(date: Date): string {
   return `${diffYears} year${diffYears > 1 ? 's' : ''} ago`;
 }
 
-// ============================================
-// FILE UTILITIES
-// ============================================
-
-/**
- * Format file size to human-readable string
- */
 export function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 Bytes';
 
@@ -81,16 +50,10 @@ export function formatFileSize(bytes: number): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 }
 
-/**
- * Check if file is an image
- */
 export function isImageFile(file: File): boolean {
   return file.type.startsWith('image/');
 }
 
-/**
- * Compress image before upload
- */
 export async function compressImage(
   file: File,
   maxWidth: number = 1920,
@@ -110,7 +73,6 @@ export async function compressImage(
         let width = img.width;
         let height = img.height;
 
-        // Calculate new dimensions
         if (width > height) {
           if (width > maxWidth) {
             height = (height * maxWidth) / width;
@@ -153,66 +115,35 @@ export async function compressImage(
   });
 }
 
-// ============================================
-// STRING UTILITIES
-// ============================================
-
-/**
- * Truncate string with ellipsis
- */
 export function truncate(str: string, length: number): string {
   if (str.length <= length) return str;
   return str.slice(0, length) + '...';
 }
 
-/**
- * Capitalize first letter
- */
 export function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
 
-/**
- * Generate random string
- */
 export function generateId(length: number = 8): string {
   return Math.random().toString(36).substring(2, 2 + length);
 }
 
-// ============================================
-// NUMBER UTILITIES
-// ============================================
-
-/**
- * Format number with commas
- */
 export function formatNumber(num: number): string {
   return num.toLocaleString();
 }
 
-/**
- * Calculate percentage
- */
 export function calculatePercentage(value: number, total: number): number {
   if (total === 0) return 0;
   return Math.round((value / total) * 100);
 }
 
-// ============================================
-// LOCATION UTILITIES
-// ============================================
-
-/**
- * Calculate distance between two coordinates (Haversine formula)
- * Returns distance in kilometers
- */
 export function calculateDistance(
   lat1: number,
   lon1: number,
   lat2: number,
   lon2: number
 ): number {
-  const R = 6371; // Earth's radius in km
+  const R = 6371;
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
 
@@ -226,35 +157,22 @@ export function calculateDistance(
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   const distance = R * c;
 
-  return Math.round(distance * 10) / 10; // Round to 1 decimal place
+  return Math.round(distance * 10) / 10;
 }
 
 function toRad(degrees: number): number {
   return (degrees * Math.PI) / 180;
 }
 
-/**
- * Convert km to miles
- */
 export function kmToMiles(km: number): number {
   return Math.round(km * 0.621371 * 10) / 10;
 }
 
-// ============================================
-// VALIDATION UTILITIES
-// ============================================
-
-/**
- * Check if email is valid
- */
 export function isValidEmail(email: string): boolean {
   const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return regex.test(email);
 }
 
-/**
- * Check if URL is valid
- */
 export function isValidUrl(url: string): boolean {
   try {
     new URL(url);
@@ -264,13 +182,6 @@ export function isValidUrl(url: string): boolean {
   }
 }
 
-// ============================================
-// DEBOUNCE & THROTTLE
-// ============================================
-
-/**
- * Debounce function calls
- */
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number
@@ -288,9 +199,6 @@ export function debounce<T extends (...args: any[]) => any>(
   };
 }
 
-/**
- * Throttle function calls
- */
 export function throttle<T extends (...args: any[]) => any>(
   func: T,
   limit: number
@@ -306,20 +214,10 @@ export function throttle<T extends (...args: any[]) => any>(
   };
 }
 
-// ============================================
-// ARRAY UTILITIES
-// ============================================
-
-/**
- * Remove duplicates from array
- */
 export function unique<T>(array: T[]): T[] {
   return Array.from(new Set(array));
 }
 
-/**
- * Group array by key
- */
 export function groupBy<T>(array: T[], key: keyof T): Record<string, T[]> {
   return array.reduce((result, item) => {
     const groupKey = String(item[key]);

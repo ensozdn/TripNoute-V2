@@ -1,8 +1,3 @@
-/**
- * useMapbox Hook
- * Mapbox harita yönetimi için React hook
- */
-
 import { useEffect, useRef, useState } from 'react';
 import type { Map as MapboxMap } from 'mapbox-gl';
 import { getMapboxService } from '@/services/maps';
@@ -11,7 +6,7 @@ import type { MapMarker } from '@/types/maps';
 interface UseMapboxOptions {
   accessToken: string;
   style?: string;
-  center?: [number, number]; // [lng, lat]
+  center?: [number, number];
   zoom?: number;
   markers?: MapMarker[];
   enableUserLocation?: boolean;
@@ -44,7 +39,6 @@ export const useMapbox = (
   const mapboxService = useRef(getMapboxService());
   const isInitialized = useRef(false);
 
-  // Map initialization
   useEffect(() => {
     if (!containerRef.current) {
       return;
@@ -75,7 +69,6 @@ export const useMapbox = (
 
     initMap();
 
-    // Cleanup
     return () => {
       if (isInitialized.current) {
         mapboxService.current.destroyMap();
@@ -84,10 +77,9 @@ export const useMapbox = (
         isInitialized.current = false;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [options.accessToken, options.style]);
 
-  // Event handlers
   useEffect(() => {
     if (!isLoaded) return;
 
@@ -100,7 +92,6 @@ export const useMapbox = (
     }
   }, [isLoaded, options.onMapClick, options.onMarkerClick]);
 
-  // Markers management
   useEffect(() => {
     if (!isLoaded || !options.markers) return;
 
@@ -110,22 +101,14 @@ export const useMapbox = (
       mapboxService.current.addMarker(marker);
     });
 
-    // REMOVED: Auto fitBounds that was breaking globe view
-    // Markers are added but map stays in globe view for cinematic rotation
-    // User can manually zoom to places or click timeline to focus
-    // if (options.markers.length > 0) {
-    //   mapboxService.current.fitBounds(options.markers);
-    // }
   }, [isLoaded, options.markers]);
 
-  // User location
   useEffect(() => {
     if (!isLoaded || !options.enableUserLocation) return;
 
     mapboxService.current.enableUserLocation();
   }, [isLoaded, options.enableUserLocation]);
 
-  // Helper functions
   const flyTo = (lat: number, lng: number, zoom?: number) => {
     if (!isLoaded) return;
     mapboxService.current.flyTo(lat, lng, zoom);

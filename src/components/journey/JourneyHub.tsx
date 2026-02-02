@@ -35,9 +35,9 @@ const TABS: TabConfig[] = [
 ];
 
 const SNAP_POINTS: Record<SheetState, number> = {
-  closed: 0.08,  // Only handle + tabs visible
-  middle: 0.5,   // 50% of screen
-  full: 0.95,    // 95% of screen
+  closed: 0.08,
+  middle: 0.5,
+  full: 0.95,
 };
 
 export default function JourneyHub({
@@ -59,7 +59,7 @@ export default function JourneyHub({
     let lastDate: Date | null = null;
 
     places.forEach((place) => {
-      // Normalize country and city names for accurate counting
+
       const normalizedCountry = place.address?.country
         ? place.address.country.trim().toLowerCase().replace(/\s+/g, ' ')
         : null;
@@ -93,7 +93,7 @@ export default function JourneyHub({
   const placeFrequencies: PlaceFrequency[] = useMemo(() => {
     const countryMap = deduplicateCountries(places);
     const sorted = sortByFrequency(countryMap);
-    
+
     return sorted.map(([country, count]) => ({
       country,
       count,
@@ -118,13 +118,6 @@ export default function JourneyHub({
     return photos;
   }, [places]);
 
-  // ============================================
-  // GESTURE HANDLERS
-  // ============================================
-
-  /**
-   * Handle vertical drag with velocity-based snapping
-   */
   const handleDrag = (
     _event: MouseEvent | TouchEvent | PointerEvent,
     info: { offset: { y: number }; velocity: { y: number } }
@@ -136,17 +129,16 @@ export default function JourneyHub({
 
     let nextState: SheetState = sheetState;
 
-    // Fast upward swipe (velocity < -300px/s) → expand
     if (info.velocity.y < -300) {
       if (sheetState === 'closed') nextState = 'middle';
       else if (sheetState === 'middle') nextState = 'full';
     }
-    // Fast downward swipe (velocity > 300px/s) → collapse
+
     else if (info.velocity.y > 300) {
       if (sheetState === 'full') nextState = 'middle';
       else if (sheetState === 'middle') nextState = 'closed';
     }
-    // Position-based snapping
+
     else {
       if (newHeightRatio > 0.7) {
         nextState = 'full';
@@ -159,19 +151,11 @@ export default function JourneyHub({
 
     setSheetState(nextState);
   };
-
-  /**
-   * Tab click → auto-expand to preferred height
-   */
   const handleTabClick = (tabIndex: number) => {
     setActiveTabIndex(tabIndex);
     const expandsTo = TABS[tabIndex].expandsTo;
     setSheetState(expandsTo);
   };
-
-  // ============================================
-  // RENDER LOGIC
-  // ============================================
 
   const activeTab = TABS[activeTabIndex];
   const sheetHeightPercent = SNAP_POINTS[sheetState];
@@ -206,10 +190,6 @@ export default function JourneyHub({
     }
   };
 
-  // ============================================
-  // MAIN RENDER
-  // ============================================
-
   return (
     <motion.div
       ref={sheetRef}
@@ -234,15 +214,10 @@ export default function JourneyHub({
         touchAction: 'none',
       }}
     >
-      {/* ========================================
-          PREMIUM GLASSMORPHISM BACKGROUND
-          backdrop-blur-2xl + gradient
-          ======================================== */}
+      {}
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/20 backdrop-blur-2xl border-t border-white/10 rounded-t-3xl" />
 
-      {/* ========================================
-          GRAB HANDLE - Haptic Indicator
-          ======================================== */}
+      {}
       <motion.div
         className="relative z-10 flex justify-center py-3"
         animate={{ opacity: [0.5, 0.7, 0.5] }}
@@ -251,13 +226,11 @@ export default function JourneyHub({
         <div className="w-12 h-1.5 rounded-full bg-white/40 cursor-grab active:cursor-grabbing" />
       </motion.div>
 
-      {/* ========================================
-          MAGIC PILL TAB BAR - Floating Pill Design
-          ======================================== */}
+      {}
       <LayoutGroup>
         <div className="relative z-10 flex items-center border-b border-white/5 px-4 pb-0">
           <div className="flex items-center w-full relative">
-            {/* Animated Pill Background */}
+            {}
             <motion.div
               layoutId="active-pill"
               className="absolute h-10 bg-white/10 border border-white/20 rounded-xl"
@@ -272,7 +245,7 @@ export default function JourneyHub({
               }}
             />
 
-            {/* Tab Buttons */}
+            {}
             {TABS.map((tab, index) => (
               <motion.button
                 key={tab.id}
@@ -293,10 +266,7 @@ export default function JourneyHub({
         </div>
       </LayoutGroup>
 
-      {/* ========================================
-          SMOOTH CONTENT TRANSITIONS
-          Slide in from right with fade effect
-          ======================================== */}
+      {}
       <div
         className="relative z-10 flex-1 min-h-0 overflow-hidden"
         style={{
@@ -325,20 +295,18 @@ export default function JourneyHub({
             }}
             className="h-full w-full overflow-y-auto px-4 pb-8"
           >
-            {/* Fade-to-bottom gradient overlay */}
+            {}
             <div className="relative">
               {renderTabContent()}
-              
-              {/* Bottom fade gradient for visual polish */}
+
+              {}
               <div className="sticky bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
             </div>
           </motion.div>
         </AnimatePresence>
       </div>
 
-      {/* ========================================
-          SAFE AREA PADDING (iOS)
-          ======================================== */}
+      {}
       <div className="relative z-10 h-safe" />
     </motion.div>
   );

@@ -1,10 +1,3 @@
-/**
- * TripNoute v2 - Add Place Page
- * 
- * Form for adding a new place to the user's collection.
- * Hibrit Model: Mapbox (görselleştirme) + Google Places (arama/geocoding)
- */
-
 'use client';
 
 import { useState } from 'react';
@@ -36,7 +29,7 @@ export default function AddPlacePage() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [selectedTransport, setSelectedTransport] = useState<TransportType>('flight'); // Default to flight
+  const [selectedTransport, setSelectedTransport] = useState<TransportType>('flight');
 
   const [formData, setFormData] = useState<AddPlaceFormData>({
     name: '',
@@ -49,7 +42,6 @@ export default function AddPlacePage() {
   const handleLocationSelect = (location: { lat: number; lng: number; address?: string }) => {
     setSelectedLocation(location);
 
-    // Try to extract city and country from address
     if (location.address) {
       const addressParts = location.address.split(',').map(part => part.trim());
       if (addressParts.length >= 2) {
@@ -71,7 +63,7 @@ export default function AddPlacePage() {
     setLoadingForm(true);
 
     try {
-      // Validate form data
+
       const validation = addPlaceSchema.safeParse(formData);
 
       if (!validation.success) {
@@ -86,20 +78,18 @@ export default function AddPlacePage() {
         return;
       }
 
-      // Check if location is selected
       if (!selectedLocation) {
         setError('Please select a location on the map by clicking on it');
         setLoadingForm(false);
         return;
       }
 
-      // Convert form data to Place object
       const visitDate = new Date(validation.data.visitDate);
 
       const placeInput = {
         title: validation.data.name,
         description: validation.data.notes || '',
-        location: selectedLocation, // Use selected location from map
+        location: selectedLocation,
         address: {
           formatted: `${validation.data.city}, ${validation.data.country}`,
           city: validation.data.city,
@@ -110,48 +100,42 @@ export default function AddPlacePage() {
         isPublic: false,
         tags: [],
         transportType: selectedTransport,
-        order: Date.now(), // Simple ordering by timestamp needed for route drawing
+        order: Date.now(),
       };
 
-      // Save to Firestore
       const place = await databaseService.createPlace(placeInput, user.uid);
 
-      // Upload photos if any selected
       if (selectedFiles.length > 0) {
         setUploading(true);
         setUploadProgress(0);
         try {
-          // Track individual file progress
+
           const fileProgressMap = new Map<number, number>();
 
           const uploadPromises = selectedFiles.map((file, index) =>
             storageService.uploadPhoto(file, user.uid, place.id, {}, (progress) => {
-              // Update this file's progress (0-100)
+
               fileProgressMap.set(index, progress.percentage);
 
-              // Calculate overall progress correctly
               let totalProgress = 0;
               fileProgressMap.forEach((value) => {
                 totalProgress += value;
               });
 
-              // Normalize to 0-100 scale
               const overallProgress = totalProgress / selectedFiles.length;
-              setUploadProgress(Math.min(overallProgress, 99)); // Cap at 99 until complete
+              setUploadProgress(Math.min(overallProgress, 99));
             }).then((photo) => {
-              // Add photo to place
+
               return databaseService.addPhotoToPlace(place.id, photo);
             }).catch((error) => {
-              // Capture error but don't stop other uploads
+
               console.error(`Failed to upload file ${index + 1}:`, error);
               throw error;
             })
           );
 
-          // Wait for all uploads - if any fail, catch it below
           const results = await Promise.allSettled(uploadPromises);
 
-          // Check if all succeeded
           const failures = results.filter(r => r.status === 'rejected');
 
           setUploadProgress(100);
@@ -161,7 +145,7 @@ export default function AddPlacePage() {
           if (failures.length > 0) {
             console.error(`${failures.length} photo(s) failed to upload`);
             setError(`Place created but ${failures.length} photo(s) failed to upload. Please try uploading them again.`);
-            // Still redirect after showing error
+
             setTimeout(() => {
               router.push('/dashboard');
             }, 3000);
@@ -172,18 +156,17 @@ export default function AddPlacePage() {
           setUploading(false);
           setLoadingForm(false);
           setError('Place created but photos failed to upload. Try uploading them later.');
-          // Still redirect after error shown
+
           setTimeout(() => {
             router.push('/dashboard');
           }, 3000);
           return;
         }
       } else {
-        // No photos to upload, just finish
+
         setLoadingForm(false);
       }
 
-      // Show success and redirect
       setSuccess(true);
       setTimeout(() => {
         router.push('/dashboard');
@@ -207,13 +190,13 @@ export default function AddPlacePage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen relative bg-slate-900">
-        {/* Background Gradients */}
+        {}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-transparent to-transparent"></div>
         <div className="absolute inset-0 bg-gradient-to-tl from-blue-600/20 via-transparent to-transparent"></div>
 
-        {/* Content */}
+        {}
         <div className="relative z-10">
-          {/* Header */}
+          {}
           <header className="border-b border-white/10 bg-black/10 backdrop-blur-sm">
             <div className="container mx-auto px-6 py-5">
               <nav className="flex items-center justify-between">
@@ -239,7 +222,7 @@ export default function AddPlacePage() {
             </div>
           </header>
 
-          {/* Main Content */}
+          {}
           <main className="container mx-auto px-6 py-16 max-w-2xl">
             <div className="mb-12 text-center">
               <h1 className="text-5xl font-bold text-white mb-4">Add New Place</h1>
@@ -248,21 +231,21 @@ export default function AddPlacePage() {
 
             <div className="p-10 rounded-2xl bg-white/10 border border-white/20">
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Success Message */}
+                {}
                 {success && (
                   <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm">
-                    ✓ Place added successfully! Redirecting...
+                     Place added successfully! Redirecting...
                   </div>
                 )}
 
-                {/* Error Message */}
+                {}
                 {error && (
                   <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
                     {error}
                   </div>
                 )}
 
-                {/* Place Name */}
+                {}
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-slate-300 mb-2">
                     Place Name *
@@ -279,7 +262,7 @@ export default function AddPlacePage() {
                   />
                 </div>
 
-                {/* Country */}
+                {}
                 <div>
                   <label htmlFor="country" className="block text-sm font-medium text-slate-300 mb-2">
                     Country *
@@ -296,7 +279,7 @@ export default function AddPlacePage() {
                   />
                 </div>
 
-                {/* City */}
+                {}
                 <div>
                   <label htmlFor="city" className="block text-sm font-medium text-slate-300 mb-2">
                     City *
@@ -313,7 +296,7 @@ export default function AddPlacePage() {
                   />
                 </div>
 
-                {/* Visit Date */}
+                {}
                 <div>
                   <label htmlFor="visitDate" className="block text-sm font-medium text-slate-300 mb-2">
                     Visit Date *
@@ -329,13 +312,13 @@ export default function AddPlacePage() {
                   />
                 </div>
 
-                {/* Transport Mode */}
+                {}
                 <TransportSelector
                   value={selectedTransport}
                   onChange={setSelectedTransport}
                 />
 
-                {/* Notes */}
+                {}
                 <div>
                   <label htmlFor="notes" className="block text-sm font-medium text-slate-300 mb-2">
                     Notes
@@ -351,7 +334,7 @@ export default function AddPlacePage() {
                   />
                 </div>
 
-                {/* Photos */}
+                {}
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
                     Photos
@@ -371,7 +354,7 @@ export default function AddPlacePage() {
                   )}
                 </div>
 
-                {/* Map for Location Selection */}
+                {}
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
                     Location * (Search or click on the map)
@@ -387,7 +370,7 @@ export default function AddPlacePage() {
                   )}
                 </div>
 
-                {/* Submit Button */}
+                {}
                 <div className="flex gap-4 pt-4">
                   <button
                     type="submit"

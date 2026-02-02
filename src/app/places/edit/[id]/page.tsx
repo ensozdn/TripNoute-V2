@@ -1,9 +1,3 @@
-/**
- * TripNoute v2 - Edit Place Page
- * 
- * Form for editing existing travel places.
- */
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -24,7 +18,7 @@ export default function EditPlacePage() {
   const params = useParams();
   const placeId = params.id as string;
   const { user } = useAuth();
-  
+
   const [loadingPlace, setLoadingPlace] = useState(true);
   const [loadingForm, setLoadingForm] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -32,7 +26,7 @@ export default function EditPlacePage() {
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number; address?: string } | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  
+
   const [formData, setFormData] = useState({
     name: '',
     country: '',
@@ -43,7 +37,6 @@ export default function EditPlacePage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Photo management hook
   const {
     uploading,
     uploadProgress,
@@ -60,14 +53,13 @@ export default function EditPlacePage() {
 
   const handleLocationSelect = (location: { lat: number; lng: number; address?: string }) => {
     setSelectedLocation(location);
-    
-    // Try to extract city and country from address
+
     if (location.address) {
       const addressParts = location.address.split(',').map(part => part.trim());
       if (addressParts.length >= 2) {
         const country = addressParts[addressParts.length - 1];
         const city = addressParts[addressParts.length - 2];
-        
+
         setFormData(prev => ({
           ...prev,
           country: country || prev.country,
@@ -77,26 +69,23 @@ export default function EditPlacePage() {
     }
   };
 
-  // Load place data
   useEffect(() => {
     const loadPlace = async () => {
       if (!user || !placeId) return;
 
       try {
         const place = await databaseService.getPlaceById(placeId);
-        
+
         if (!place) {
           setError('Place not found');
           return;
         }
 
-        // Check if user owns this place
         if (place.userId !== user.uid) {
           setError('You do not have permission to edit this place');
           return;
         }
 
-        // Convert Firestore timestamp to date string
         const visitDate = new Date(place.visitDate.seconds * 1000)
           .toISOString()
           .split('T')[0];
@@ -109,12 +98,10 @@ export default function EditPlacePage() {
           notes: place.description || '',
         });
 
-        // Set existing location if available
         if (place.location?.lat && place.location?.lng) {
           setSelectedLocation(place.location);
         }
 
-        // Load photos
         setPhotos(place.photos || []);
       } catch (err) {
         console.error('Error loading place:', err);
@@ -132,13 +119,12 @@ export default function EditPlacePage() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    // Clear error for this field
+
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
   };
 
-  // Photo handlers
   const handleUploadPhotos = async () => {
     if (selectedFiles.length === 0) return;
 
@@ -176,7 +162,6 @@ export default function EditPlacePage() {
     setErrors({});
     setError('');
 
-    // Validate form
     const result = addPlaceSchema.safeParse(formData);
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
@@ -194,7 +179,7 @@ export default function EditPlacePage() {
     setLoadingForm(true);
 
     try {
-      // Use selected location from map (required)
+
       if (!selectedLocation) {
         setError('Please select a location on the map');
         setLoadingForm(false);
@@ -205,7 +190,7 @@ export default function EditPlacePage() {
         id: placeId,
         title: formData.name,
         description: formData.notes || undefined,
-        location: selectedLocation, // Use map-selected location
+        location: selectedLocation,
         address: {
           country: formData.country,
           city: formData.city,
@@ -241,7 +226,7 @@ export default function EditPlacePage() {
         <div className="min-h-screen relative bg-slate-900">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-transparent to-transparent"></div>
         <div className="absolute inset-0 bg-gradient-to-tl from-blue-600/20 via-transparent to-transparent"></div>
-        
+
         <div className="relative z-10">
           <header className="border-b border-white/10 bg-black/10 backdrop-blur-sm">
             <div className="container mx-auto px-6 py-5">
@@ -263,7 +248,7 @@ export default function EditPlacePage() {
           <main className="container mx-auto px-6 py-16">
             <div className="max-w-2xl mx-auto">
               <div className="p-10 rounded-2xl bg-white/10 border border-white/20 text-center">
-                <span className="text-6xl mb-4 block">❌</span>
+                <span className="text-6xl mb-4 block"></span>
                 <h1 className="text-3xl font-bold text-white mb-4">Error</h1>
                 <p className="text-slate-300 mb-8">{error}</p>
                 <Link
@@ -284,13 +269,13 @@ export default function EditPlacePage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen relative bg-slate-900">
-      {/* Background Gradients */}
+      {}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-transparent to-transparent"></div>
       <div className="absolute inset-0 bg-gradient-to-tl from-blue-600/20 via-transparent to-transparent"></div>
-      
-      {/* Content */}
+
+      {}
       <div className="relative z-10">
-        {/* Header */}
+        {}
         <header className="border-b border-white/10 bg-black/10 backdrop-blur-sm">
           <div className="container mx-auto px-6 py-5">
             <nav className="flex items-center justify-between">
@@ -316,25 +301,25 @@ export default function EditPlacePage() {
           </div>
         </header>
 
-        {/* Main Content */}
+        {}
         <main className="container mx-auto px-6 py-16">
           <div className="max-w-2xl mx-auto">
-            {/* Page Title */}
+            {}
             <div className="mb-12 text-center">
               <h1 className="text-4xl font-bold text-white mb-3">Edit Place</h1>
               <p className="text-slate-300">Update your travel memory</p>
             </div>
 
-            {/* Success Message */}
+            {}
             {success && (
               <div className="mb-8 p-6 rounded-xl bg-green-500/20 border border-green-500/50 text-center">
-                <p className="text-green-400 font-medium">✓ Place updated successfully! Redirecting...</p>
+                <p className="text-green-400 font-medium"> Place updated successfully! Redirecting...</p>
               </div>
             )}
 
-            {/* Form */}
+            {}
             <form onSubmit={handleSubmit} className="p-8 rounded-2xl bg-white/10 border border-white/20">
-              {/* Place Name */}
+              {}
               <div className="mb-6">
                 <label htmlFor="name" className="block text-white font-medium mb-2">
                   Place Name *
@@ -354,7 +339,7 @@ export default function EditPlacePage() {
                 )}
               </div>
 
-              {/* Country */}
+              {}
               <div className="mb-6">
                 <label htmlFor="country" className="block text-white font-medium mb-2">
                   Country *
@@ -374,7 +359,7 @@ export default function EditPlacePage() {
                 )}
               </div>
 
-              {/* City */}
+              {}
               <div className="mb-6">
                 <label htmlFor="city" className="block text-white font-medium mb-2">
                   City *
@@ -394,7 +379,7 @@ export default function EditPlacePage() {
                 )}
               </div>
 
-              {/* Visit Date */}
+              {}
               <div className="mb-6">
                 <label htmlFor="visitDate" className="block text-white font-medium mb-2">
                   Visit Date *
@@ -413,7 +398,7 @@ export default function EditPlacePage() {
                 )}
               </div>
 
-              {/* Notes */}
+              {}
               <div className="mb-8">
                 <label htmlFor="notes" className="block text-white font-medium mb-2">
                   Notes
@@ -433,7 +418,7 @@ export default function EditPlacePage() {
                 )}
               </div>
 
-              {/* Existing Photos */}
+              {}
               {photos.length > 0 && (
                 <div className="mb-8">
                   <label className="block text-white font-medium mb-4">
@@ -449,7 +434,7 @@ export default function EditPlacePage() {
                 </div>
               )}
 
-              {/* Upload New Photos */}
+              {}
               <div className="mb-8">
                 <label className="block text-white font-medium mb-4">
                   Add Photos
@@ -479,7 +464,7 @@ export default function EditPlacePage() {
                 )}
               </div>
 
-              {/* Map for Location Selection */}
+              {}
               <div className="mb-8">
                 <label className="block text-white font-medium mb-2">
                   Location * (Search or click to update)
@@ -495,7 +480,7 @@ export default function EditPlacePage() {
                 )}
               </div>
 
-              {/* Submit Button */}
+              {}
               <button
                 type="submit"
                 disabled={loadingForm}

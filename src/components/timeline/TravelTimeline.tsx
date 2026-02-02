@@ -51,7 +51,7 @@ export default function TravelTimeline({
     if (container) {
       const handleScroll = () => {
         updateScrollButtons();
-        setOpenMenuId(null); // Close menu on scroll
+        setOpenMenuId(null);
       };
       container.addEventListener('scroll', handleScroll);
       return () => container.removeEventListener('scroll', handleScroll);
@@ -94,7 +94,6 @@ export default function TravelTimeline({
     });
   };
 
-  // Handle delete with confirmation
   const handleDelete = async (place: Place, e: React.MouseEvent) => {
     e.stopPropagation();
     setOpenMenuId(null);
@@ -111,7 +110,7 @@ export default function TravelTimeline({
 
     try {
       await onPlaceDelete(place.id);
-      // Success feedback handled by parent (Dashboard)
+
     } catch (error) {
       console.error('Failed to delete place:', error);
       alert('Failed to delete place. Please try again.');
@@ -120,7 +119,6 @@ export default function TravelTimeline({
     }
   };
 
-  // Handle edit
   const handleEdit = (place: Place, e: React.MouseEvent) => {
     e.stopPropagation();
     setOpenMenuId(null);
@@ -130,7 +128,6 @@ export default function TravelTimeline({
     }
   };
 
-  // Toggle menu
   const toggleMenu = (placeId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (openMenuId === placeId) {
@@ -146,7 +143,6 @@ export default function TravelTimeline({
     }
   };
 
-  // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = () => {
       if (openMenuId) {
@@ -164,18 +160,18 @@ export default function TravelTimeline({
 
   return (
     <div className={`relative ${className}`}>
-      {/* Header - Vibrant */}
+      {}
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-base font-bold text-white flex items-center gap-2">
-            ✈️ Your Journey
+            ️ Your Journey
           </h3>
           <p className="text-xs text-white/60">
             {sortedPlaces.length} {sortedPlaces.length === 1 ? 'place' : 'places'} • {new Set(sortedPlaces.map(p => p.address.country)).size} {new Set(sortedPlaces.map(p => p.address.country)).size === 1 ? 'country' : 'countries'}
           </p>
         </div>
 
-        {/* Scroll Controls */}
+        {}
         <div className="flex items-center gap-1">
           <button
             onClick={() => scroll('left')}
@@ -202,12 +198,12 @@ export default function TravelTimeline({
         </div>
       </div>
 
-      {/* Timeline Container */}
+      {}
       <div className="relative">
-        {/* Timeline Line - Vibrant Gradient */}
+        {}
         <div className="absolute top-6 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-400/20 via-purple-400/30 to-blue-400/20 z-0" />
 
-        {/* Scrollable Places Container */}
+        {}
         <div
           ref={scrollContainerRef}
           className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide scroll-smooth"
@@ -219,16 +215,15 @@ export default function TravelTimeline({
           {sortedPlaces.map((place) => {
             const isSelected = place.id === selectedPlaceId;
 
-
             return (
               <div
                 key={place.id}
                 id={`timeline-place-${place.id}`}
                 className="flex-shrink-0 w-48 relative"
               >
-                {/* Timeline Connection - Visual Storytelling */}
+                {}
                 <div className="flex justify-center mb-3">
-                  {/* Photo Thumbnail or Pulsing Dot */}
+                  {}
                   {place.photos && place.photos.length > 0 && place.photos[0]?.url ? (
                     <div
                       className={`relative w-12 h-12 rounded-full transition-all duration-300 z-10 ${isSelected
@@ -243,7 +238,7 @@ export default function TravelTimeline({
                         className="rounded-full object-cover"
                         unoptimized
                       />
-                      {/* Pulse animation for selected */}
+                      {}
                       {isSelected && (
                         <span className="absolute inset-0 rounded-full bg-blue-400/30 animate-ping" />
                       )}
@@ -255,7 +250,7 @@ export default function TravelTimeline({
                         : 'bg-gradient-to-br from-blue-400 to-purple-400 hover:scale-125'
                         }`}
                     >
-                      {/* Pulse animation for selected */}
+                      {}
                       {isSelected && (
                         <span className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-75" />
                       )}
@@ -263,9 +258,9 @@ export default function TravelTimeline({
                   )}
                 </div>
 
-                {/* Place Card - Visual Story with Actions */}
+                {}
                 <div className="relative">
-                  {/* Three Dots Menu Button - Outside of main button */}
+                  {}
                   {(onPlaceEdit || onPlaceDelete) && (
                     <button
                       onClick={(e) => toggleMenu(place.id, e)}
@@ -276,16 +271,14 @@ export default function TravelTimeline({
                     </button>
                   )}
 
-
-
-                  {/* Loading Indicator */}
+                  {}
                   {deletingPlaceId === place.id && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-xl z-10">
                       <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                     </div>
                   )}
 
-                  {/* Main Place Card Button */}
+                  {}
                   <button
                     onClick={() => onPlaceSelect(place)}
                     disabled={deletingPlaceId === place.id}
@@ -297,18 +290,17 @@ export default function TravelTimeline({
                       }`}
                   >
 
-
-                    {/* Place Info */}
+                    {}
                     <div className="mb-2">
                       <h4 className="text-sm font-bold text-white mb-1 line-clamp-2 leading-tight">
                         {place.title}
                       </h4>
                       <p className="text-xs text-white/70 line-clamp-1 flex items-center gap-1">
-                        📍 {place.address.city}
+                         {place.address.city}
                       </p>
                     </div>
 
-                    {/* Date & Photos Row */}
+                    {}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1 text-white/50 text-[10px]">
                         <Calendar className="w-3 h-3" />
@@ -330,13 +322,13 @@ export default function TravelTimeline({
         </div>
       </div>
 
-      {/* Portal/Fixed Menu */}
+      {}
       {openMenuId && menuPosition && (
         <div
           className="fixed w-36 bg-[#1e293b] border border-white/10 rounded-xl shadow-[0_8px_16px_rgba(0,0,0,0.5)] overflow-hidden z-[100] animate-in fade-in zoom-in-95 duration-200"
           style={{
             top: menuPosition.y,
-            left: menuPosition.x - 144, // Align right edge (144px = w-36)
+            left: menuPosition.x - 144,
           }}
         >
           <div className="p-1">
@@ -370,7 +362,7 @@ export default function TravelTimeline({
         </div>
       )}
 
-      {/* Custom scrollbar styles */}
+      {}
       <style jsx>{`
         .scrollbar-hide::-webkit-scrollbar {
           display: none;

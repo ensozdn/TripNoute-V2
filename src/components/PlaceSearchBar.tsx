@@ -1,9 +1,3 @@
-/**
- * PlaceSearchBar Component
- * Google Places API ile yer arama
- * Autocomplete ile sonuçları gösterir
- */
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -31,7 +25,6 @@ export default function PlaceSearchBar({
   const inputRef = useRef<HTMLInputElement>(null);
   const googlePlacesService = useRef(getGooglePlacesService());
 
-  // Outside click handler
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
@@ -43,7 +36,6 @@ export default function PlaceSearchBar({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Search with debounce
   useEffect(() => {
     if (query.length < 3) {
       setResults([]);
@@ -71,7 +63,6 @@ export default function PlaceSearchBar({
     return () => clearTimeout(timeoutId);
   }, [query]);
 
-  // Keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!isOpen) return;
 
@@ -105,7 +96,7 @@ export default function PlaceSearchBar({
 
   return (
     <div ref={searchRef} className={`relative ${className}`}>
-      {/* Search Input */}
+      {}
       <div className="relative">
         <input
           ref={inputRef}
@@ -117,8 +108,8 @@ export default function PlaceSearchBar({
           placeholder={placeholder}
           className="w-full px-4 py-3 pr-12 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
         />
-        
-        {/* Search Icon / Loading Spinner */}
+
+        {}
         <div className="absolute right-4 top-1/2 -translate-y-1/2">
           {isLoading ? (
             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -140,7 +131,7 @@ export default function PlaceSearchBar({
         </div>
       </div>
 
-      {/* Results Dropdown */}
+      {}
       {isOpen && results.length > 0 && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800/95 backdrop-blur-sm border border-white/20 rounded-xl shadow-xl max-h-80 overflow-y-auto z-50">
           {results.map((place, index) => (
@@ -154,7 +145,7 @@ export default function PlaceSearchBar({
               } ${index > 0 ? 'border-t border-white/10' : ''}`}
             >
               <div className="flex items-start gap-3">
-                {/* Icon */}
+                {}
                 <div className="mt-1">
                   <svg
                     className="w-5 h-5 text-primary-400"
@@ -177,7 +168,7 @@ export default function PlaceSearchBar({
                   </svg>
                 </div>
 
-                {/* Text */}
+                {}
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-white truncate">{place.name}</p>
                   <p className="text-sm text-slate-400 truncate">{place.formattedAddress}</p>
@@ -188,7 +179,7 @@ export default function PlaceSearchBar({
         </div>
       )}
 
-      {/* No Results */}
+      {}
       {isOpen && !isLoading && query.length >= 3 && results.length === 0 && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800/95 backdrop-blur-sm border border-white/20 rounded-xl shadow-xl p-4 z-50">
           <p className="text-slate-400 text-center">Sonuç bulunamadı</p>

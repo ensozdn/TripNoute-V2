@@ -1,11 +1,3 @@
-/**
- * TripNoute v2 - Firebase Storage Service Implementation
- * 
- * This service implements the IStorageService interface using Firebase Storage.
- * Single Responsibility: Only handles file storage operations.
- * Does NOT handle Firestore metadata - that's DatabaseService's job.
- */
-
 import {
   ref,
   uploadBytesResumable,
@@ -16,9 +8,6 @@ import { storage } from '@/lib/firebase';
 import { IStorageService } from '@/services/interfaces/IStorageService';
 import { Photo, PhotoUploadOptions, PhotoUploadProgress } from '@/types/models/Photo';
 
-/**
- * Helper to safely extract error information including message, code, and stack
- */
 const extractErrorInfo = (error: unknown): { message: string; code?: string; stack?: string } => {
   if (error instanceof Error) {
     return {
@@ -41,23 +30,18 @@ export class FirebaseStorageService implements IStorageService {
   private readonly ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
   constructor() {
-    // Log storage bucket info for debugging
-    console.log('🔧 Firebase Storage initialized');
+
+    console.log(' Firebase Storage initialized');
     console.log('Storage bucket:', storage.app.options.storageBucket);
-    
-    // Verify storage is properly initialized
+
     if (!storage) {
       throw new Error('Firebase Storage not initialized');
     }
-    
+
     if (!storage.app.options.storageBucket) {
       throw new Error('Firebase Storage bucket not configured. Check NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET in .env.local');
     }
   }
-
-  /**
-   * Upload a single photo to Firebase Storage
-   */
   async uploadPhoto(
     file: File,
     userId: string,
@@ -66,7 +50,7 @@ export class FirebaseStorageService implements IStorageService {
     onProgress?: (progress: PhotoUploadProgress) => void
   ): Promise<Photo> {
     try {
-      console.log('🔵 Starting photo upload:', {
+      console.log(' Starting photo upload:', {
         fileName: file.name,
         fileSize: file.size,
         fileType: file.type,
@@ -74,40 +58,34 @@ export class FirebaseStorageService implements IStorageService {
         placeId,
       });
 
-      // Validate file
       this.validateFile(file);
-      console.log('✅ File validation passed');
+      console.log(' File validation passed');
 
-      // Compress if needed
       const processedFile = await this.compressImageInternal(file, {
         maxWidth: options?.maxWidth || 1920,
         maxHeight: options?.maxHeight || 1080,
         quality: options?.quality || 0.8,
       });
-      console.log('✅ Image compressed:', {
+      console.log(' Image compressed:', {
         originalSize: file.size,
         compressedSize: processedFile.size,
       });
 
-      // Generate unique filename
       const timestamp = Date.now();
       const sanitizedName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
       const filename = `${timestamp}_${sanitizedName}`;
-      
-      // Create storage path
+
       const storagePath = `users/${userId}/places/${placeId}/${filename}`;
-      
-      // Log storage details for debugging
-      console.log('🔵 Storage configuration:', {
+
+      console.log(' Storage configuration:', {
         bucket: storage.app.options.storageBucket,
         path: storagePath,
         fullUrl: `gs://${storage.app.options.storageBucket}/${storagePath}`,
       });
-      
-      const storageRef = ref(storage, storagePath);
-      console.log('🔵 Uploading to path:', storagePath);
 
-      // Upload with progress tracking
+      const storageRef = ref(storage, storagePath);
+      console.log(' Uploading to path:', storagePath);
+
       const uploadTask = uploadBytesResumable(storageRef, processedFile, {
         contentType: file.type,
         customMetadata: {
@@ -118,7 +96,6 @@ export class FirebaseStorageService implements IStorageService {
         },
       });
 
-      // Track upload progress
       if (onProgress) {
         uploadTask.on('state_changed', (snapshot) => {
           const progress: PhotoUploadProgress = {
@@ -130,19 +107,15 @@ export class FirebaseStorageService implements IStorageService {
         });
       }
 
-      // Wait for upload to complete
-      console.log('⏳ Waiting for upload to complete...');
+      console.log(' Waiting for upload to complete...');
       await uploadTask;
-      console.log('✅ Upload complete');
+      console.log(' Upload complete');
 
-      // Get download URL
       const url = await getDownloadURL(storageRef);
-      console.log('✅ Got download URL:', url);
+      console.log(' Got download URL:', url);
 
-      // Get image dimensions
       const dimensions = await this.getImageDimensions(processedFile);
 
-      // Generate thumbnail if requested
       let thumbnailUrl = url;
       if (options?.generateThumbnail !== false) {
         thumbnailUrl = await this.generateThumbnailInternal(
@@ -154,10 +127,8 @@ export class FirebaseStorageService implements IStorageService {
         );
       }
 
-      // Return Photo object with temporary ID (will be overwritten by DatabaseService)
-      // Using storagePath as temporary unique identifier during upload
       const photo: Photo = {
-        id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Temporary unique ID
+        id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         url,
         thumbnailUrl,
         storagePath,
@@ -170,19 +141,15 @@ export class FirebaseStorageService implements IStorageService {
         uploadedBy: userId,
       };
 
-      console.log('✅ Photo upload complete:', photo);
+      console.log(' Photo upload complete:', photo);
       return photo;
     } catch (error: unknown) {
       const errorInfo = extractErrorInfo(error);
-      console.error('❌ Error uploading photo:', error);
+      console.error(' Error uploading photo:', error);
       console.error('Error details:', errorInfo);
       throw new Error(`Failed to upload photo: ${errorInfo.message}`);
     }
   }
-
-  /**
-   * Upload multiple photos in parallel
-   */
   async uploadPhotos(
     files: File[],
     userId: string,
@@ -203,35 +170,29 @@ export class FirebaseStorageService implements IStorageService {
       throw new Error(`Failed to upload photos: ${errorInfo.message}`);
     }
   }
-
-  /**
-   * Delete a photo from Firebase Storage with robust error handling
-   * CRITICAL: Handles CORS errors gracefully and provides detailed feedback
-   */
   async deletePhoto(_photoId: string, storagePath: string): Promise<void> {
     const startTime = Date.now();
-    
+
     try {
-      console.log('🔴 Starting photo deletion:', { storagePath });
-      
+      console.log(' Starting photo deletion:', { storagePath });
+
       const storageRef = ref(storage, storagePath);
       await deleteObject(storageRef);
 
-      console.log('✅ Photo deleted successfully:', {
+      console.log(' Photo deleted successfully:', {
         storagePath,
         duration: `${Date.now() - startTime}ms`,
       });
 
-      // Also delete thumbnail if it exists (non-blocking)
       const thumbnailPath = storagePath.replace(/([^/]+)$/, 'thumb_$1');
       try {
         const thumbnailRef = ref(storage, thumbnailPath);
         await deleteObject(thumbnailRef);
-        console.log('✅ Thumbnail deleted:', thumbnailPath);
+        console.log(' Thumbnail deleted:', thumbnailPath);
       } catch (err) {
-        // Thumbnail might not exist, that's okay - log as warning only
+
         const thumbnailError = extractErrorInfo(err);
-        console.warn('ℹ️ Thumbnail deletion skipped (not found):', {
+        console.warn('️ Thumbnail deletion skipped (not found):', {
           path: thumbnailPath,
           reason: thumbnailError.message,
         });
@@ -239,17 +200,16 @@ export class FirebaseStorageService implements IStorageService {
     } catch (error: unknown) {
       const errorInfo = extractErrorInfo(error);
       const duration = Date.now() - startTime;
-      
-      console.error('❌ Photo deletion failed:', {
+
+      console.error(' Photo deletion failed:', {
         storagePath,
         errorMessage: errorInfo.message,
         errorCode: errorInfo.code,
         duration: `${duration}ms`,
       });
 
-      // Provide user-friendly error messages based on error type
       let userMessage = `Failed to delete photo: ${errorInfo.message}`;
-      
+
       if (errorInfo.code === 'storage/object-not-found') {
         userMessage = 'Photo not found in storage (may have been deleted already)';
       } else if (errorInfo.message.includes('CORS')) {
@@ -263,10 +223,6 @@ export class FirebaseStorageService implements IStorageService {
       throw new Error(userMessage);
     }
   }
-
-  /**
-   * Delete multiple photos in batch
-   */
   async deletePhotos(photos: Array<{ id: string; storagePath: string }>): Promise<void> {
     try {
       const deletePromises = photos.map((photo) =>
@@ -280,10 +236,6 @@ export class FirebaseStorageService implements IStorageService {
       throw new Error(`Failed to delete photos: ${errorInfo.message}`);
     }
   }
-
-  /**
-   * Get photo download URL
-   */
   async getPhotoUrl(storagePath: string): Promise<string> {
     try {
       const storageRef = ref(storage, storagePath);
@@ -295,10 +247,6 @@ export class FirebaseStorageService implements IStorageService {
       throw new Error(`Failed to get photo URL: ${errorInfo.message}`);
     }
   }
-
-  /**
-   * Compress image before upload
-   */
   private async compressImageInternal(
     file: File,
     options: { maxWidth: number; maxHeight: number; quality: number }
@@ -309,7 +257,7 @@ export class FirebaseStorageService implements IStorageService {
       reader.onload = (e) => {
         const img = new Image();
         img.onload = () => {
-          // Calculate new dimensions
+
           let { width, height } = img;
           const { maxWidth, maxHeight } = options;
 
@@ -319,7 +267,6 @@ export class FirebaseStorageService implements IStorageService {
             height = Math.floor(height * ratio);
           }
 
-          // Create canvas and compress
           const canvas = document.createElement('canvas');
           canvas.width = width;
           canvas.height = height;
@@ -359,10 +306,6 @@ export class FirebaseStorageService implements IStorageService {
       reader.readAsDataURL(file);
     });
   }
-
-  /**
-   * Generate thumbnail (private helper)
-   */
   private async generateThumbnailInternal(
     file: File,
     userId: string,
@@ -371,14 +314,13 @@ export class FirebaseStorageService implements IStorageService {
     size: number
   ): Promise<string> {
     try {
-      // Compress to thumbnail size
+
       const thumbnail = await this.compressImageInternal(file, {
         maxWidth: size,
         maxHeight: size,
         quality: 0.7,
       });
 
-      // Upload thumbnail
       const thumbnailPath = `users/${userId}/places/${placeId}/${filename}`;
       const storageRef = ref(storage, thumbnailPath);
 
@@ -390,14 +332,10 @@ export class FirebaseStorageService implements IStorageService {
       return url;
     } catch (error) {
       console.error('Error generating thumbnail:', error);
-      // Return original URL if thumbnail generation fails
+
       return '';
     }
   }
-
-  /**
-   * Get image dimensions
-   */
   private getImageDimensions(file: File): Promise<{ width: number; height: number }> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -415,33 +353,20 @@ export class FirebaseStorageService implements IStorageService {
       reader.readAsDataURL(file);
     });
   }
-
-  /**
-   * Validate file before upload
-   */
   private validateFile(file: File): void {
-    // Check file size
+
     const sizeMB = file.size / (1024 * 1024);
     if (sizeMB > this.MAX_FILE_SIZE_MB) {
       throw new Error(`File size (${sizeMB.toFixed(2)}MB) exceeds maximum (${this.MAX_FILE_SIZE_MB}MB)`);
     }
 
-    // Check file type
     if (!this.ALLOWED_TYPES.includes(file.type)) {
       throw new Error(`File type ${file.type} is not allowed. Allowed types: ${this.ALLOWED_TYPES.join(', ')}`);
     }
   }
-
-  /**
-   * Compress image (Interface implementation)
-   */
   async compressImage(file: File, maxWidth: number, maxHeight: number, quality: number): Promise<File> {
     return this.compressImageInternal(file, { maxWidth, maxHeight, quality });
   }
-
-  /**
-   * Generate thumbnail (Interface implementation)
-   */
   async generateThumbnail(file: File, size: number): Promise<File> {
     return this.compressImageInternal(file, {
       maxWidth: size,
@@ -449,16 +374,10 @@ export class FirebaseStorageService implements IStorageService {
       quality: 0.7,
     });
   }
-
-  /**
-   * Get storage usage for a user
-   */
   async getUserStorageUsage(_userId: string): Promise<number> {
-    // Firebase Storage doesn't have a direct API for this
-    // Would need to implement custom tracking in Firestore
+
     return 0;
   }
 }
 
-// Singleton instance
 export const storageService = new FirebaseStorageService();

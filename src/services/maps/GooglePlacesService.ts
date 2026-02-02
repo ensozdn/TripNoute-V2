@@ -1,9 +1,3 @@
-/**
- * Google Places Service
- * Sadece Google Places API ile veri işlemleri yapar
- * Arama, otomatik tamamlama, yer detayları, geocoding
- */
-
 import type {
   IGooglePlacesService,
   GooglePlaceSearchRequest,
@@ -22,10 +16,6 @@ class GooglePlacesService implements IGooglePlacesService {
   constructor(apiKey: string) {
     this.apiKey = apiKey;
   }
-
-  /**
-   * Google Maps API'yi yükle
-   */
   private async loadGoogleMapsAPI(): Promise<void> {
     if (this.isLoaded) return;
 
@@ -58,24 +48,15 @@ class GooglePlacesService implements IGooglePlacesService {
       document.head.appendChild(script);
     });
   }
-
-  /**
-   * Google servisleri başlat
-   */
   private initializeServices(): void {
     if (!window.google?.maps) return;
 
     this.autocompleteService = new google.maps.places.AutocompleteService();
     this.geocoder = new google.maps.Geocoder();
 
-    // PlacesService için bir dummy div gerekli
     const dummyDiv = document.createElement('div');
     this.placesService = new google.maps.places.PlacesService(dummyDiv);
   }
-
-  /**
-   * Yer arama
-   */
   async searchPlaces(request: GooglePlaceSearchRequest): Promise<GooglePlaceResult[]> {
     await this.loadGoogleMapsAPI();
 
@@ -112,10 +93,6 @@ class GooglePlacesService implements IGooglePlacesService {
       });
     });
   }
-
-  /**
-   * Otomatik tamamlama
-   */
   async autocomplete(request: GooglePlaceAutocompleteRequest): Promise<GooglePlaceResult[]> {
     await this.loadGoogleMapsAPI();
 
@@ -132,7 +109,7 @@ class GooglePlacesService implements IGooglePlacesService {
 
       this.autocompleteService.getPlacePredictions(autocompleteRequest, async (predictions, status) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
-          // Her prediction için detayları al (lat/lng gerekli)
+
           const placesPromises = predictions.map(async (prediction) => {
             try {
               const details = await this.getPlaceDetails(prediction.place_id);
@@ -158,10 +135,6 @@ class GooglePlacesService implements IGooglePlacesService {
       });
     });
   }
-
-  /**
-   * Yer detayları getir
-   */
   async getPlaceDetails(placeId: string): Promise<GooglePlaceDetails> {
     await this.loadGoogleMapsAPI();
 
@@ -217,10 +190,6 @@ class GooglePlacesService implements IGooglePlacesService {
       });
     });
   }
-
-  /**
-   * Adres → Koordinat
-   */
   async geocodeAddress(address: string): Promise<{ lat: number; lng: number }> {
     await this.loadGoogleMapsAPI();
 
@@ -243,10 +212,6 @@ class GooglePlacesService implements IGooglePlacesService {
       });
     });
   }
-
-  /**
-   * Koordinat → Adres
-   */
   async reverseGeocode(lat: number, lng: number): Promise<string> {
     await this.loadGoogleMapsAPI();
 
@@ -260,7 +225,7 @@ class GooglePlacesService implements IGooglePlacesService {
         if (status === google.maps.GeocoderStatus.OK && results?.[0]) {
           resolve(results[0].formatted_address);
         } else if (status === google.maps.GeocoderStatus.ZERO_RESULTS) {
-          // Handle cases with no address (ocean, desert, etc.)
+
           resolve('Unknown Location');
         } else {
           reject(new Error(`Reverse geocoding failed: ${status}`));
@@ -270,7 +235,6 @@ class GooglePlacesService implements IGooglePlacesService {
   }
 }
 
-// Singleton instance
 let googlePlacesServiceInstance: GooglePlacesService | null = null;
 
 export const getGooglePlacesService = (): GooglePlacesService => {

@@ -1,13 +1,3 @@
-/**
- * TripNoute v2 - Journey Hub Types
- * 
- * Type definitions for the Journey Hub tabbed interface.
- * Single Responsibility: Only journey-related type definitions.
- */
-
-// ============================================
-// TAB TYPES
-// ============================================
 
 export type TabType = 'timeline' | 'insights' | 'gallery';
 
@@ -23,14 +13,10 @@ export const TAB_CONFIG: TabConfig[] = [
   { id: 'gallery', label: 'Gallery', iconName: 'image' },
 ];
 
-// ============================================
-// INSIGHTS TYPES
-// ============================================
-
 export interface JourneyStats {
   totalPlaces: number;
   totalPhotos: number;
-  totalDistance: number; // in km
+  totalDistance: number;
   countriesVisited: number;
   citiesVisited: number;
   firstTripDate: Date | null;
@@ -42,10 +28,6 @@ export interface PlaceFrequency {
   count: number;
 }
 
-// ============================================
-// GALLERY TYPES
-// ============================================
-
 export interface GalleryPhoto {
   id: string;
   url: string;
@@ -55,10 +37,6 @@ export interface GalleryPhoto {
   width: number;
   height: number;
 }
-
-// ============================================
-// COMPONENT PROPS TYPES
-// ============================================
 
 export interface JourneyHubProps {
   className?: string;

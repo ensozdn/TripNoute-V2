@@ -1,9 +1,3 @@
-/**
- * MapboxLocationPicker Component
- * Add/Edit sayfalarında konum seçimi için özel Mapbox haritası
- * Google Places ile entegre çalışır (hibrit model)
- */
-
 'use client';
 
 import { useRef, useEffect, useState } from 'react';
@@ -33,24 +27,21 @@ export default function MapboxLocationPicker({
 
   const accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
 
-  // Marker'ı oluştur
   const markers = selectedLocation
     ? [
       {
         id: 'selected-location',
         position: selectedLocation,
         title: 'Seçili Konum',
-        color: '#3b82f6', // Premium Blue
+        color: '#3b82f6',
       },
     ]
     : [];
 
-  // Harita tıklama handler'ı
   const handleMapClick = async (lat: number, lng: number) => {
     setSelectedLocation({ lat, lng });
     setShowHint(false);
 
-    // Google Reverse Geocoding ile adres al
     setIsGeocodingAddress(true);
     try {
       const address = await googlePlaces.current.reverseGeocode(lat, lng);
@@ -63,7 +54,6 @@ export default function MapboxLocationPicker({
     }
   };
 
-  // Google Places arama sonucu seçilince
   const handlePlaceSelect = async (place: GooglePlaceResult) => {
     const location = {
       lat: place.location.lat,
@@ -77,19 +67,17 @@ export default function MapboxLocationPicker({
     });
   };
 
-  // Handle locate button click
   const handleLocateMe = async () => {
     setIsLocating(true);
     setLocationError(null);
     setShowHint(false);
 
     try {
-      // Use getUserLocation to get coords without conflicting animations
-      // The useEffect hook will handle the flyTo animation when selectedLocation updates
+
       const result = await getUserLocation();
 
       if (!result) {
-        // Show silent error toast instead of alert
+
         setLocationError('Konum alınamadı');
         setTimeout(() => setLocationError(null), 3000);
       } else {
@@ -104,10 +92,9 @@ export default function MapboxLocationPicker({
     }
   };
 
-  // Mapbox hook
   const { isLoaded, error, flyTo, getUserLocation } = useMapbox(containerRef, {
     accessToken,
-    style: 'mapbox://styles/mapbox/satellite-streets-v12', // Premium Satellite View
+    style: 'mapbox://styles/mapbox/satellite-streets-v12',
     center: initialLocation ? [initialLocation.lng, initialLocation.lat] : [0, 0],
     zoom: initialLocation ? 14 : 2,
     markers,
@@ -115,26 +102,25 @@ export default function MapboxLocationPicker({
     onMapClick: handleMapClick,
   });
 
-  // Selected location effect
   useEffect(() => {
     if (isLoaded && selectedLocation) {
       flyTo(selectedLocation.lat, selectedLocation.lng, 14);
     }
   }, [selectedLocation, isLoaded, flyTo]);
 
-  if (!accessToken) return null; // Fail silently or handle in parent
+  if (!accessToken) return null;
   if (error) return null;
 
   return (
     <div className={`relative w-full h-[500px] md:h-[600px] rounded-3xl overflow-hidden border border-white/20 shadow-2xl bg-slate-900 ${className}`}>
 
-      {/* 1. Map Canvas */}
+      {}
       <div ref={containerRef} className="absolute inset-0 w-full h-full" />
 
-      {/* 2. Top Controls Layer (Search + Location) */}
+      {}
       <div className="absolute top-0 left-0 right-0 p-4 space-y-4 z-10 pointer-events-none">
 
-        {/* Floating Search Bar */}
+        {}
         <div className="pointer-events-auto shadow-2xl shadow-black/20">
           <PlaceSearchBar
             onPlaceSelect={handlePlaceSelect}
@@ -145,9 +131,9 @@ export default function MapboxLocationPicker({
 
       </div>
 
-      {/* 3. Floating Action Buttons (Right Side) */}
+      {}
       <div className="absolute top-24 right-4 flex flex-col gap-3 z-10 pointer-events-none">
-        {/* Locate Me Button */}
+        {}
         {isLoaded && (
           <button
             onClick={handleLocateMe}
@@ -165,17 +151,17 @@ export default function MapboxLocationPicker({
         )}
       </div>
 
-      {/* 4. Bottom Info Layer */}
+      {}
       <div className="absolute bottom-6 left-0 right-0 flex justify-center pointer-events-none z-10">
 
-        {/* Helper Hint Pill */}
+        {}
         {showHint && !selectedLocation && (
           <div className="bg-black/60 backdrop-blur-md text-white px-4 py-2 rounded-full text-sm font-medium border border-white/10 shadow-lg animate-fade-in">
             Haritaya tıkla veya ara
           </div>
         )}
 
-        {/* Selected Location Card */}
+        {}
         {selectedLocation && (
           <div className="pointer-events-auto bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-2xl mx-4 max-w-sm w-full border border-white/50 animate-slide-up">
             <div className="flex items-center gap-3">
@@ -199,14 +185,14 @@ export default function MapboxLocationPicker({
         )}
       </div>
 
-      {/* 5. Notifications/Toasts */}
+      {}
       {locationError && (
         <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-red-500/90 backdrop-blur-md text-white px-4 py-2 rounded-xl text-sm shadow-xl z-50 animate-bounce-in">
           {locationError}
         </div>
       )}
 
-      {/* Loading State */}
+      {}
       {!isLoaded && (
         <div className="absolute inset-0 flex items-center justify-center bg-slate-900/40 backdrop-blur-md z-20">
           <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />

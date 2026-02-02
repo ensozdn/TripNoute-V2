@@ -1,10 +1,3 @@
-/**
- * TripNoute v2 - Firebase Authentication Service Implementation
- * 
- * This service implements the IAuthService interface using Firebase Auth.
- * Provider-specific logic is encapsulated here.
- */
-
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -27,13 +20,9 @@ export class FirebaseAuthService implements IAuthService {
   constructor() {
     this.googleProvider = new GoogleAuthProvider();
   }
-
-  /**
-   * Register a new user with email and password
-   */
   async register(input: RegisterInput): Promise<User> {
     try {
-      // Create Firebase user
+
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         input.email,
@@ -42,12 +31,10 @@ export class FirebaseAuthService implements IAuthService {
 
       const firebaseUser = userCredential.user;
 
-      // Update profile with display name
       await firebaseUpdateProfile(firebaseUser, {
         displayName: input.displayName,
       });
 
-      // Create user document in Firestore
       const userDocRef = doc(db, 'users', firebaseUser.uid);
       const now = serverTimestamp();
 
@@ -86,10 +73,6 @@ export class FirebaseAuthService implements IAuthService {
       throw this.handleAuthError(error);
     }
   }
-
-  /**
-   * Login with email and password
-   */
   async login(input: LoginInput): Promise<User> {
     try {
       const userCredential = await signInWithEmailAndPassword(
@@ -108,21 +91,16 @@ export class FirebaseAuthService implements IAuthService {
       throw this.handleAuthError(error);
     }
   }
-
-  /**
-   * Login with Google OAuth
-   */
   async loginWithGoogle(): Promise<User> {
     try {
       const result = await signInWithPopup(auth, this.googleProvider);
       const firebaseUser = result.user;
 
-      // Check if user exists in Firestore
       const userDocRef = doc(db, 'users', firebaseUser.uid);
       const userDoc = await getDoc(userDocRef);
 
       if (!userDoc.exists()) {
-        // First time Google login - create user document
+
         const now = serverTimestamp();
 
         const userData: Omit<User, 'createdAt' | 'updatedAt'> & {
@@ -162,10 +140,6 @@ export class FirebaseAuthService implements IAuthService {
       throw this.handleAuthError(error);
     }
   }
-
-  /**
-   * Logout current user
-   */
   async logout(): Promise<void> {
     try {
       await signOut(auth);
@@ -173,10 +147,6 @@ export class FirebaseAuthService implements IAuthService {
       throw this.handleAuthError(error);
     }
   }
-
-  /**
-   * Get current authenticated user
-   */
   async getCurrentUser(): Promise<User | null> {
     const firebaseUser = auth.currentUser;
     if (!firebaseUser) {
@@ -185,10 +155,6 @@ export class FirebaseAuthService implements IAuthService {
 
     return this.getUserData(firebaseUser.uid);
   }
-
-  /**
-   * Send password reset email
-   */
   async sendPasswordResetEmail(email: string): Promise<void> {
     try {
       await sendPasswordResetEmail(auth, email);
@@ -196,10 +162,6 @@ export class FirebaseAuthService implements IAuthService {
       throw this.handleAuthError(error);
     }
   }
-
-  /**
-   * Update user profile (display name, photo)
-   */
   async updateProfile(data: {
     displayName?: string;
     photoURL?: string;
@@ -210,10 +172,8 @@ export class FirebaseAuthService implements IAuthService {
         throw new Error('No authenticated user');
       }
 
-      // Update Firebase Auth profile
       await firebaseUpdateProfile(firebaseUser, data);
 
-      // Update Firestore document
       const userDocRef = doc(db, 'users', firebaseUser.uid);
       await setDoc(
         userDocRef,
@@ -227,10 +187,6 @@ export class FirebaseAuthService implements IAuthService {
       throw this.handleAuthError(error);
     }
   }
-
-  /**
-   * Delete user account
-   */
   async deleteAccount(): Promise<void> {
     try {
       const firebaseUser = auth.currentUser;
@@ -238,21 +194,14 @@ export class FirebaseAuthService implements IAuthService {
         throw new Error('No authenticated user');
       }
 
-      // Delete user document from Firestore
-      // Note: Places and photos should be deleted separately (cascade delete)
       const userDocRef = doc(db, 'users', firebaseUser.uid);
       await setDoc(userDocRef, { deleted: true, deletedAt: serverTimestamp() });
 
-      // Delete Firebase Auth user
       await deleteUser(firebaseUser);
     } catch (error: unknown) {
       throw this.handleAuthError(error);
     }
   }
-
-  /**
-   * Subscribe to auth state changes
-   */
   onAuthStateChanged(callback: (user: User | null) => void): () => void {
     return onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
@@ -264,13 +213,6 @@ export class FirebaseAuthService implements IAuthService {
     });
   }
 
-  // ============================================
-  // PRIVATE HELPER METHODS
-  // ============================================
-
-  /**
-   * Get user data from Firestore
-   */
   private async getUserData(uid: string): Promise<User | null> {
     try {
       const userDocRef = doc(db, 'users', uid);
@@ -286,17 +228,12 @@ export class FirebaseAuthService implements IAuthService {
       return null;
     }
   }
-
-  /**
-   * Handle Firebase Auth errors and convert to user-friendly messages
-   */
   private handleAuthError(error: unknown): Error {
     let message = 'An error occurred during authentication';
 
-    // Type guard: check if error has code property (Firebase error)
     if (typeof error === 'object' && error !== null && 'code' in error) {
       const firebaseError = error as { code: string; message?: string };
-      
+
       switch (firebaseError.code) {
         case 'auth/email-already-in-use':
           message = 'This email is already registered';
@@ -329,11 +266,11 @@ export class FirebaseAuthService implements IAuthService {
         message = 'Sign-in popup was closed';
         break;
       default:
-        // Use error message if available
+
         message = firebaseError.message || message;
       }
     } else if (error instanceof Error) {
-      // Standard JavaScript Error
+
       message = error.message;
     }
 
@@ -341,5 +278,4 @@ export class FirebaseAuthService implements IAuthService {
   }
 }
 
-// Export singleton instance
 export const authService = new FirebaseAuthService();

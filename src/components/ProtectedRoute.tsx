@@ -1,10 +1,3 @@
-/**
- * TripNoute v2 - Protected Route Component
- * 
- * Wrapper component for pages that require authentication.
- * Automatically redirects to login if user is not authenticated.
- */
-
 'use client';
 
 import { useEffect } from 'react';
@@ -29,7 +22,6 @@ export default function ProtectedRoute({
     }
   }, [user, loading, router, redirectTo]);
 
-  // Show loading state while checking authentication
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900">
@@ -41,11 +33,9 @@ export default function ProtectedRoute({
     );
   }
 
-  // Don't render children if user is not authenticated
   if (!user) {
     return null;
   }
 
-  // User is authenticated, render the protected content
   return <>{children}</>;
 }

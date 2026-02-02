@@ -1,8 +1,3 @@
-/**
- * TripNoute v2 - User Model Types
- * Detailed user-related type definitions
- */
-
 import { Timestamp } from '../index';
 
 export interface User {

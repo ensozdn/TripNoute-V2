@@ -1,13 +1,4 @@
-/**
- * Maps Type Definitions
- * Hibrit Harita Modeli: Mapbox (UI/Görsellik) + Google Places (Data/Search)
- */
-
 import type { Map as MapboxMap, Marker as MapboxMarker, LngLatLike } from 'mapbox-gl';
-
-// ============================================
-// GOOGLE PLACES TYPES
-// ============================================
 
 export interface GooglePlaceSearchRequest {
   query: string;
@@ -46,15 +37,11 @@ export interface GooglePlaceDetails extends GooglePlaceResult {
   }>;
 }
 
-// ============================================
-// MAPBOX TYPES
-// ============================================
-
 export interface MapboxConfig {
   accessToken: string;
   container: string | HTMLElement;
   style?: string;
-  center?: [number, number]; // [lng, lat]
+  center?: [number, number];
   zoom?: number;
   pitch?: number;
   bearing?: number;
@@ -88,27 +75,20 @@ export interface MapViewport {
   bounds?: MapBounds;
 }
 
-// ============================================
-// MAPBOX SERVICE TYPES
-// ============================================
-
 export interface IMapboxService {
-  // Map Lifecycle
+
   initializeMap(config: MapboxConfig): Promise<MapboxMap>;
   destroyMap(): void;
   getMap(): MapboxMap | null;
 
-  // Markers
   addMarker(marker: MapMarker): MapboxMarker;
   removeMarker(markerId: string): void;
   clearMarkers(): void;
 
-  // Navigation
   flyTo(lat: number, lng: number, zoom?: number): void;
   jumpTo(lat: number, lng: number, zoom?: number): void;
   fitBounds(markers: MapMarker[]): void;
 
-  // Route Lines
   clearRouteLines(): void;
   focusOnPlace(
     placeId: string,
@@ -117,38 +97,25 @@ export interface IMapboxService {
   ): void;
   focusOnRoute(places: Array<{ location: { lat: number; lng: number } }>): void;
 
-  // User Location
   enableUserLocation(): void;
   getUserLocation(): Promise<{ lat: number; lng: number } | null>;
   flyToUserLocation(zoom?: number): Promise<{ lat: number; lng: number } | null>;
 
-  // Events
   onClick(callback: (lat: number, lng: number) => void): void;
   onMarkerClick(callback: (markerId: string) => void): void;
 }
 
-// ============================================
-// GOOGLE PLACES SERVICE TYPES
-// ============================================
-
 export interface IGooglePlacesService {
-  // Search
+
   searchPlaces(request: GooglePlaceSearchRequest): Promise<GooglePlaceResult[]>;
 
-  // Autocomplete
   autocomplete(request: GooglePlaceAutocompleteRequest): Promise<GooglePlaceResult[]>;
 
-  // Details
   getPlaceDetails(placeId: string): Promise<GooglePlaceDetails>;
 
-  // Geocoding
   geocodeAddress(address: string): Promise<{ lat: number; lng: number }>;
   reverseGeocode(lat: number, lng: number): Promise<string>;
 }
-
-// ============================================
-// HYBRID MAP TYPES (Combined)
-// ============================================
 
 export interface HybridMapConfig {
   mapbox: {
@@ -159,12 +126,12 @@ export interface HybridMapConfig {
     apiKey: string;
   };
   initialView?: {
-    center: [number, number]; // [lng, lat]
+    center: [number, number];
     zoom: number;
   };
 }
 
 export interface SearchResult extends GooglePlaceResult {
-  // Google'dan gelen data + Mapbox'a gönderilecek format
+
   mapboxPosition: LngLatLike;
 }

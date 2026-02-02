@@ -10,7 +10,7 @@ export default function Page() {
     <div className="min-h-screen relative bg-slate-900">
       <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-transparent to-transparent"></div>
       <div className="absolute inset-0 bg-gradient-to-tl from-blue-600/20 via-transparent to-transparent"></div>
-      
+
       <div className="relative z-10">
         <header className="border-b border-white/10 bg-black/10 backdrop-blur-sm">
           <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-5">
@@ -25,7 +25,7 @@ export default function Page() {
                 />
                 <span className="text-xl font-semibold text-white">TripNoute</span>
               </Link>
-              
+
               <div className="flex items-center gap-2 sm:gap-4">
                 <Link href="/login">
                   <Button 

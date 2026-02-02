@@ -1,15 +1,4 @@
-/**
- * TripNoute v2 - Validation Utilities
- * 
- * Zod schemas for form validation.
- * Type-safe validation following German engineering discipline.
- */
-
 import { z } from 'zod';
-
-// ============================================
-// AUTH SCHEMAS
-// ============================================
 
 export const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -38,10 +27,6 @@ export const registerSchema = z.object({
 export const forgotPasswordSchema = z.object({
   email: z.string().email('Invalid email address'),
 });
-
-// ============================================
-// PLACE SCHEMAS
-// ============================================
 
 export const addPlaceSchema = z.object({
   name: z
@@ -95,10 +80,6 @@ export const updatePlaceSchema = createPlaceSchema.partial().extend({
   id: z.string(),
 });
 
-// ============================================
-// PROFILE SCHEMAS
-// ============================================
-
 export const updateProfileSchema = z.object({
   displayName: z
     .string()
@@ -117,19 +98,11 @@ export const updatePreferencesSchema = z.object({
   allowNotifications: z.boolean().optional(),
 });
 
-// ============================================
-// FILE SCHEMAS
-// ============================================
-
 export const fileSchema = z.object({
   name: z.string(),
   size: z.number().max(5 * 1024 * 1024, 'File size must be less than 5MB'),
   type: z.enum(['image/jpeg', 'image/jpg', 'image/png', 'image/webp']),
 });
-
-// ============================================
-// TYPE EXPORTS
-// ============================================
 
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;

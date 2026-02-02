@@ -29,19 +29,17 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 
   const maxSizeInBytes = maxSizeInMB * 1024 * 1024;
 
-  // Validate files
   const validateFiles = (files: File[]): { valid: File[]; errors: string[] } => {
     const valid: File[] = [];
     const errors: string[] = [];
 
     files.forEach((file) => {
-      // Check file type
+
       if (!accept.split(',').some((type) => file.type.match(type.replace('*', '.*')))) {
         errors.push(`${file.name}: Invalid file type. Only ${accept} allowed.`);
         return;
       }
 
-      // Check file size
       if (file.size > maxSizeInBytes) {
         errors.push(`${file.name}: File too large. Max ${maxSizeInMB}MB allowed.`);
         return;
@@ -53,17 +51,15 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     return { valid, errors };
   };
 
-  // Create preview URLs
   const createPreviews = (files: File[]) => {
     const urls = files.map((file) => URL.createObjectURL(file));
     setPreviewUrls((prev) => {
-      // Revoke old URLs
+
       prev.forEach((url) => URL.revokeObjectURL(url));
       return urls;
     });
   };
 
-  // Handle file selection
   const handleFiles = useCallback(
     (files: FileList | null) => {
       if (!files || files.length === 0) return;
@@ -92,20 +88,17 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     [selectedFiles, maxFiles, onFilesSelected]
   );
 
-  // Remove file
   const removeFile = (index: number) => {
     const newFiles = selectedFiles.filter((_, i) => i !== index);
     setSelectedFiles(newFiles);
     createPreviews(newFiles);
     onFilesSelected(newFiles);
 
-    // Revoke removed URL
     if (previewUrls[index]) {
       URL.revokeObjectURL(previewUrls[index]);
     }
   };
 
-  // Drag & Drop handlers
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -133,13 +126,11 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     }
   };
 
-  // File input handler
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     handleFiles(e.target.files);
-    e.target.value = ''; // Reset input
+    e.target.value = '';
   };
 
-  // Cleanup on unmount
   React.useEffect(() => {
     return () => {
       previewUrls.forEach((url) => URL.revokeObjectURL(url));
@@ -148,7 +139,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Upload Area */}
+      {}
       <div
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
@@ -182,7 +173,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
         </div>
       </div>
 
-      {/* Upload Progress */}
+      {}
       {uploading && (
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
@@ -200,7 +191,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
         </div>
       )}
 
-      {/* Preview Grid */}
+      {}
       {selectedFiles.length > 0 && !uploading && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
           {selectedFiles.map((file, index) => (
@@ -211,7 +202,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
                 className="w-full h-full object-cover rounded-lg border border-slate-200 dark:border-slate-800"
               />
 
-              {/* Remove Button */}
+              {}
               <button
                 type="button"
                 onClick={() => removeFile(index)}
@@ -226,7 +217,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
                 <X className="w-4 h-4" />
               </button>
 
-              {/* File Info */}
+              {}
               <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/60 rounded-b-lg">
                 <p className="text-xs text-white truncate">{file.name}</p>
                 <p className="text-xs text-slate-300">
@@ -238,7 +229,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
         </div>
       )}
 
-      {/* Empty State */}
+      {}
       {selectedFiles.length === 0 && !uploading && (
         <div className="flex items-center justify-center gap-2 text-sm text-slate-500 dark:text-slate-400">
           <ImageIcon className="w-4 h-4" />

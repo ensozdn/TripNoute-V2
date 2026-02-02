@@ -1,10 +1,3 @@
-/**
- * TripNoute V2 - Journey/Trip Database Service
- * 
- * Handles Firebase CRUD operations for trips/journeys.
- * Implements trip isolation and linear chain validation.
- */
-
 import {
   collection,
   doc,
@@ -22,7 +15,6 @@ import { db } from '@/lib/firebase';
 import { Trip, JourneyStep, CreateTripInput, UpdateTripInput } from '@/types/trip';
 import { validateStepChain } from '@/utils/tripIsolation';
 
-// Backward compatibility - Journey is now Trip
 export type Journey = Trip;
 export type CreateJourneyInput = CreateTripInput;
 export type UpdateJourneyInput = UpdateTripInput;
@@ -79,11 +71,8 @@ export class JourneyDatabaseService {
         order: index,
       }));
 
-      // Normalize and validate step chain
       const normalizedSteps = validateStepChain(steps);
-      
-      // Additional validation (will throw if errors found)
-      // Note: validateStepChain already fixes most issues, but we can add extra checks here
+
       if (normalizedSteps.length === 0) {
         throw new Error('Journey must have at least one step');
       }
@@ -94,7 +83,7 @@ export class JourneyDatabaseService {
       for (let i = 0; i < normalizedSteps.length - 1; i++) {
         const current = normalizedSteps[i];
         const next = normalizedSteps[i + 1];
-        
+
         const distance = calculateDistance(current.coordinates, next.coordinates);
         current.distanceToNext = Math.round(distance * 100) / 100;
         totalDistance += current.distanceToNext;
@@ -107,7 +96,7 @@ export class JourneyDatabaseService {
       const startDate = input.startDate
         ? FirestoreTimestamp.fromDate(input.startDate)
         : FirestoreTimestamp.fromMillis(normalizedSteps[0].timestamp);
-      
+
       const endDate = input.endDate
         ? FirestoreTimestamp.fromDate(input.endDate)
         : FirestoreTimestamp.fromMillis(normalizedSteps[normalizedSteps.length - 1].timestamp);
@@ -130,9 +119,9 @@ export class JourneyDatabaseService {
       };
 
       const cleanData = removeUndefined(journeyData);
-      
+
       await setDoc(journeyRef, cleanData);
-      
+
       const createdJourney = await this.getJourneyById(journeyId);
       if (!createdJourney) {
         throw new Error('Failed to retrieve created journey');
@@ -205,13 +194,13 @@ export class JourneyDatabaseService {
       }
 
       if (input.steps) {
-        // Normalize and validate step chain
+
         const normalizedSteps = validateStepChain(input.steps);
-        
+
         if (normalizedSteps.length === 0) {
           throw new Error('Journey must have at least one step');
         }
-        
+
         updateData.steps = normalizedSteps;
 
         let totalDistance = 0;
@@ -220,7 +209,7 @@ export class JourneyDatabaseService {
         for (let i = 0; i < normalizedSteps.length - 1; i++) {
           const current = normalizedSteps[i];
           const next = normalizedSteps[i + 1];
-          
+
           const distance = calculateDistance(current.coordinates, next.coordinates);
           current.distanceToNext = Math.round(distance * 100) / 100;
           totalDistance += current.distanceToNext;
