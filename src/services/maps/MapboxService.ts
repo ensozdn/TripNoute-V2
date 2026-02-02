@@ -919,8 +919,6 @@ class MapboxService implements IMapboxService {
         'circle-stroke-width': 2,
         'circle-stroke-color': '#e5e7eb',
         'circle-stroke-opacity': 0.8,
-
-        'circle-blur': 0.3,
       },
     });
 
