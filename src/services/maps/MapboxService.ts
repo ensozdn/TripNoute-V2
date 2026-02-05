@@ -124,10 +124,21 @@ class MapboxService implements IMapboxService {
   private async loadTransportIcons(): Promise<void> {
     if (!this.map || this.transportIconsLoaded) return;
 
-    console.log(' Loading premium transport medallion icons...');
+    console.log('🎨 Loading premium transport medallion icons...');
+
+    // CRITICAL FIX: Wait for map style to be fully loaded
+    if (!this.map.isStyleLoaded()) {
+      console.log('⏳ Waiting for map style to load before adding icons...');
+      await new Promise<void>((resolve) => {
+        this.map!.once('style.load', () => {
+          console.log('✅ Map style loaded, proceeding with icons');
+          resolve();
+        });
+      });
+    }
 
     const loadPromises = Object.entries(this.TRANSPORT_ICONS).map(([mode, config]) => {
-      return new Promise<void>((resolve, reject) => {
+      return new Promise<void>((resolve) => {
 
         const svg = `
           <svg width="48" height="48" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -144,20 +155,22 @@ class MapboxService implements IMapboxService {
                 sdf: false,
                 pixelRatio: 2,
               });
-              console.log(`   Loaded icon: medallion-${mode} (${config.color})`);
+              console.log(`   ✅ Loaded icon: medallion-${mode} (${config.color})`);
             } else {
-              console.log(`  ️  Icon already exists: medallion-${mode}`);
+              console.log(`   ⚠️  Icon already exists: medallion-${mode}`);
             }
             resolve();
           } catch (error) {
-            console.error(`   Failed to add image medallion-${mode}:`, error);
-            reject(error);
+            console.error(`   ❌ Failed to add image medallion-${mode}:`, error);
+            // Don't reject - use fallback instead
+            resolve();
           }
         };
 
         img.onerror = (error) => {
-          console.error(`   Failed to load image data for ${mode}:`, error);
-          reject(new Error(`Failed to load ${mode} icon`));
+          console.error(`   ❌ Failed to load image data for ${mode}:`, error);
+          // Don't reject - use fallback instead
+          resolve();
         };
 
         img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
@@ -167,10 +180,10 @@ class MapboxService implements IMapboxService {
     try {
       await Promise.all(loadPromises);
       this.transportIconsLoaded = true;
-      console.log(' All transport icons loaded successfully!');
+      console.log('✅ All transport icons loaded successfully!');
     } catch (error) {
-      console.error('️ Some transport icons failed to load:', error);
-
+      console.error('⚠️ Some transport icons failed to load:', error);
+      // Still mark as loaded to avoid infinite retries
       this.transportIconsLoaded = true;
     }
   }
@@ -309,10 +322,46 @@ class MapboxService implements IMapboxService {
       .setLngLat([marker.position.lng, marker.position.lat]);
 
     if (marker.title) {
-      const popup = new mapboxgl.Popup({ offset: 25, closeButton: false }).setHTML(`
-        <div style="padding: 8px 4px;">
-          <h3 style="margin: 0; font-weight: 600; font-size: 14px; font-family: ui-sans-serif, system-ui, sans-serif;">${marker.title}</h3>
-          ${marker.description ? `<p style="margin: 4px 0 0 0; font-size: 12px; opacity: 0.7;">${marker.description}</p>` : ''}
+      // CRITICAL FIX: Calculate proper popup offset based on marker type
+      const isPhotoMarker = marker.icon?.startsWith('http');
+      const popupOffset = isPhotoMarker 
+        ? { 'bottom': [0, -10] as [number, number] }  // Photo marker: popup above
+        : { 'bottom': [0, -30] as [number, number] }; // Pin marker: popup higher (accounting for pin height)
+
+      const popup = new mapboxgl.Popup({ 
+        offset: popupOffset,
+        closeButton: false,
+        className: 'custom-popup',
+        maxWidth: '280px',
+        anchor: 'bottom', // CRITICAL: Always anchor to bottom of popup
+        closeOnClick: false, // Prevent jumping on click
+      }).setHTML(`
+        <div style="
+          padding: 14px 16px;
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%);
+          backdrop-filter: blur(12px);
+          border-radius: 12px;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.8);
+          font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        ">
+          <h3 style="
+            margin: 0 0 6px 0;
+            font-weight: 700;
+            font-size: 15px;
+            color: #1e293b;
+            letter-spacing: -0.01em;
+            line-height: 1.3;
+          ">${marker.title}</h3>
+          ${marker.description ? `
+            <p style="
+              margin: 0;
+              font-size: 13px;
+              color: #64748b;
+              line-height: 1.5;
+              font-weight: 400;
+            ">${marker.description}</p>
+          ` : ''}
         </div>
       `);
       mapboxMarker.setPopup(popup);
@@ -686,14 +735,44 @@ class MapboxService implements IMapboxService {
   async renderJourney(journey: Journey | Trip): Promise<void> {
     if (!this.map) return;
 
+    console.log(`🎬 Rendering journey: ${journey.id} with ${journey.steps.length} steps`);
+
+    // CRITICAL FIX: Ensure map style is loaded before rendering
+    if (!this.map.isStyleLoaded()) {
+      console.log('⏳ Map style not loaded, waiting...');
+      await new Promise<void>((resolve) => {
+        this.map!.once('style.load', () => {
+          console.log('✅ Map style loaded');
+          resolve();
+        });
+      });
+    }
+
+    // STEP 1: Clear any existing journey layers
     this.clearJourney(journey.id);
+
+    // STEP 2: Pre-load transport icons (CRITICAL - must happen BEFORE layers)
+    await this.loadTransportIcons();
+
+    // STEP 3: Draw route lines FIRST (bottom layer)
     this.drawJourneyRoute(journey);
-    this.addJourneyStopMarkers(journey);
+
+    // STEP 4: Add transport medallions AFTER lines (they appear on top)
     await this.addTransportMedallions(journey);
+
+    // STEP 5: Add stop markers LAST (topmost layer)
+    this.addJourneyStopMarkers(journey);
+
+    console.log(`✅ Journey ${journey.id} rendered successfully`);
   }
 
   private drawJourneyRoute(journey: Journey | Trip): void {
-    if (!this.map || journey.steps.length < 2) return;
+    if (!this.map || journey.steps.length < 2) {
+      console.log('⏭️  Cannot draw route: No map or insufficient steps');
+      return;
+    }
+
+    console.log(`🛣️  Drawing route for journey: ${journey.id}`);
 
     const segments: any[] = [];
 
@@ -739,11 +818,13 @@ class MapboxService implements IMapboxService {
       layerIds.push(layerId);
 
       if (this.map!.getLayer(layerId)) {
+        console.log(`  ⏭️  Layer ${layerId} already exists, skipping`);
         return;
       }
 
       const style = this.getRouteStyle(segment.properties.transportMode);
 
+      // CRITICAL: Add line layer BEFORE medallions (so medallions appear on top)
       this.map!.addLayer({
         id: layerId,
         type: 'line',
@@ -755,9 +836,12 @@ class MapboxService implements IMapboxService {
         },
         paint: style,
       });
+
+      console.log(`  ✅ Added line layer: ${layerId} (${segment.properties.transportMode})`);
     });
 
     this.journeyLayers.set(journey.id, layerIds);
+    console.log(`✅ Route drawn with ${segments.length} segment(s)`);
   }
 
   private getRouteStyle(transport: TransportMode | null): any {
@@ -829,13 +913,59 @@ class MapboxService implements IMapboxService {
         .setLngLat(step.coordinates)
         .addTo(this.map!);
 
-      const popup = new mapboxgl.Popup({ offset: 25, closeButton: false })
-        .setHTML(`
-          <div style="padding: 8px;">
-            <h3 style="margin: 0; font-size: 14px; font-weight: 600;">${step.name}</h3>
-            ${step.address?.city ? `<p style="margin: 4px 0 0 0; font-size: 12px; opacity: 0.7;">${step.address.city}</p>` : ''}
+      // CRITICAL FIX: Calculate proper offset for journey stop markers
+      const markerHeight = isFirst || isLast ? 32 : 24;
+      const popupOffsetValue = markerHeight / 2 + 8; // Half marker height + 8px gap
+
+      const popup = new mapboxgl.Popup({ 
+        offset: { 'bottom': [0, -popupOffsetValue] as [number, number] },
+        closeButton: false,
+        className: 'custom-popup',
+        maxWidth: '260px',
+        anchor: 'bottom', // Always anchor to bottom
+        closeOnClick: false, // Prevent position jumping
+      }).setHTML(`
+        <div style="
+          padding: 12px 14px;
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%);
+          backdrop-filter: blur(12px);
+          border-radius: 12px;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.8);
+          font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        ">
+          <div style="
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: ${step.address?.city ? '6px' : '0'};
+          ">
+            <div style="
+              width: 8px;
+              height: 8px;
+              border-radius: 50%;
+              background: ${journey.color};
+              box-shadow: 0 0 8px ${journey.color}40;
+            "></div>
+            <h3 style="
+              margin: 0;
+              font-size: 15px;
+              font-weight: 700;
+              color: #1e293b;
+              letter-spacing: -0.01em;
+            ">${step.name}</h3>
           </div>
-        `);
+          ${step.address?.city ? `
+            <p style="
+              margin: 0;
+              font-size: 12px;
+              color: #64748b;
+              padding-left: 16px;
+              font-weight: 500;
+            ">${step.address.city}</p>
+          ` : ''}
+        </div>
+      `);
 
       marker.setPopup(popup);
 
@@ -848,25 +978,36 @@ class MapboxService implements IMapboxService {
   private async addTransportMedallions(journey: Journey | Trip): Promise<void> {
     if (!this.map) return;
 
+    console.log(`🏅 Creating premium medallions for journey: ${journey.id}, steps: ${journey.steps.length}`);
+
+    // Pre-load icons if not already loaded
     await this.loadTransportIcons();
 
     const features: GeoJSON.Feature<GeoJSON.Point>[] = [];
-
-    console.log(` Creating premium medallions for journey: ${journey.id}, steps: ${journey.steps.length}`);
 
     for (let i = 0; i < journey.steps.length - 1; i++) {
       const current = journey.steps[i];
       const next = journey.steps[i + 1];
 
-      if (!current.transportToNext) continue;
+      if (!current.transportToNext) {
+        console.log(`  ⏭️  Segment ${i}: No transport mode, skipping`);
+        continue;
+      }
 
+      // Calculate midpoint based on transport type
       const midpoint = current.transportToNext === 'flight'
         ? this.calculateArcMidpoint(current.coordinates, next.coordinates)
         : this.calculateMidpoint(current.coordinates, next.coordinates);
 
       const bearing = this.calculateBearing(current.coordinates, next.coordinates);
 
-      console.log(`   Segment ${i}: ${current.transportToNext} from ${current.name} → ${next.name}, bearing: ${bearing.toFixed(1)}°`);
+      console.log(`  ✈️  Segment ${i}: ${current.transportToNext} | ${current.name} → ${next.name} | Bearing: ${bearing.toFixed(1)}° | Midpoint: [${midpoint[0].toFixed(2)}, ${midpoint[1].toFixed(2)}]`);
+
+      // Verify icon exists
+      const iconName = `medallion-${current.transportToNext}`;
+      if (!this.map.hasImage(iconName)) {
+        console.warn(`  ⚠️  Icon missing: ${iconName} - will use fallback`);
+      }
 
       features.push({
         type: 'Feature',
@@ -884,22 +1025,24 @@ class MapboxService implements IMapboxService {
     }
 
     if (features.length === 0) {
-      console.log('️ No transport segments found, skipping medallions');
+      console.log('  ⚠️  No transport segments found, skipping medallions');
       return;
     }
 
-    console.log(` Creating ${features.length} premium medallion icons`);
+    console.log(`  🎯 Creating ${features.length} premium medallion icons`);
 
     const sourceId = `medallions-${journey.id}`;
     const layerBgId = `medallions-bg-${journey.id}`;
     const layerIconId = `medallions-icon-${journey.id}`;
 
+    // Remove existing layers/source if they exist
     if (this.map.getSource(sourceId)) {
       if (this.map.getLayer(layerIconId)) this.map.removeLayer(layerIconId);
       if (this.map.getLayer(layerBgId)) this.map.removeLayer(layerBgId);
       this.map.removeSource(sourceId);
     }
 
+    // Add GeoJSON source
     this.map.addSource(sourceId, {
       type: 'geojson',
       data: {
@@ -908,6 +1051,7 @@ class MapboxService implements IMapboxService {
       },
     });
 
+    // Layer 1: White circle background (bottom)
     this.map.addLayer({
       id: layerBgId,
       type: 'circle',
@@ -919,33 +1063,46 @@ class MapboxService implements IMapboxService {
         'circle-stroke-width': 2,
         'circle-stroke-color': '#e5e7eb',
         'circle-stroke-opacity': 0.8,
+        'circle-blur': 0.3, // Subtle shadow effect
       },
     });
 
+    // Layer 2: Transport icon (on top)
     this.map.addLayer({
       id: layerIconId,
       type: 'symbol',
       source: sourceId,
       layout: {
-        'icon-image': ['concat', 'medallion-', ['get', 'transport']],
+        // CRITICAL FIX: Use expression to dynamically select icon
+        'icon-image': [
+          'case',
+          ['has', ['get', 'transport']],
+          ['concat', 'medallion-', ['get', 'transport']],
+          'medallion-car' // Fallback if icon missing
+        ],
         'icon-size': 0.6,
         'icon-rotate': ['get', 'bearing'],
         'icon-rotation-alignment': 'map',
-        'icon-allow-overlap': true,
-        'icon-ignore-placement': true,
+        'icon-allow-overlap': true, // CRITICAL: Don't hide icons on collision
+        'icon-ignore-placement': true, // CRITICAL: Show all icons regardless
         'icon-anchor': 'center',
+        'text-allow-overlap': true, // Prevent text collision issues
       },
       paint: {
         'icon-opacity': 1.0,
+        'icon-halo-color': ['get', 'color'], // Journey color halo
+        'icon-halo-width': 2,
+        'icon-halo-blur': 1,
       },
     });
 
+    // Track layers for cleanup
     const layers = this.journeyLayers.get(journey.id) || [];
     layers.push(layerBgId, layerIconId);
     this.journeyLayers.set(journey.id, layers);
     this.journeySources.add(sourceId);
 
-    console.log(` Premium medallion layers created: ${layerBgId}, ${layerIconId}`);
+    console.log(`  ✅ Premium medallion layers created: ${layerBgId}, ${layerIconId}`);
   }
   private calculateArcMidpoint(from: [number, number], to: [number, number]): [number, number] {
 
@@ -981,49 +1138,92 @@ class MapboxService implements IMapboxService {
   clearJourney(journeyId: string): void {
     if (!this.map) return;
 
+    console.log(`🧹 Clearing journey: ${journeyId}`);
+
+    // Remove line layers
     const layerIds = this.journeyLayers.get(journeyId);
     if (layerIds) {
       layerIds.forEach(layerId => {
         if (this.map!.getLayer(layerId)) {
           this.map!.removeLayer(layerId);
+          console.log(`  🗑️  Removed layer: ${layerId}`);
         }
       });
       this.journeyLayers.delete(journeyId);
     }
 
+    // Remove line source
     const sourceId = `journey-source-${journeyId}`;
     if (this.map.getSource(sourceId)) {
       this.map.removeSource(sourceId);
       this.journeySources.delete(sourceId);
+      console.log(`  🗑️  Removed source: ${sourceId}`);
     }
 
+    // Remove medallion layers
+    const medallionBgLayerId = `medallions-bg-${journeyId}`;
+    const medallionIconLayerId = `medallions-icon-${journeyId}`;
+    if (this.map.getLayer(medallionIconLayerId)) {
+      this.map.removeLayer(medallionIconLayerId);
+      console.log(`  🗑️  Removed medallion icon layer`);
+    }
+    if (this.map.getLayer(medallionBgLayerId)) {
+      this.map.removeLayer(medallionBgLayerId);
+      console.log(`  🗑️  Removed medallion bg layer`);
+    }
+
+    // Remove medallion source
     const medallionSourceId = `medallions-${journeyId}`;
     if (this.map.getSource(medallionSourceId)) {
       this.map.removeSource(medallionSourceId);
       this.journeySources.delete(medallionSourceId);
+      console.log(`  🗑️  Removed medallion source`);
     }
 
+    // Remove stop markers
     const markers = this.medallionMarkers.get(journeyId);
     if (markers) {
       markers.forEach(marker => marker.remove());
       this.medallionMarkers.delete(journeyId);
+      console.log(`  🗑️  Removed ${markers.length} stop marker(s)`);
     }
+
+    console.log(`✅ Journey ${journeyId} cleared`);
   }
 
   async renderAllJourneys(journeys: (Journey | Trip)[]): Promise<void> {
-    if (!this.map) return;
+    if (!this.map) {
+      console.warn('⚠️  Cannot render journeys: Map not initialized');
+      return;
+    }
+
+    console.log(`🗺️  Rendering ${journeys.length} journey(s)...`);
+
+    // CRITICAL: Pre-load icons once before rendering all journeys
+    await this.loadTransportIcons();
 
     for (const journey of journeys) {
-      await this.renderJourney(journey);
+      try {
+        await this.renderJourney(journey);
+      } catch (error) {
+        console.error(`❌ Failed to render journey ${journey.id}:`, error);
+      }
     }
+
+    console.log(`✅ Finished rendering all journeys`);
   }
 
   clearAllJourneys(): void {
     if (!this.map) return;
 
+    console.log('🧹 Clearing all journeys');
+    const count = this.journeyLayers.size;
+
     this.journeyLayers.forEach((_, journeyId) => {
       this.clearJourney(journeyId);
     });
+
+    console.log(`✅ Cleared ${count} journey(s)`);
   }
 }
 

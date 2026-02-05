@@ -230,3 +230,60 @@ html {
     @apply bg-background text-foreground;
   }
 }
+
+/* Premium Mapbox Popup Styling */
+.mapboxgl-popup-content {
+  padding: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.mapboxgl-popup-tip {
+  border-top-color: rgba(255, 255, 255, 0.95) !important;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.08));
+}
+
+.custom-popup .mapboxgl-popup-content {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* CRITICAL FIX: Prevent popup position jumping */
+.mapboxgl-popup {
+  will-change: transform;
+  pointer-events: auto;
+}
+
+.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip {
+  align-self: center;
+  border-bottom: none;
+  border-top-color: rgba(255, 255, 255, 0.95);
+}
+
+/* Smooth popup animations */
+.mapboxgl-popup {
+  animation: popupFadeIn 0.2s ease-out;
+}
+
+@keyframes popupFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+
+.mapboxgl-canvas-container {
+  position: relative;
+  background: #000000; /* Pure black space */
+}
+
+/* Optional: Subtle space stars background */
+.mapboxgl-map {
+  background: radial-gradient(ellipse at center, #0a1628 0%, #020617 100%);
+}

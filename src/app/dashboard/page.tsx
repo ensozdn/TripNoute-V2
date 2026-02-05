@@ -10,10 +10,11 @@ import { databaseService } from '@/lib/database';
 import { getMapboxService } from '@/services/maps/MapboxService';
 import { journeyDatabaseService } from '@/services/firebase/JourneyDatabaseService';
 import { Place } from '@/types';
-import { Trip } from '@/types/trip';
+import { Trip, JourneyStep } from '@/types/trip';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { JourneyHub } from '@/components/journey';
-import { Plus, Menu, X, Locate } from 'lucide-react';
+import MultiStopRoutePlanner from '@/components/trip/MultiStopRoutePlanner';
+import { Plus, Menu, X, Locate, Map } from 'lucide-react';
 
 const MapboxMap = dynamic(() => import('@/components/MapboxMap'), {
   ssr: false,
@@ -34,6 +35,7 @@ export default function DashboardPage() {
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
+  const [showTripPlanner, setShowTripPlanner] = useState(false);
 
   const allPlacesForMap = useMemo(() => {
     return places;
@@ -99,17 +101,32 @@ export default function DashboardPage() {
     const mapboxService = getMapboxService();
     const map = mapboxService.getMap();
 
-    if (!map || journeys.length === 0) return;
+    if (!map || journeys.length === 0) {
+      console.log('⏭️  No map or journeys to render:', { hasMap: !!map, journeyCount: journeys.length });
+      return;
+    }
+
+    console.log(`🗺️  Dashboard: Rendering ${journeys.length} journey(s)`);
 
     const renderJourneys = async () => {
-      mapboxService.clearAllJourneys();
-      await mapboxService.renderAllJourneys(journeys);
+      try {
+        mapboxService.clearAllJourneys();
+        await mapboxService.renderAllJourneys(journeys);
+        console.log('✅ All journeys rendered on dashboard');
+      } catch (error) {
+        console.error('❌ Error rendering journeys:', error);
+      }
     };
 
     if (map.isStyleLoaded()) {
+      console.log('✅ Map style is loaded, rendering journeys now');
       renderJourneys();
     } else {
-      map.once('style.load', renderJourneys);
+      console.log('⏳ Map style not loaded, waiting...');
+      map.once('style.load', () => {
+        console.log('✅ Map style loaded, rendering journeys');
+        renderJourneys();
+      });
     }
   }, [journeys]);
 
@@ -201,6 +218,61 @@ export default function DashboardPage() {
     }
   };
 
+  const handleCreateTrip = async (data: {
+    name: string;
+    description: string;
+    color: string;
+    stops: Array<{
+      order: number;
+      location: { lat: number; lng: number };
+      title: string;
+      address?: { formatted: string };
+      description?: string;
+      transportToNext?: string | null;
+    }>;
+  }) => {
+    if (!user) return;
+
+    try {
+      console.log('🚀 Creating new trip:', data);
+
+      const steps: JourneyStep[] = data.stops.map((stop, index) => ({
+        id: `step-${index}-${Date.now()}`,
+        name: stop.title,
+        coordinates: [stop.location.lng, stop.location.lat] as [number, number],
+        timestamp: Date.now() + index * 1000,
+        order: index,
+        transportToNext: stop.transportToNext as any || null,
+        notes: stop.description,
+        address: {
+          formatted: stop.address?.formatted || stop.title,
+        },
+      }));
+
+      const tripInput = {
+        name: data.name,
+        description: data.description || '',
+        color: data.color,
+        steps,
+        isPublic: false,
+      };
+
+      const newTrip = await journeyDatabaseService.createJourney(tripInput, user.uid);
+      console.log('✅ Trip created successfully:', newTrip);
+
+      // CRITICAL: Update journeys state to trigger re-render
+      setJourneys(prev => [...prev, newTrip]);
+
+      // Close modal
+      setShowTripPlanner(false);
+
+      alert('Trip created successfully! 🎉');
+    } catch (error) {
+      console.error('❌ Failed to create trip:', error);
+      alert('Failed to create trip. Check console for details.');
+    }
+  };
+
   return (
     <ProtectedRoute>
       <div className="relative w-full h-screen overflow-hidden bg-slate-900">
@@ -283,12 +355,31 @@ export default function DashboardPage() {
           onPlaceEdit={handlePlaceEdit}
         />
 
+        {/* Add Place Button */}
         <Link
           href="/places/add"
           className="absolute bottom-24 right-6 sm:right-8 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-2xl shadow-blue-500/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95 group"
         >
           <Plus className="w-6 h-6 text-white group-hover:rotate-90 transition-transform duration-300" />
         </Link>
+
+        {/* Create Trip Button */}
+        <button
+          onClick={() => setShowTripPlanner(true)}
+          className="absolute bottom-24 right-24 sm:right-28 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 shadow-2xl shadow-purple-500/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95 group"
+          title="Create Trip Route"
+        >
+          <Map className="w-6 h-6 text-white group-hover:scale-110 transition-transform duration-300" />
+        </button>
+
+        {/* Trip Planner Modal */}
+        {showTripPlanner && (
+          <MultiStopRoutePlanner
+            onSave={handleCreateTrip}
+            onCancel={() => setShowTripPlanner(false)}
+            onClose={() => setShowTripPlanner(false)}
+          />
+        )}
 
       </div>
     </ProtectedRoute>
