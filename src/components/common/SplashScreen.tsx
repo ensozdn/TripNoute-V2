@@ -37,56 +37,75 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
           
           {/* Logo container with animation */}
           <motion.div
-            initial={{ scale: 0.5, opacity: 0 }}
+            initial={{ x: -100, opacity: 0 }}
             animate={{ 
-              scale: 1, 
+              x: 0, 
               opacity: 1,
             }}
             transition={{ 
-              duration: 0.8,
+              duration: 1,
               ease: "easeOut"
             }}
-            className="relative z-10 flex flex-col items-center gap-6"
+            className="relative z-10 flex flex-col items-center gap-10"
           >
-            {/* Logo */}
-            <motion.div
-              animate={{ 
-                y: [0, -10, 0],
-              }}
-              transition={{ 
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-              className="relative"
-            >
-              <div className="absolute inset-0 bg-blue-400/20 blur-3xl rounded-full" />
-              <Image
-                src="/tripnoute-logo.png"
-                alt="TripNoute Logo"
-                width={120}
-                height={120}
-                className="relative rounded-3xl shadow-2xl"
-                priority
-              />
-            </motion.div>
+            {/* Logo + Text - YAN YANA */}
+            <div className="flex items-center gap-4 md:gap-8">
+              {/* Logo */}
+              <motion.div
+                initial={{ x: -50, opacity: 0 }}
+                animate={{ 
+                  x: 0,
+                  opacity: 1,
+                }}
+                transition={{ 
+                  duration: 1.2,
+                  ease: "easeOut",
+                  delay: 0.2
+                }}
+                className="relative"
+              >
+                {/* Glow effect - optimized */}
+                <div className="absolute inset-0 bg-blue-400/20 md:bg-blue-400/30 blur-[60px] md:blur-[80px] rounded-full scale-125 md:scale-150" />
+                
+                {/* Logo - Responsive */}
+                <motion.div
+                  animate={{ 
+                    y: [0, -12, 0],
+                  }}
+                  transition={{ 
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                >
+                  <Image
+                    src="/tripnoute-logo.png"
+                    alt="TripNoute Logo"
+                    width={100}
+                    height={100}
+                    className="relative rounded-[20px] md:rounded-[28px] shadow-2xl md:w-[140px] md:h-[140px]"
+                    priority
+                  />
+                </motion.div>
+              </motion.div>
 
-            {/* App Name */}
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.6 }}
-              className="text-4xl font-bold text-white tracking-wide"
-            >
-              TripNoute
-            </motion.h1>
+              {/* App Name - Responsive */}
+              <motion.h1
+                initial={{ x: -80, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.5, duration: 0.8, ease: "easeOut" }}
+                className="text-4xl sm:text-5xl md:text-7xl font-bold text-white tracking-wide leading-none"
+              >
+                TripNoute
+              </motion.h1>
+            </div>
 
             {/* Loading dots */}
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="flex gap-2"
+              initial={{ x: -60, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.7, duration: 0.6 }}
+              className="flex gap-2.5"
             >
               {[0, 1, 2].map((i) => (
                 <motion.div
@@ -100,55 +119,20 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
                     repeat: Infinity,
                     delay: i * 0.2,
                   }}
-                  className="w-2 h-2 bg-blue-400 rounded-full"
+                  className="w-2.5 h-2.5 md:w-3 md:h-3 bg-blue-400 rounded-full"
                 />
               ))}
             </motion.div>
 
             {/* Tagline */}
             <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8, duration: 0.6 }}
-              className="text-slate-400 text-sm font-light"
+              initial={{ x: -60, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 1, duration: 0.6, ease: "easeOut" }}
+              className="text-slate-300 text-sm sm:text-base md:text-lg font-light tracking-wide px-4 text-center"
             >
               Your Personal Travel Journey
             </motion.p>
-          </motion.div>
-
-          {/* Optional: Circular progress ring */}
-          <motion.div
-            initial={{ pathLength: 0 }}
-            animate={{ pathLength: 1 }}
-            transition={{ duration: 3, ease: "linear" }}
-            className="absolute bottom-20"
-          >
-            <svg width="60" height="60" className="rotate-[-90deg]">
-              <circle
-                cx="30"
-                cy="30"
-                r="25"
-                stroke="rgba(59, 130, 246, 0.2)"
-                strokeWidth="2"
-                fill="none"
-              />
-              <motion.circle
-                cx="30"
-                cy="30"
-                r="25"
-                stroke="rgba(59, 130, 246, 0.8)"
-                strokeWidth="2"
-                fill="none"
-                strokeLinecap="round"
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 3, ease: "linear" }}
-                style={{
-                  strokeDasharray: "157.08", // 2 * π * r = 2 * 3.14159 * 25
-                  strokeDashoffset: 0,
-                }}
-              />
-            </svg>
           </motion.div>
         </motion.div>
       )}
