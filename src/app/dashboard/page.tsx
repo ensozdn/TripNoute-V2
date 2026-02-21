@@ -10,10 +10,10 @@ import { databaseService } from '@/lib/database';
 import { getMapboxService } from '@/services/maps/MapboxService';
 import { journeyDatabaseService } from '@/services/firebase/JourneyDatabaseService';
 import { Place } from '@/types';
-import { Trip, JourneyStep } from '@/types/trip';
+import { Trip } from '@/types/trip';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { JourneyHub } from '@/components/journey';
-import { Plus, Menu, X, Locate, Map } from 'lucide-react';
+import { Plus, Menu, X, Locate } from 'lucide-react';
 
 const MapboxMap = dynamic(() => import('@/components/MapboxMap'), {
   ssr: false,
@@ -34,11 +34,8 @@ export default function DashboardPage() {
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
-  const [showTripPlanner, setShowTripPlanner] = useState(false);
 
-  const allPlacesForMap = useMemo(() => {
-    return places;
-  }, [places]);
+  const allPlacesForMap = useMemo(() => places, [places]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -46,7 +43,6 @@ export default function DashboardPage() {
         try {
           const placesResponse = await databaseService.getUserPlaces(user.uid);
           setPlaces(placesResponse.items);
-
           const journeysResponse = await journeyDatabaseService.getUserJourneys(user.uid);
           setJourneys(journeysResponse);
         } catch (error) {
@@ -56,21 +52,17 @@ export default function DashboardPage() {
         }
       }
     };
-
     loadData();
   }, [user]);
 
   useEffect(() => {
     const mapboxService = getMapboxService();
     const map = mapboxService.getMap();
-
     if (!map) return;
 
     const startRotation = () => {
       if (map.getZoom() < 3) {
-        setTimeout(() => {
-          mapboxService.startSlowRotation();
-        }, 1000);
+        setTimeout(() => { mapboxService.startSlowRotation(); }, 1000);
       }
     };
 
@@ -80,18 +72,13 @@ export default function DashboardPage() {
       map.once('style.load', startRotation);
     }
 
-    return () => {
-      mapboxService.stopRotation();
-    };
+    return () => { mapboxService.stopRotation(); };
   }, []);
 
   useEffect(() => {
     const handleClickOutside = () => {
-      if (openMenuId) {
-        setOpenMenuId(null);
-      }
+      if (openMenuId) setOpenMenuId(null);
     };
-
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, [openMenuId]);
@@ -99,33 +86,21 @@ export default function DashboardPage() {
   useEffect(() => {
     const mapboxService = getMapboxService();
     const map = mapboxService.getMap();
-
-    if (!map || journeys.length === 0) {
-      console.log('⏭️  No map or journeys to render:', { hasMap: !!map, journeyCount: journeys.length });
-      return;
-    }
-
-    console.log(`🗺️  Dashboard: Rendering ${journeys.length} journey(s)`);
+    if (!map || journeys.length === 0) return;
 
     const renderJourneys = async () => {
       try {
         mapboxService.clearAllJourneys();
         await mapboxService.renderAllJourneys(journeys);
-        console.log('✅ All journeys rendered on dashboard');
       } catch (error) {
-        console.error('❌ Error rendering journeys:', error);
+        console.error('Error rendering journeys:', error);
       }
     };
 
     if (map.isStyleLoaded()) {
-      console.log('✅ Map style is loaded, rendering journeys now');
       renderJourneys();
     } else {
-      console.log('⏳ Map style not loaded, waiting...');
-      map.once('style.load', () => {
-        console.log('✅ Map style loaded, rendering journeys');
-        renderJourneys();
-      });
+      map.once('style.load', () => { renderJourneys(); });
     }
   }, [journeys]);
 
@@ -136,37 +111,24 @@ export default function DashboardPage() {
 
   const handleMarkerClick = (place: Place) => {
     setSelectedPlace(place);
-
     const mapboxService = getMapboxService();
     mapboxService.focusOnPlace(place.id, allPlacesForMap, {
-      zoom: 15,
-      pitch: 45,
-      bearing: 0,
-      duration: 2000
+      zoom: 15, pitch: 45, bearing: 0, duration: 2000
     });
   };
 
   const handlePlaceDelete = async (placeId: string): Promise<void> => {
     try {
       setPlaces(prevPlaces => prevPlaces.filter(p => p.id !== placeId));
-
-      if (selectedPlace?.id === placeId) {
-        setSelectedPlace(null);
-      }
-
+      if (selectedPlace?.id === placeId) setSelectedPlace(null);
       const mapboxService = getMapboxService();
       mapboxService.removeMarker(placeId);
       mapboxService.clearRouteLines();
-
       await databaseService.deletePlace(placeId);
-
-      console.log('Place deleted successfully');
     } catch (error) {
       console.error('Failed to delete place:', error);
-
       const response = await databaseService.getUserPlaces(user!.uid);
       setPlaces(response.items);
-
       throw error;
     }
   };
@@ -181,32 +143,21 @@ export default function DashboardPage() {
       return;
     }
 
-    const isSecureContext = window.isSecureContext;
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-
-    if (!isSecureContext && !isLocalhost) {
-      alert('Konum servisi sadece HTTPS baglantislarinda calisir. Mobile test icin ngrok veya HTTPS kullanin.');
+    if (!window.isSecureContext && !isLocalhost) {
+      alert('Konum servisi sadece HTTPS baglantislarinda calisir.');
       return;
     }
 
     setIsLocating(true);
-
     try {
-      console.log('Requesting location...');
       const mapboxService = getMapboxService();
-
       const result = await mapboxService.getUserLocation();
-
       if (!result) {
-        console.warn('Could not get user location');
         alert('Konumunuz alinamadi. GPS acik mi kontrol edin.');
       } else {
-        console.log('Location success:', result);
-
         mapboxService.showUserLocationMarker(result.lat, result.lng);
-
         mapboxService.stopRotation();
-
         mapboxService.flyTo(result.lat, result.lng, 14);
       }
     } catch (error) {
@@ -214,61 +165,6 @@ export default function DashboardPage() {
       alert('Konum hatasi. Console loglari kontrol edin.');
     } finally {
       setIsLocating(false);
-    }
-  };
-
-  const handleCreateTrip = async (data: {
-    name: string;
-    description: string;
-    color: string;
-    stops: Array<{
-      order: number;
-      location: { lat: number; lng: number };
-      title: string;
-      address?: { formatted: string };
-      description?: string;
-      transportToNext?: string | null;
-    }>;
-  }) => {
-    if (!user) return;
-
-    try {
-      console.log('🚀 Creating new trip:', data);
-
-      const steps: JourneyStep[] = data.stops.map((stop, index) => ({
-        id: `step-${index}-${Date.now()}`,
-        name: stop.title,
-        coordinates: [stop.location.lng, stop.location.lat] as [number, number],
-        timestamp: Date.now() + index * 1000,
-        order: index,
-        transportToNext: stop.transportToNext as any || null,
-        notes: stop.description,
-        address: {
-          formatted: stop.address?.formatted || stop.title,
-        },
-      }));
-
-      const tripInput = {
-        name: data.name,
-        description: data.description || '',
-        color: data.color,
-        steps,
-        isPublic: false,
-      };
-
-      const newTrip = await journeyDatabaseService.createJourney(tripInput, user.uid);
-      console.log('✅ Trip created successfully:', newTrip);
-
-      // CRITICAL: Update journeys state to trigger re-render
-      setJourneys(prev => [...prev, newTrip]);
-
-      // Close modal
-      setShowTripPlanner(false);
-
-      alert('Trip created successfully! 🎉');
-    } catch (error) {
-      console.error('❌ Failed to create trip:', error);
-      alert('Failed to create trip. Check console for details.');
     }
   };
 
@@ -293,8 +189,7 @@ export default function DashboardPage() {
         </div>
 
         <header className="absolute top-6 left-6 z-40">
-          <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity group">
-            {}
+          <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <Image
               src="/tripnoute-logo-v2.jpg"
               alt="TripNoute"
@@ -302,8 +197,6 @@ export default function DashboardPage() {
               height={42}
               className="rounded-[10px] shadow-lg shadow-black/20"
             />
-
-            {}
             <span className="text-3xl font-bold text-white tracking-tighter drop-shadow-md font-sans">
               TripNoute
             </span>
@@ -354,32 +247,12 @@ export default function DashboardPage() {
           onPlaceEdit={handlePlaceEdit}
         />
 
-        {/* Add Place Button */}
         <Link
           href="/places/add"
           className="absolute bottom-24 right-6 sm:right-8 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-2xl shadow-blue-500/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95 group"
         >
           <Plus className="w-6 h-6 text-white group-hover:rotate-90 transition-transform duration-300" />
         </Link>
-
-        {/* Create Trip Button */}
-        <button
-          onClick={() => setShowTripPlanner(true)}
-          className="absolute bottom-24 right-24 sm:right-28 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 shadow-2xl shadow-purple-500/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95 group"
-          title="Create Trip Route"
-        >
-          <Map className="w-6 h-6 text-white group-hover:scale-110 transition-transform duration-300" />
-        </button>
-
-        {/* Trip Planner Modal */}
-        {showTripPlanner && (
-          <MultiStopRoutePlanner
-            onSave={handleCreateTrip}
-            onCancel={() => setShowTripPlanner(false)}
-            onClose={() => setShowTripPlanner(false)}
-          />
-        )}
-
       </div>
     </ProtectedRoute>
   );

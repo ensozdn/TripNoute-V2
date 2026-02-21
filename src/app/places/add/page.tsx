@@ -211,9 +211,6 @@ export default function AddPlacePage() {
                   <span className="text-xl font-semibold text-white">TripNoute</span>
                 </Link>
                 <div className="flex items-center gap-6">
-                  <Link href="/map" className="text-slate-400 hover:text-white text-sm transition-colors">
-                    Map
-                  </Link>
                   <Link href="/dashboard" className="text-slate-400 hover:text-white text-sm transition-colors">
                     Dashboard
                   </Link>
