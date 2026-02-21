@@ -1,6 +1,6 @@
 # 🔧 VS Code Cache Temizleme - Adım Adım
 
-## ❗ Problem
+## Problem
 - Dosyayı sildik ama VS Code hala gösteriyor
 - Problems panel'de journeyStore.ts hataları var
 - Build başarılı ✅ ama editor hatalar gösteriyor
@@ -9,7 +9,7 @@
 
 ### 1️⃣ VS Code Editor Tab'ı Kapat
 ```
-❌ journeyStore.ts tab'ını kapat (X'e tıkla)
+ journeyStore.ts tab'ını kapat (X'e tıkla)
 ```
 
 ### 2️⃣ TypeScript Server'ı Restart Et
@@ -25,7 +25,7 @@
 ### 3️⃣ ESLint Cache Temizle (Opsiyonel)
 Eğer hala problem varsa:
 1. `Cmd + Shift + P`
-2. `ESLint: Restart ESLint Server`
+2. `ESLint: Restart ESLint Server` 
 
 ### 4️⃣ .next Cache Temizle
 ```bash

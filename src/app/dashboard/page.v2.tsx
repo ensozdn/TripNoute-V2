@@ -18,7 +18,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import JourneyHubV2 from '@/components/journey/JourneyHub.v2';
 import { Plus, Menu, X, Locate } from 'lucide-react';
 
-const MapboxMap = dynamic(() => import('@/components/MapboxMap'), {
+const MapboxMapV2 = dynamic(() => import('@/components/MapboxMap.v2'), {
   ssr: false,
   loading: () => (
     <div className="w-full h-full flex items-center justify-center bg-slate-900">
@@ -82,9 +82,7 @@ function DashboardContent() {
     <div className="relative h-screen w-full overflow-hidden">
       {/* Map Background */}
       <div className="absolute inset-0">
-        <MapboxMap 
-          // Will be integrated with ActiveJourneyContext in Phase 3
-        />
+        <MapboxMapV2 />
       </div>
 
       {/* Header */}

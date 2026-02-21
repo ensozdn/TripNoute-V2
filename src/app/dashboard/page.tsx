@@ -13,7 +13,6 @@ import { Place } from '@/types';
 import { Trip, JourneyStep } from '@/types/trip';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { JourneyHub } from '@/components/journey';
-import MultiStopRoutePlanner from '@/components/trip/MultiStopRoutePlanner';
 import { Plus, Menu, X, Locate, Map } from 'lucide-react';
 
 const MapboxMap = dynamic(() => import('@/components/MapboxMap'), {
