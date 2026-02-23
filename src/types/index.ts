@@ -44,6 +44,8 @@ export interface UserStats {
 export interface User extends UserProfile {
   stats: UserStats;
   preferences: UserPreferences;
+  city?: string;
+  bio?: string;
 }
 
 export interface UserPreferences {

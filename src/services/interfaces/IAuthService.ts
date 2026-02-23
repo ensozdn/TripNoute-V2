@@ -8,7 +8,10 @@ export interface IAuthService {
   logout(): Promise<void>;
   getCurrentUser(): Promise<User | null>;
   sendPasswordResetEmail(email: string): Promise<void>;
-  updateProfile(data: { displayName?: string; photoURL?: string }): Promise<void>;
+  updateProfile(data: { displayName?: string; photoURL?: string; city?: string; bio?: string }): Promise<void>;
+  updateEmail(newEmail: string, currentPassword: string): Promise<void>;
+  updateSecondaryEmail(secondaryEmail: string): Promise<void>;
+  updatePassword(currentPassword: string, newPassword: string): Promise<void>;
   deleteAccount(): Promise<void>;
   onAuthStateChanged(callback: (user: User | null) => void): () => void;
 }

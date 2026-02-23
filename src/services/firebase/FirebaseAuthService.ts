@@ -7,6 +7,10 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail,
   updateProfile as firebaseUpdateProfile,
+  updateEmail as firebaseUpdateEmail,
+  updatePassword as firebaseUpdatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
   deleteUser,
 } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
@@ -165,6 +169,8 @@ export class FirebaseAuthService implements IAuthService {
   async updateProfile(data: {
     displayName?: string;
     photoURL?: string;
+    city?: string;
+    bio?: string;
   }): Promise<void> {
     try {
       const firebaseUser = auth.currentUser;
@@ -172,7 +178,12 @@ export class FirebaseAuthService implements IAuthService {
         throw new Error('No authenticated user');
       }
 
-      await firebaseUpdateProfile(firebaseUser, data);
+      const authData: { displayName?: string; photoURL?: string } = {};
+      if (data.displayName !== undefined) authData.displayName = data.displayName;
+      if (data.photoURL !== undefined) authData.photoURL = data.photoURL;
+      if (Object.keys(authData).length > 0) {
+        await firebaseUpdateProfile(firebaseUser, authData);
+      }
 
       const userDocRef = doc(db, 'users', firebaseUser.uid);
       await setDoc(
@@ -187,6 +198,49 @@ export class FirebaseAuthService implements IAuthService {
       throw this.handleAuthError(error);
     }
   }
+  async updateEmail(newEmail: string, currentPassword: string): Promise<void> {
+    try {
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) throw new Error('No authenticated user');
+      if (!firebaseUser.email) throw new Error('No email on current user');
+
+      const credential = EmailAuthProvider.credential(firebaseUser.email, currentPassword);
+      await reauthenticateWithCredential(firebaseUser, credential);
+      await firebaseUpdateEmail(firebaseUser, newEmail);
+
+      const userDocRef = doc(db, 'users', firebaseUser.uid);
+      await setDoc(userDocRef, { email: newEmail, updatedAt: serverTimestamp() }, { merge: true });
+    } catch (error: unknown) {
+      throw this.handleAuthError(error);
+    }
+  }
+
+  async updateSecondaryEmail(secondaryEmail: string): Promise<void> {
+    try {
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) throw new Error('No authenticated user');
+
+      const userDocRef = doc(db, 'users', firebaseUser.uid);
+      await setDoc(userDocRef, { secondaryEmail, updatedAt: serverTimestamp() }, { merge: true });
+    } catch (error: unknown) {
+      throw this.handleAuthError(error);
+    }
+  }
+
+  async updatePassword(currentPassword: string, newPassword: string): Promise<void> {
+    try {
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) throw new Error('No authenticated user');
+      if (!firebaseUser.email) throw new Error('No email on current user');
+
+      const credential = EmailAuthProvider.credential(firebaseUser.email, currentPassword);
+      await reauthenticateWithCredential(firebaseUser, credential);
+      await firebaseUpdatePassword(firebaseUser, newPassword);
+    } catch (error: unknown) {
+      throw this.handleAuthError(error);
+    }
+  }
+
   async deleteAccount(): Promise<void> {
     try {
       const firebaseUser = auth.currentUser;

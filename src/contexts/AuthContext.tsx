@@ -12,7 +12,10 @@ interface AuthContextType {
   register: (email: string, password: string, displayName: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
-  updateProfile: (data: { displayName?: string; photoURL?: string }) => Promise<void>;
+  updateProfile: (data: { displayName?: string; photoURL?: string; city?: string; bio?: string }) => Promise<void>;
+  updateEmail: (newEmail: string, currentPassword: string) => Promise<void>;
+  updateSecondaryEmail: (secondaryEmail: string) => Promise<void>;
+  updatePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   deleteAccount: () => Promise<void>;
   clearError: () => void;
 }
@@ -96,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateProfile = async (data: { displayName?: string; photoURL?: string }) => {
+  const updateProfile = async (data: { displayName?: string; photoURL?: string; city?: string; bio?: string }) => {
     try {
       setError(null);
       if (!user) throw new Error('No user logged in');
@@ -122,6 +125,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateEmail = async (newEmail: string, currentPassword: string) => {
+    try {
+      setError(null);
+      if (!user) throw new Error('No user logged in');
+
+      await authService.updateEmail(newEmail, currentPassword);
+      setUser({ ...user, email: newEmail });
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Email update failed'));
+      throw err;
+    }
+  };
+
+  const updateSecondaryEmail = async (secondaryEmail: string) => {
+    try {
+      setError(null);
+      if (!user) throw new Error('No user logged in');
+
+      await authService.updateSecondaryEmail(secondaryEmail);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Secondary email update failed'));
+      throw err;
+    }
+  };
+
+  const updatePassword = async (currentPassword: string, newPassword: string) => {
+    try {
+      setError(null);
+      if (!user) throw new Error('No user logged in');
+
+      await authService.updatePassword(currentPassword, newPassword);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Password update failed'));
+      throw err;
+    }
+  };
+
   const clearError = () => setError(null);
 
   const value: AuthContextType = {
@@ -133,6 +173,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loginWithGoogle,
     logout,
     updateProfile,
+    updateEmail,
+    updateSecondaryEmail,
+    updatePassword,
     deleteAccount,
     clearError,
   };

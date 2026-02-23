@@ -7,10 +7,11 @@ import { JourneyStats, PlaceFrequency, GalleryPhoto } from '@/types/journey';
 import TimelineTab from './tabs/TimelineTab';
 import InsightsTab from './tabs/InsightsTab';
 import GalleryTab from './tabs/GalleryTab';
-import { Map, BarChart3, ImageIcon } from 'lucide-react';
+import SettingsTab from './tabs/SettingsTab';
+import { Map, BarChart3, ImageIcon, Settings } from 'lucide-react';
 import { deduplicateCountries, sortByFrequency } from '@/utils/dataNormalizer';
 
-type TabType = 'timeline' | 'insights' | 'gallery';
+type TabType = 'timeline' | 'insights' | 'gallery' | 'settings';
 type SheetState = 'closed' | 'middle' | 'full';
 
 interface TabConfig {
@@ -26,12 +27,17 @@ interface JourneyHubProps {
   onPlaceSelect: (place: Place) => void;
   onPlaceDelete?: (placeId: string) => Promise<void>;
   onPlaceEdit?: (place: Place) => void;
+  userName?: string | null;
+  userEmail?: string | null;
+  userPhoto?: string | null;
+  onLogout: () => void;
 }
 
 const TABS: TabConfig[] = [
   { id: 'timeline', label: 'Timeline', icon: <Map className="w-5 h-5" />, expandsTo: 'middle' },
   { id: 'insights', label: 'Insights', icon: <BarChart3 className="w-5 h-5" />, expandsTo: 'full' },
   { id: 'gallery', label: 'Gallery', icon: <ImageIcon className="w-5 h-5" />, expandsTo: 'full' },
+  { id: 'settings', label: 'Settings', icon: <Settings className="w-5 h-5" />, expandsTo: 'full' },
 ];
 
 const SNAP_POINTS: Record<SheetState, number> = {
@@ -46,6 +52,10 @@ export default function JourneyHub({
   onPlaceSelect,
   onPlaceDelete,
   onPlaceEdit,
+  userName,
+  userEmail,
+  userPhoto,
+  onLogout,
 }: JourneyHubProps) {
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [sheetState, setSheetState] = useState<SheetState>('closed');
@@ -183,6 +193,15 @@ export default function JourneyHub({
         return (
           <GalleryTab
             photos={galleryPhotos}
+          />
+        );
+      case 'settings':
+        return (
+          <SettingsTab
+            userName={userName}
+            userEmail={userEmail}
+            userPhoto={userPhoto}
+            onLogout={onLogout}
           />
         );
       default:

@@ -13,7 +13,7 @@ import { Place } from '@/types';
 import { Trip } from '@/types/trip';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { JourneyHub } from '@/components/journey';
-import { Plus, Menu, X, Locate } from 'lucide-react';
+import { Plus, Locate } from 'lucide-react';
 
 const MapboxMap = dynamic(() => import('@/components/MapboxMap'), {
   ssr: false,
@@ -32,7 +32,6 @@ export default function DashboardPage() {
   const [loadingPlaces, setLoadingPlaces] = useState(true);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
-  const [showMenu, setShowMenu] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
 
   const allPlacesForMap = useMemo(() => places, [places]);
@@ -203,7 +202,7 @@ export default function DashboardPage() {
           </Link>
         </header>
 
-        <div className="absolute top-4 right-4 z-40 flex items-center gap-2">
+        <div className="absolute top-5 right-5 z-30">
           <button
             onClick={handleGoToMyLocation}
             disabled={isLocating}
@@ -216,28 +215,7 @@ export default function DashboardPage() {
               <Locate className="w-5 h-5 text-white" />
             )}
           </button>
-
-          <button
-            onClick={() => setShowMenu(!showMenu)}
-            className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-2.5 shadow-2xl shadow-black/20 hover:bg-white/20 transition-all"
-          >
-            {showMenu ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5 text-white" />}
-          </button>
         </div>
-
-        {showMenu && (
-          <div className="absolute top-16 right-4 z-40 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl shadow-black/20 overflow-hidden min-w-[200px]">
-            <div className="p-4 space-y-3">
-              <p className="text-sm text-white/80 font-medium">Hi, {user?.displayName?.split(' ')[0] || 'Traveler'}!</p>
-              <button
-                onClick={handleLogout}
-                className="w-full text-left text-sm text-white/70 hover:text-white hover:bg-white/10 transition-all py-2 px-3 rounded-lg"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        )}
 
         <JourneyHub
           places={places}
@@ -245,6 +223,10 @@ export default function DashboardPage() {
           onPlaceSelect={handleMarkerClick}
           onPlaceDelete={handlePlaceDelete}
           onPlaceEdit={handlePlaceEdit}
+          userName={user?.displayName}
+          userEmail={user?.email}
+          userPhoto={user?.photoURL}
+          onLogout={handleLogout}
         />
 
         <Link
