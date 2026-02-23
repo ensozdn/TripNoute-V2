@@ -3,15 +3,18 @@
 import { useState, useMemo, useRef } from 'react';
 import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
 import { Place } from '@/types';
+import { Trip } from '@/types/trip';
 import { JourneyStats, PlaceFrequency, GalleryPhoto } from '@/types/journey';
 import TimelineTab from './tabs/TimelineTab';
+import JourneysTab from './tabs/JourneysTab';
 import InsightsTab from './tabs/InsightsTab';
 import GalleryTab from './tabs/GalleryTab';
 import SettingsTab from './tabs/SettingsTab';
-import { Map, BarChart3, ImageIcon, Settings } from 'lucide-react';
+import JourneyCreator from './creator/JourneyCreator';
+import { Map, Route, BarChart3, ImageIcon, Settings } from 'lucide-react';
 import { deduplicateCountries, sortByFrequency } from '@/utils/dataNormalizer';
 
-type TabType = 'timeline' | 'insights' | 'gallery' | 'settings';
+type TabType = 'timeline' | 'journeys' | 'insights' | 'gallery' | 'settings';
 type SheetState = 'closed' | 'middle' | 'full';
 
 interface TabConfig {
@@ -23,10 +26,15 @@ interface TabConfig {
 
 interface JourneyHubProps {
   places: Place[];
+  journeys: Trip[];
   selectedPlaceId?: string | null;
   onPlaceSelect: (place: Place) => void;
   onPlaceDelete?: (placeId: string) => Promise<void>;
   onPlaceEdit?: (place: Place) => void;
+  onJourneyCreated: (journey: Trip) => void;
+  onJourneySelect: (journey: Trip) => void;
+  onJourneyDelete: (journeyId: string) => Promise<void>;
+  onRequestMapPin: (onPinDropped: (name: string, lat: number, lng: number) => void) => void;
   userName?: string | null;
   userEmail?: string | null;
   userPhoto?: string | null;
@@ -35,6 +43,7 @@ interface JourneyHubProps {
 
 const TABS: TabConfig[] = [
   { id: 'timeline', label: 'Timeline', icon: <Map className="w-5 h-5" />, expandsTo: 'middle' },
+  { id: 'journeys', label: 'Journeys', icon: <Route className="w-5 h-5" />, expandsTo: 'middle' },
   { id: 'insights', label: 'Insights', icon: <BarChart3 className="w-5 h-5" />, expandsTo: 'full' },
   { id: 'gallery', label: 'Gallery', icon: <ImageIcon className="w-5 h-5" />, expandsTo: 'full' },
   { id: 'settings', label: 'Settings', icon: <Settings className="w-5 h-5" />, expandsTo: 'full' },
@@ -48,10 +57,15 @@ const SNAP_POINTS: Record<SheetState, number> = {
 
 export default function JourneyHub({
   places,
+  journeys,
   selectedPlaceId,
   onPlaceSelect,
   onPlaceDelete,
   onPlaceEdit,
+  onJourneyCreated,
+  onJourneySelect,
+  onJourneyDelete,
+  onRequestMapPin,
   userName,
   userEmail,
   userPhoto,
@@ -59,6 +73,7 @@ export default function JourneyHub({
 }: JourneyHubProps) {
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [sheetState, setSheetState] = useState<SheetState>('closed');
+  const [creatorOpen, setCreatorOpen] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
 
   const stats: JourneyStats = useMemo(() => {
@@ -182,6 +197,15 @@ export default function JourneyHub({
             onPlaceEdit={onPlaceEdit}
           />
         );
+      case 'journeys':
+        return (
+          <JourneysTab
+            journeys={journeys}
+            onCreateJourney={() => setCreatorOpen(true)}
+            onSelectJourney={onJourneySelect}
+            onDeleteJourney={onJourneyDelete}
+          />
+        );
       case 'insights':
         return (
           <InsightsTab
@@ -211,6 +235,7 @@ export default function JourneyHub({
   };
 
   return (
+    <>
     <motion.div
       ref={sheetRef}
       initial={{ y: '100%', opacity: 0 }}
@@ -329,5 +354,17 @@ export default function JourneyHub({
       {}
       <div className="relative z-10 h-safe" />
     </motion.div>
+
+    <JourneyCreator
+      isOpen={creatorOpen}
+      places={places}
+      onClose={() => setCreatorOpen(false)}
+      onCreated={(journey) => {
+        setCreatorOpen(false);
+        onJourneyCreated(journey);
+      }}
+      onRequestMapPin={onRequestMapPin}
+    />
+    </>
   );
 }

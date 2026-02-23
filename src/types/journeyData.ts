@@ -18,6 +18,13 @@ export interface JourneyStep {
   durationToNext?: number;
   distanceToNext?: number;
   notes?: string;
+
+  // Optional link to an existing Place document
+  placeId?: string;
+
+  // Cached Directions API geometry — [lng, lat][] pairs.
+  // Populated for car/bus/bike/walk; null for flight/train/ship (straight line).
+  routeGeometry?: [number, number][] | null;
 }
 
 export interface Journey {

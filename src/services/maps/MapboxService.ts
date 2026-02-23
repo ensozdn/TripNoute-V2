@@ -732,19 +732,68 @@ class MapboxService implements IMapboxService {
     });
   }
 
+  // Transport modes that use Mapbox Directions API for real road geometry.
+  // All others fall back to straight-line (great-circle) rendering.
+  private readonly DIRECTIONS_PROFILES: Partial<Record<TransportMode, string>> = {
+    car: 'driving-traffic',
+    bus: 'driving',
+    bike: 'cycling',
+    walk: 'walking',
+    walking: 'walking',
+  };
+
+  // Fetches real road geometry from the Mapbox Directions API for a single segment.
+  // Returns an ordered array of [lng, lat] coordinate pairs, or null on failure.
+  private async fetchDirectionsRoute(
+    from: [number, number],
+    to: [number, number],
+    profile: string,
+  ): Promise<[number, number][] | null> {
+    const token = (mapboxgl as any).accessToken as string;
+    if (!token) return null;
+
+    const url =
+      `https://api.mapbox.com/directions/v5/mapbox/${profile}` +
+      `/${from[0]},${from[1]};${to[0]},${to[1]}` +
+      `?geometries=geojson&overview=full&access_token=${token}`;
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const json = await res.json();
+      const coords = json.routes?.[0]?.geometry?.coordinates as [number, number][] | undefined;
+      return coords ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  // Resolves geometry for every step that needs it.
+  // Steps with cached routeGeometry are skipped (no API call).
+  // Mutates the steps array in-place so drawJourneyRoute can use it directly.
+  private async resolveRouteGeometries(steps: Trip['steps']): Promise<void> {
+    const tasks = steps.slice(0, -1).map(async (step, i) => {
+      const profile = this.DIRECTIONS_PROFILES[step.transportToNext as TransportMode];
+
+      // Use Directions API only for ground/water transport without cached geometry
+      if (profile && step.routeGeometry === undefined) {
+        const next = steps[i + 1];
+        const geometry = await this.fetchDirectionsRoute(step.coordinates, next.coordinates, profile);
+        // Assign result; null means API failed → straight line will be used
+        step.routeGeometry = geometry;
+      }
+    });
+
+    await Promise.all(tasks);
+  }
+
   async renderJourney(journey: Journey | Trip): Promise<void> {
     if (!this.map) return;
 
-    console.log(`🎬 Rendering journey: ${journey.id} with ${journey.steps.length} steps`);
-
     // CRITICAL FIX: Ensure map style is loaded before rendering
     if (!this.map.isStyleLoaded()) {
-      console.log('⏳ Map style not loaded, waiting...');
       await new Promise<void>((resolve) => {
-        this.map!.once('style.load', () => {
-          console.log('✅ Map style loaded');
-          resolve();
-        });
+        this.map!.once('style.load', () => resolve());
       });
     }
 
@@ -754,31 +803,35 @@ class MapboxService implements IMapboxService {
     // STEP 2: Pre-load transport icons (CRITICAL - must happen BEFORE layers)
     await this.loadTransportIcons();
 
-    // STEP 3: Draw route lines FIRST (bottom layer)
+    // STEP 3: Resolve Directions API geometries for applicable segments
+    await this.resolveRouteGeometries(journey.steps);
+
+    // STEP 4: Draw route lines FIRST (bottom layer)
     this.drawJourneyRoute(journey);
 
-    // STEP 4: Add transport medallions AFTER lines (they appear on top)
+    // STEP 5: Add transport medallions AFTER lines (they appear on top)
     await this.addTransportMedallions(journey);
 
-    // STEP 5: Add stop markers LAST (topmost layer)
+    // STEP 6: Add stop markers LAST (topmost layer)
     this.addJourneyStopMarkers(journey);
-
-    console.log(`✅ Journey ${journey.id} rendered successfully`);
   }
 
   private drawJourneyRoute(journey: Journey | Trip): void {
     if (!this.map || journey.steps.length < 2) {
-      console.log('⏭️  Cannot draw route: No map or insufficient steps');
       return;
     }
-
-    console.log(`🛣️  Drawing route for journey: ${journey.id}`);
 
     const segments: any[] = [];
 
     for (let i = 0; i < journey.steps.length - 1; i++) {
       const current = journey.steps[i];
       const next = journey.steps[i + 1];
+
+      // Use cached Directions geometry when available, otherwise straight line
+      const coordinates: [number, number][] =
+        current.routeGeometry && current.routeGeometry.length >= 2
+          ? current.routeGeometry
+          : [current.coordinates, next.coordinates];
 
       segments.push({
         type: 'Feature',
@@ -788,7 +841,7 @@ class MapboxService implements IMapboxService {
         },
         geometry: {
           type: 'LineString',
-          coordinates: [current.coordinates, next.coordinates],
+          coordinates,
         },
       });
     }

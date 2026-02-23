@@ -18,6 +18,9 @@ export interface JourneyStep {
   order: number;
   transportToNext: TransportMode | null;
 
+  // Optional link to an existing Place document
+  placeId?: string;
+
   notes?: string;
   address?: {
     city?: string;
@@ -26,6 +29,10 @@ export interface JourneyStep {
   };
   durationToNext?: number;
   distanceToNext?: number;
+
+  // Cached Directions API geometry — [lng, lat][] pairs.
+  // Populated for car/bus/bike/walk; null for flight/train/ship (straight line).
+  routeGeometry?: [number, number][] | null;
 }
 
 export interface Trip {

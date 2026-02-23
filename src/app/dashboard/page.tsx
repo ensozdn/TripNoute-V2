@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -33,6 +33,10 @@ export default function DashboardPage() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+
+  // Callback ref for map-pin mode: JourneyCreator passes a handler here
+  // so the user can tap the map to drop a waypoint.
+  const mapPinCallbackRef = useRef<((name: string, lat: number, lng: number) => void) | null>(null);
 
   const allPlacesForMap = useMemo(() => places, [places]);
 
@@ -136,6 +140,39 @@ export default function DashboardPage() {
     router.push(`/places/edit/${place.id}`);
   };
 
+  const handleJourneyCreated = useCallback((journey: Trip) => {
+    setJourneys((prev) => [journey, ...prev]);
+    const mapboxService = getMapboxService();
+    mapboxService.renderJourney(journey).catch(console.error);
+  }, []);
+
+  const handleJourneySelect = useCallback((journey: Trip) => {
+    const mapboxService = getMapboxService();
+    mapboxService.focusOnRoute(
+      journey.steps.map((s) => ({ location: { lat: s.coordinates[1], lng: s.coordinates[0] } })),
+    );
+  }, []);
+
+  const handleJourneyDelete = useCallback(async (journeyId: string) => {
+    try {
+      setJourneys((prev) => prev.filter((j) => j.id !== journeyId));
+      const mapboxService = getMapboxService();
+      mapboxService.clearJourney(journeyId);
+      await journeyDatabaseService.deleteJourney(journeyId);
+    } catch (err) {
+      console.error('Failed to delete journey:', err);
+    }
+  }, []);
+
+  // Called by JourneyCreator when the user taps "Tap on Map".
+  // We store the callback; the next map click will forward coords to it.
+  const handleRequestMapPin = useCallback(
+    (onPinDropped: (name: string, lat: number, lng: number) => void) => {
+      mapPinCallbackRef.current = onPinDropped;
+    },
+    [],
+  );
+
   const handleGoToMyLocation = async (): Promise<void> => {
     if (!('geolocation' in navigator)) {
       alert('Tarayiciniz konum hizmetlerini desteklemiyor.');
@@ -219,10 +256,15 @@ export default function DashboardPage() {
 
         <JourneyHub
           places={places}
+          journeys={journeys}
           selectedPlaceId={selectedPlace?.id}
           onPlaceSelect={handleMarkerClick}
           onPlaceDelete={handlePlaceDelete}
           onPlaceEdit={handlePlaceEdit}
+          onJourneyCreated={handleJourneyCreated}
+          onJourneySelect={handleJourneySelect}
+          onJourneyDelete={handleJourneyDelete}
+          onRequestMapPin={handleRequestMapPin}
           userName={user?.displayName}
           userEmail={user?.email}
           userPhoto={user?.photoURL}
