@@ -24,6 +24,15 @@ service firebase.storage {
       return request.resource.size < 10 * 1024 * 1024;
     }
     
+    // User avatar uploads
+    match /users/{userId}/avatar {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId)
+                   && isValidImageFile()
+                   && isFileSizeValid();
+      allow delete: if isOwner(userId);
+    }
+
     // User photo uploads
     match /users/{userId}/places/{placeId}/{fileName} {
       // Allow read if authenticated (for now - will add public/private logic later)

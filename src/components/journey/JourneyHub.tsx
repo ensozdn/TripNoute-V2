@@ -202,6 +202,7 @@ export default function JourneyHub({
             userEmail={userEmail}
             userPhoto={userPhoto}
             onLogout={onLogout}
+            places={places}
           />
         );
       default:
