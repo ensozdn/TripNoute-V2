@@ -2,10 +2,9 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Plus, Trash2, GripVertical, ChevronDown } from 'lucide-react';
+import { MapPin, Plus, Trash2, GripVertical } from 'lucide-react';
 import { Place } from '@/types';
 import { TransportMode } from '@/types/trip';
-import TransportPicker from './TransportPicker';
 
 export interface DraftStep {
   // Temporary id for UI keying only — replaced by DB on save
@@ -17,6 +16,16 @@ export interface DraftStep {
   // If sourced from an existing place
   placeId?: string;
 }
+
+const TRANSPORT_OPTIONS: { mode: TransportMode; emoji: string; label: string }[] = [
+  { mode: 'flight', emoji: '✈️', label: 'Flight' },
+  { mode: 'car',    emoji: '🚗', label: 'Car' },
+  { mode: 'train',  emoji: '🚂', label: 'Train' },
+  { mode: 'bus',    emoji: '🚌', label: 'Bus' },
+  { mode: 'ship',   emoji: '🚢', label: 'Ship' },
+  { mode: 'bike',   emoji: '🚲', label: 'Bike' },
+  { mode: 'walk',   emoji: '🚶', label: 'Walk' },
+];
 
 interface StepWaypointsProps {
   steps: DraftStep[];
@@ -39,13 +48,12 @@ function WaypointRow({
   onRemove: () => void;
   onTransportChange: (mode: TransportMode) => void;
 }) {
-  const [showTransport, setShowTransport] = useState(false);
 
   return (
     <div className="relative">
       {/* Connector line between waypoints */}
       {!isLast && (
-        <div className="absolute left-[27px] top-[52px] w-px bg-white/10" style={{ height: showTransport ? 'calc(100% - 28px)' : '24px' }} />
+        <div className="absolute left-[27px] top-[52px] w-px bg-white/10" style={{ height: 'calc(100% - 28px)' }} />
       )}
 
       <div className="flex items-start gap-3 py-2">
@@ -70,42 +78,29 @@ function WaypointRow({
             </button>
           </div>
 
-          {/* Transport to next */}
+          {/* Transport to next — always visible chip row */}
           {!isLast && (
-            <div className="mt-2 ml-0.5">
-              <button
-                onClick={() => setShowTransport(!showTransport)}
-                className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/60 transition-colors"
-              >
-                <span>
-                  {step.transportToNext
-                    ? `via ${step.transportToNext}`
-                    : 'Set transport →'}
-                </span>
-                <ChevronDown
-                  className={`w-3 h-3 transition-transform ${showTransport ? 'rotate-180' : ''}`}
-                  strokeWidth={2}
-                />
-              </button>
-
-              <AnimatePresence>
-                {showTransport && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="overflow-hidden mt-2"
-                  >
-                    <TransportPicker
-                      selected={step.transportToNext}
-                      onSelect={(mode) => {
-                        onTransportChange(mode);
-                        setShowTransport(false);
-                      }}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+            <div className="mt-2.5 mb-1">
+              <p className="text-[10px] text-white/25 uppercase tracking-wider mb-1.5 ml-0.5">How to get there</p>
+              <div className="flex flex-wrap gap-1.5">
+                {TRANSPORT_OPTIONS.map(({ mode, emoji, label }) => {
+                  const isSelected = step.transportToNext === mode;
+                  return (
+                    <button
+                      key={mode}
+                      onClick={() => onTransportChange(mode)}
+                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium border transition-all ${
+                        isSelected
+                          ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
+                          : 'bg-white/5 border-white/10 text-white/40 hover:text-white/70 hover:bg-white/10'
+                      }`}
+                    >
+                      <span>{emoji}</span>
+                      <span>{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
