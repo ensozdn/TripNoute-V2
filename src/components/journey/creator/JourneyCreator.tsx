@@ -35,6 +35,8 @@ export default function JourneyCreator({
   const [color, setColor] = useState<string>(TRIP_COLORS[0]);
   const [steps, setSteps] = useState<DraftStep[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  // When true, sheet hides so user can tap the map freely
+  const [minimized, setMinimized] = useState(false);
 
   const resetState = () => {
     setWizardStep('meta');
@@ -42,6 +44,7 @@ export default function JourneyCreator({
     setColor(TRIP_COLORS[0]);
     setSteps([]);
     setIsSaving(false);
+    setMinimized(false);
   };
 
   const handleClose = () => {
@@ -50,7 +53,11 @@ export default function JourneyCreator({
   };
 
   const handleRequestMapPin = useCallback(() => {
+    // Hide the sheet so the user can interact with the map
+    setMinimized(true);
     onRequestMapPin((pinName, lat, lng) => {
+      // Pin was dropped — restore the sheet and add the waypoint
+      setMinimized(false);
       const newStep: DraftStep = {
         _key: `map-${Date.now()}`,
         name: pinName || `Stop ${steps.length + 1}`,
@@ -94,7 +101,7 @@ export default function JourneyCreator({
 
   return (
     <AnimatePresence>
-      {isOpen && (
+      {isOpen && !minimized && (
         <>
           {/* Backdrop */}
           <motion.div

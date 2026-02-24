@@ -303,6 +303,7 @@ export default function DashboardPage() {
           onJourneySelect={handleJourneySelect}
           onJourneyDelete={handleJourneyDelete}
           onRequestMapPin={handleRequestMapPin}
+          mapPinMode={mapPinMode}
           userName={user?.displayName}
           userEmail={user?.email}
           userPhoto={user?.photoURL}

@@ -35,6 +35,7 @@ interface JourneyHubProps {
   onJourneySelect: (journey: Trip) => void;
   onJourneyDelete: (journeyId: string) => Promise<void>;
   onRequestMapPin: (onPinDropped: (name: string, lat: number, lng: number) => void) => void;
+  mapPinMode?: boolean;
   userName?: string | null;
   userEmail?: string | null;
   userPhoto?: string | null;
@@ -66,6 +67,7 @@ export default function JourneyHub({
   onJourneySelect,
   onJourneyDelete,
   onRequestMapPin,
+  mapPinMode = false,
   userName,
   userEmail,
   userPhoto,
@@ -241,8 +243,8 @@ export default function JourneyHub({
       initial={{ y: '100%', opacity: 0 }}
       animate={{
         y: 0,
-        opacity: 1,
-        height: `${sheetHeightPercent * 100}vh`,
+        opacity: mapPinMode ? 0 : 1,
+        height: mapPinMode ? `${SNAP_POINTS.closed * 100}vh` : `${sheetHeightPercent * 100}vh`,
         transition: {
           type: 'spring',
           damping: 25,
@@ -250,12 +252,13 @@ export default function JourneyHub({
           mass: 1,
         },
       }}
-      drag="y"
+      drag={mapPinMode ? false : 'y'}
       dragElastic={0.1}
       dragConstraints={{ top: 0, bottom: 0 }}
       onDrag={handleDrag}
       className="fixed bottom-0 left-0 right-0 z-40 flex flex-col rounded-t-3xl"
       style={{
+        pointerEvents: mapPinMode ? 'none' : undefined,
         touchAction: 'none',
       }}
     >
