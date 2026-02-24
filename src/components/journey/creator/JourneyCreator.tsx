@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Route } from 'lucide-react';
 import { Place } from '@/types';
@@ -17,6 +17,9 @@ interface JourneyCreatorProps {
   places: Place[];
   onClose: () => void;
   onCreated: (journey: Trip) => void;
+  onUpdated?: (journey: Trip) => void;
+  // When provided, creator opens in edit mode
+  editingJourney?: Trip | null;
   // Called when user taps "Tap on Map" — parent handles map interaction
   onRequestMapPin: (onPinDropped: (name: string, lat: number, lng: number) => void) => void;
 }
@@ -26,9 +29,13 @@ export default function JourneyCreator({
   places,
   onClose,
   onCreated,
+  onUpdated,
+  editingJourney,
   onRequestMapPin,
 }: JourneyCreatorProps) {
   const { user } = useAuth();
+
+  const isEditMode = !!editingJourney;
 
   const [wizardStep, setWizardStep] = useState<WizardStep>('meta');
   const [name, setName] = useState('');
@@ -36,6 +43,24 @@ export default function JourneyCreator({
   const [isSaving, setIsSaving] = useState(false);
   // When true, sheet hides so user can tap the map freely
   const [minimized, setMinimized] = useState(false);
+
+  // Populate form when editing
+  useEffect(() => {
+    if (isOpen && editingJourney) {
+      setName(editingJourney.name);
+      setSteps(
+        editingJourney.steps.map((s) => ({
+          _key: s.id || `edit-${Date.now()}-${Math.random()}`,
+          name: s.name,
+          coordinates: s.coordinates,
+          address: s.address,
+          transportToNext: s.transportToNext ?? null,
+          placeId: s.placeId,
+        })),
+      );
+      setWizardStep('meta');
+    }
+  }, [isOpen, editingJourney]);
 
   const resetState = () => {
     setWizardStep('meta');
@@ -51,10 +76,8 @@ export default function JourneyCreator({
   };
 
   const handleRequestMapPin = useCallback(() => {
-    // Hide the sheet so the user can interact with the map
     setMinimized(true);
     onRequestMapPin((pinName, lat, lng) => {
-      // Pin was dropped — restore the sheet and add the waypoint
       setMinimized(false);
       const newStep: DraftStep = {
         _key: `map-${Date.now()}`,
@@ -71,12 +94,15 @@ export default function JourneyCreator({
 
     setIsSaving(true);
     try {
-      const journey = await journeyDatabaseService.createJourney(
-        {
+      if (isEditMode && editingJourney) {
+        // UPDATE existing journey
+        const updated = await journeyDatabaseService.updateJourney({
+          id: editingJourney.id,
           name: name.trim(),
-          color: 'rgba(255,255,255,0.7)',
-          isPublic: false,
           steps: steps.map((s, i) => ({
+            id: s._key.startsWith('edit-') || s._key.startsWith('map-') || s._key.startsWith('place-')
+              ? `${editingJourney.id}-step-${i}-${Date.now()}`
+              : s._key,
             name: s.name,
             coordinates: s.coordinates,
             timestamp: Date.now() + i,
@@ -85,13 +111,33 @@ export default function JourneyCreator({
             address: s.address,
             placeId: s.placeId,
           })),
-        },
-        user.uid,
-      );
-      resetState();
-      onCreated(journey);
+        });
+        resetState();
+        onUpdated?.(updated);
+      } else {
+        // CREATE new journey
+        const journey = await journeyDatabaseService.createJourney(
+          {
+            name: name.trim(),
+            color: 'rgba(255,255,255,0.7)',
+            isPublic: false,
+            steps: steps.map((s, i) => ({
+              name: s.name,
+              coordinates: s.coordinates,
+              timestamp: Date.now() + i,
+              order: i,
+              transportToNext: s.transportToNext,
+              address: s.address,
+              placeId: s.placeId,
+            })),
+          },
+          user.uid,
+        );
+        resetState();
+        onCreated(journey);
+      }
     } catch (err) {
-      console.error('Failed to create journey:', err);
+      console.error('Failed to save journey:', err);
     } finally {
       setIsSaving(false);
     }
@@ -138,10 +184,14 @@ export default function JourneyCreator({
                 </div>
                 <div>
                   <p className="text-white text-sm font-semibold">
-                    {wizardStep === 'meta' ? 'New Journey' : name || 'Add Waypoints'}
+                    {isEditMode
+                      ? wizardStep === 'meta' ? 'Edit Journey' : name || 'Edit Waypoints'
+                      : wizardStep === 'meta' ? 'New Journey' : name || 'Add Waypoints'}
                   </p>
                   <p className="text-white/35 text-xs">
-                    {wizardStep === 'meta' ? 'Step 1 of 2 — Details' : `Step 2 of 2 — ${steps.length} waypoint${steps.length !== 1 ? 's' : ''}`}
+                    {wizardStep === 'meta'
+                      ? 'Step 1 of 2 — Details'
+                      : `Step 2 of 2 — ${steps.length} waypoint${steps.length !== 1 ? 's' : ''}`}
                   </p>
                 </div>
               </div>
@@ -184,6 +234,7 @@ export default function JourneyCreator({
                     onBack={() => setWizardStep('meta')}
                     onSave={handleSave}
                     isSaving={isSaving}
+                    saveLabel={isEditMode ? 'Save Changes' : 'Save Journey'}
                   />
                 )}
               </AnimatePresence>

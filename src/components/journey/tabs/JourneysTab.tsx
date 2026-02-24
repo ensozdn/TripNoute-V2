@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Route, Plus, Trash2, ChevronRight, MapPin } from 'lucide-react';
+import { Route, Plus, Trash2, Pencil, ChevronRight, MapPin } from 'lucide-react';
 import { Trip } from '@/types/trip';
 
 interface JourneysTabProps {
@@ -9,6 +9,7 @@ interface JourneysTabProps {
   onCreateJourney: () => void;
   onSelectJourney: (journey: Trip) => void;
   onDeleteJourney: (journeyId: string) => Promise<void>;
+  onEditJourney: (journey: Trip) => void;
 }
 
 function EmptyState({ onCreateJourney }: { onCreateJourney: () => void }) {
@@ -41,11 +42,13 @@ function JourneyCard({
   journey,
   index,
   onSelect,
+  onEdit,
   onDelete,
 }: {
   journey: Trip;
   index: number;
   onSelect: () => void;
+  onEdit: () => void;
   onDelete: () => void;
 }) {
   const stepCount = journey.steps.length;
@@ -99,6 +102,17 @@ function JourneyCard({
         <ChevronRight className="w-4 h-4 text-white/30" strokeWidth={1.8} />
       </button>
 
+      {/* Edit */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onEdit();
+        }}
+        className="p-1 rounded-lg hover:bg-white/10 transition-colors shrink-0"
+      >
+        <Pencil className="w-4 h-4 text-white/20 hover:text-white/60 transition-colors" strokeWidth={1.8} />
+      </button>
+
       {/* Delete */}
       <button
         onClick={(e) => {
@@ -118,6 +132,7 @@ export default function JourneysTab({
   onCreateJourney,
   onSelectJourney,
   onDeleteJourney,
+  onEditJourney,
 }: JourneysTabProps) {
   return (
     <div className="py-4">
@@ -153,6 +168,7 @@ export default function JourneysTab({
                   journey={journey}
                   index={index}
                   onSelect={() => onSelectJourney(journey)}
+                  onEdit={() => onEditJourney(journey)}
                   onDelete={() => onDeleteJourney(journey.id)}
                 />
               ))}

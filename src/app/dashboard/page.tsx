@@ -151,6 +151,11 @@ export default function DashboardPage() {
     // useEffect([journeys]) will re-render all journeys automatically
   }, []);
 
+  const handleJourneyUpdated = useCallback((updated: Trip) => {
+    setJourneys((prev) => prev.map((j) => (j.id === updated.id ? updated : j)));
+    // useEffect([journeys]) will re-render the updated journey on the map
+  }, []);
+
   const handleJourneySelect = useCallback((journey: Trip) => {
     const mapboxService = getMapboxService();
     mapboxService.focusOnRoute(
@@ -306,6 +311,7 @@ export default function DashboardPage() {
           onJourneyCreated={handleJourneyCreated}
           onJourneySelect={handleJourneySelect}
           onJourneyDelete={handleJourneyDelete}
+          onJourneyUpdated={handleJourneyUpdated}
           onRequestMapPin={handleRequestMapPin}
           mapPinMode={mapPinMode}
           userName={user?.displayName}

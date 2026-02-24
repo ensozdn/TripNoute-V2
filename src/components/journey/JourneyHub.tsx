@@ -34,6 +34,7 @@ interface JourneyHubProps {
   onJourneyCreated: (journey: Trip) => void;
   onJourneySelect: (journey: Trip) => void;
   onJourneyDelete: (journeyId: string) => Promise<void>;
+  onJourneyUpdated: (journey: Trip) => void;
   onRequestMapPin: (onPinDropped: (name: string, lat: number, lng: number) => void) => void;
   mapPinMode?: boolean;
   userName?: string | null;
@@ -66,6 +67,7 @@ export default function JourneyHub({
   onJourneyCreated,
   onJourneySelect,
   onJourneyDelete,
+  onJourneyUpdated,
   onRequestMapPin,
   mapPinMode = false,
   userName,
@@ -76,6 +78,7 @@ export default function JourneyHub({
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [sheetState, setSheetState] = useState<SheetState>('closed');
   const [creatorOpen, setCreatorOpen] = useState(false);
+  const [editingJourney, setEditingJourney] = useState<Trip | null>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
 
   const stats: JourneyStats = useMemo(() => {
@@ -203,9 +206,16 @@ export default function JourneyHub({
         return (
           <JourneysTab
             journeys={journeys}
-            onCreateJourney={() => setCreatorOpen(true)}
+            onCreateJourney={() => {
+              setEditingJourney(null);
+              setCreatorOpen(true);
+            }}
             onSelectJourney={onJourneySelect}
             onDeleteJourney={onJourneyDelete}
+            onEditJourney={(journey) => {
+              setEditingJourney(journey);
+              setCreatorOpen(true);
+            }}
           />
         );
       case 'insights':
@@ -361,10 +371,20 @@ export default function JourneyHub({
     <JourneyCreator
       isOpen={creatorOpen}
       places={places}
-      onClose={() => setCreatorOpen(false)}
+      editingJourney={editingJourney}
+      onClose={() => {
+        setCreatorOpen(false);
+        setEditingJourney(null);
+      }}
       onCreated={(journey) => {
         setCreatorOpen(false);
+        setEditingJourney(null);
         onJourneyCreated(journey);
+      }}
+      onUpdated={(journey) => {
+        setCreatorOpen(false);
+        setEditingJourney(null);
+        onJourneyUpdated(journey);
       }}
       onRequestMapPin={onRequestMapPin}
     />

@@ -35,6 +35,7 @@ interface StepWaypointsProps {
   onBack: () => void;
   onSave: () => void;
   isSaving: boolean;
+  saveLabel?: string;
 }
 
 function WaypointRow({
@@ -117,6 +118,7 @@ export default function StepWaypoints({
   onBack,
   onSave,
   isSaving,
+  saveLabel = 'Save Journey',
 }: StepWaypointsProps) {
   const [showPlacePicker, setShowPlacePicker] = useState(false);
 
@@ -245,7 +247,7 @@ export default function StepWaypoints({
           disabled={!canSave || isSaving}
           className="flex-1 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors"
         >
-          {isSaving ? 'Saving...' : 'Save Journey'}
+          {isSaving ? 'Saving...' : saveLabel}
         </button>
       </div>
     </motion.div>
