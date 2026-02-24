@@ -223,7 +223,7 @@ export class JourneyDatabaseService {
         updateData.totalDuration = totalDuration;
       }
 
-      await updateDoc(journeyRef, updateData);
+      await updateDoc(journeyRef, removeUndefined(updateData));
 
       const updatedJourney = await this.getJourneyById(input.id);
       if (!updatedJourney) {

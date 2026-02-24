@@ -99,18 +99,22 @@ export default function JourneyCreator({
         const updated = await journeyDatabaseService.updateJourney({
           id: editingJourney.id,
           name: name.trim(),
-          steps: steps.map((s, i) => ({
-            id: s._key.startsWith('edit-') || s._key.startsWith('map-') || s._key.startsWith('place-')
-              ? `${editingJourney.id}-step-${i}-${Date.now()}`
-              : s._key,
-            name: s.name,
-            coordinates: s.coordinates,
-            timestamp: Date.now() + i,
-            order: i,
-            transportToNext: s.transportToNext,
-            address: s.address,
-            placeId: s.placeId,
-          })),
+          steps: steps.map((s, i) => {
+            const step: any = {
+              id: s._key.startsWith('edit-') || s._key.startsWith('map-') || s._key.startsWith('place-')
+                ? `${editingJourney.id}-step-${i}-${Date.now()}`
+                : s._key,
+              name: s.name,
+              coordinates: s.coordinates,
+              timestamp: Date.now() + i,
+              order: i,
+              transportToNext: s.transportToNext ?? null,
+            };
+            // Only add optional fields if they have actual values
+            if (s.address) step.address = s.address;
+            if (s.placeId) step.placeId = s.placeId;
+            return step;
+          }),
         });
         resetState();
         onUpdated?.(updated);
@@ -121,15 +125,18 @@ export default function JourneyCreator({
             name: name.trim(),
             color: 'rgba(255,255,255,0.7)',
             isPublic: false,
-            steps: steps.map((s, i) => ({
-              name: s.name,
-              coordinates: s.coordinates,
-              timestamp: Date.now() + i,
-              order: i,
-              transportToNext: s.transportToNext,
-              address: s.address,
-              placeId: s.placeId,
-            })),
+            steps: steps.map((s, i) => {
+              const step: any = {
+                name: s.name,
+                coordinates: s.coordinates,
+                timestamp: Date.now() + i,
+                order: i,
+                transportToNext: s.transportToNext ?? null,
+              };
+              if (s.address) step.address = s.address;
+              if (s.placeId) step.placeId = s.placeId;
+              return step;
+            }),
           },
           user.uid,
         );
