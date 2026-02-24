@@ -13,9 +13,6 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import MapboxLocationPicker from '@/components/MapboxLocationPicker';
 import { ImageUploader } from '@/components/place';
 
-import { TransportType } from '@/types';
-import TransportSelector from '@/components/journey/TransportSelector';
-
 type AddPlaceFormData = z.infer<typeof addPlaceSchema>;
 
 export default function AddPlacePage() {
@@ -29,7 +26,6 @@ export default function AddPlacePage() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [selectedTransport, setSelectedTransport] = useState<TransportType>('flight');
 
   const [formData, setFormData] = useState<AddPlaceFormData>({
     name: '',
@@ -99,7 +95,6 @@ export default function AddPlacePage() {
         photos: [],
         isPublic: false,
         tags: [],
-        transportType: selectedTransport,
         order: Date.now(),
       };
 
@@ -308,12 +303,6 @@ export default function AddPlacePage() {
                     required
                   />
                 </div>
-
-                {}
-                <TransportSelector
-                  value={selectedTransport}
-                  onChange={setSelectedTransport}
-                />
 
                 {}
                 <div>
