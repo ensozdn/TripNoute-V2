@@ -803,17 +803,23 @@ class MapboxService implements IMapboxService {
     // STEP 2: Pre-load transport icons (CRITICAL - must happen BEFORE layers)
     await this.loadTransportIcons();
 
-    // STEP 3: Resolve Directions API geometries for applicable segments
-    await this.resolveRouteGeometries(journey.steps);
+    // STEP 3: Work on a deep copy of steps so React state is never mutated
+    const journeyToRender: Journey | Trip = {
+      ...journey,
+      steps: journey.steps.map((s) => ({ ...s })),
+    };
 
-    // STEP 4: Draw route lines FIRST (bottom layer)
-    this.drawJourneyRoute(journey);
+    // STEP 4: Resolve Directions API geometries for applicable segments
+    await this.resolveRouteGeometries(journeyToRender.steps);
 
-    // STEP 5: Add transport medallions AFTER lines (they appear on top)
-    await this.addTransportMedallions(journey);
+    // STEP 5: Draw route lines FIRST (bottom layer)
+    this.drawJourneyRoute(journeyToRender);
 
-    // STEP 6: Add stop markers LAST (topmost layer)
-    this.addJourneyStopMarkers(journey);
+    // STEP 6: Add transport medallions AFTER lines (they appear on top)
+    await this.addTransportMedallions(journeyToRender);
+
+    // STEP 7: Add stop markers LAST (topmost layer)
+    this.addJourneyStopMarkers(journeyToRender);
   }
 
   private drawJourneyRoute(journey: Journey | Trip): void {
@@ -1244,26 +1250,8 @@ class MapboxService implements IMapboxService {
     console.log(`✅ Journey ${journeyId} cleared`);
   }
 
-  async renderAllJourneys(journeys: (Journey | Trip)[]): Promise<void> {
-    if (!this.map) {
-      console.warn('⚠️  Cannot render journeys: Map not initialized');
-      return;
-    }
-
-    console.log(`🗺️  Rendering ${journeys.length} journey(s)...`);
-
-    // CRITICAL: Pre-load icons once before rendering all journeys
-    await this.loadTransportIcons();
-
-    for (const journey of journeys) {
-      try {
-        await this.renderJourney(journey);
-      } catch (error) {
-        console.error(`❌ Failed to render journey ${journey.id}:`, error);
-      }
-    }
-
-    console.log(`✅ Finished rendering all journeys`);
+  hasJourney(journeyId: string): boolean {
+    return this.journeyLayers.has(journeyId);
   }
 
   clearAllJourneys(): void {

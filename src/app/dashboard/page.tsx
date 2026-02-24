@@ -94,8 +94,13 @@ export default function DashboardPage() {
 
     const renderJourneys = async () => {
       try {
-        mapboxService.clearAllJourneys();
-        await mapboxService.renderAllJourneys(journeys);
+        // Only render journeys that aren't already on the map
+        const toRender = journeys.filter(
+          (j) => !mapboxService.hasJourney(j.id)
+        );
+        for (const journey of toRender) {
+          await mapboxService.renderJourney(journey);
+        }
       } catch (error) {
         console.error('Error rendering journeys:', error);
       }
@@ -143,8 +148,7 @@ export default function DashboardPage() {
 
   const handleJourneyCreated = useCallback((journey: Trip) => {
     setJourneys((prev) => [journey, ...prev]);
-    const mapboxService = getMapboxService();
-    mapboxService.renderJourney(journey).catch(console.error);
+    // useEffect([journeys]) will re-render all journeys automatically
   }, []);
 
   const handleJourneySelect = useCallback((journey: Trip) => {
