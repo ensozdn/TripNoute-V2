@@ -13,7 +13,7 @@ import { Place } from '@/types';
 import { Trip } from '@/types/trip';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { JourneyHub } from '@/components/journey';
-import { Plus, Locate } from 'lucide-react';
+import { Plus, Locate, MapPin } from 'lucide-react';
 
 const MapboxMap = dynamic(() => import('@/components/MapboxMap'), {
   ssr: false,
@@ -33,6 +33,7 @@ export default function DashboardPage() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [mapPinMode, setMapPinMode] = useState(false);
 
   // Callback ref for map-pin mode: JourneyCreator passes a handler here
   // so the user can tap the map to drop a waypoint.
@@ -169,9 +170,32 @@ export default function DashboardPage() {
   const handleRequestMapPin = useCallback(
     (onPinDropped: (name: string, lat: number, lng: number) => void) => {
       mapPinCallbackRef.current = onPinDropped;
+      setMapPinMode(true);
     },
     [],
   );
+
+  const handleMapClick = useCallback(async (lat: number, lng: number) => {
+    if (!mapPinCallbackRef.current) return;
+    const cb = mapPinCallbackRef.current;
+    mapPinCallbackRef.current = null;
+    setMapPinMode(false);
+
+    let name = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    try {
+      const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+      const res = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?types=place,locality,neighborhood,address&limit=1&access_token=${token}`,
+      );
+      if (res.ok) {
+        const json = await res.json();
+        const feature = json.features?.[0];
+        if (feature?.text) name = feature.text;
+      }
+    } catch {}
+
+    cb(name, lat, lng);
+  }, []);
 
   const handleGoToMyLocation = async (): Promise<void> => {
     if (!('geolocation' in navigator)) {
@@ -217,6 +241,7 @@ export default function DashboardPage() {
               places={allPlacesForMap}
               selectedPlace={selectedPlace}
               onMarkerClick={handleMarkerClick}
+              onMapClick={handleMapClick}
               zoom={2}
               style="mapbox://styles/mapbox/satellite-streets-v12"
               className="absolute top-0 left-0 w-full h-screen"
@@ -238,6 +263,19 @@ export default function DashboardPage() {
             </span>
           </Link>
         </header>
+
+        {mapPinMode && (
+          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-blue-500/90 backdrop-blur-sm shadow-xl pointer-events-auto">
+            <MapPin className="w-4 h-4 text-white shrink-0" />
+            <span className="text-white text-sm font-medium">Tap anywhere on the map</span>
+            <button
+              onClick={() => { mapPinCallbackRef.current = null; setMapPinMode(false); }}
+              className="ml-1 text-white/70 hover:text-white text-xs underline"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
 
         <div className="absolute top-5 right-5 z-30">
           <button
