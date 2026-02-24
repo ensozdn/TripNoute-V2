@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Route } from 'lucide-react';
 import { Place } from '@/types';
-import { Trip, TRIP_COLORS } from '@/types/trip';
+import { Trip } from '@/types/trip';
 import { useAuth } from '@/contexts/AuthContext';
 import { journeyDatabaseService } from '@/services/firebase/JourneyDatabaseService';
 import StepMeta from './StepMeta';
@@ -32,7 +32,6 @@ export default function JourneyCreator({
 
   const [wizardStep, setWizardStep] = useState<WizardStep>('meta');
   const [name, setName] = useState('');
-  const [color, setColor] = useState<string>(TRIP_COLORS[0]);
   const [steps, setSteps] = useState<DraftStep[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   // When true, sheet hides so user can tap the map freely
@@ -41,7 +40,6 @@ export default function JourneyCreator({
   const resetState = () => {
     setWizardStep('meta');
     setName('');
-    setColor(TRIP_COLORS[0]);
     setSteps([]);
     setIsSaving(false);
     setMinimized(false);
@@ -76,7 +74,7 @@ export default function JourneyCreator({
       const journey = await journeyDatabaseService.createJourney(
         {
           name: name.trim(),
-          color,
+          color: 'rgba(255,255,255,0.7)',
           isPublic: false,
           steps: steps.map((s, i) => ({
             name: s.name,
@@ -173,9 +171,7 @@ export default function JourneyCreator({
                   <StepMeta
                     key="meta"
                     name={name}
-                    color={color}
                     onNameChange={setName}
-                    onColorChange={setColor}
                     onNext={() => setWizardStep('waypoints')}
                   />
                 ) : (

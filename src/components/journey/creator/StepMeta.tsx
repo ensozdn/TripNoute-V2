@@ -1,21 +1,16 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { TRIP_COLORS } from '@/types/trip';
 
 interface StepMetaProps {
   name: string;
-  color: string;
   onNameChange: (value: string) => void;
-  onColorChange: (value: string) => void;
   onNext: () => void;
 }
 
 export default function StepMeta({
   name,
-  color,
   onNameChange,
-  onColorChange,
   onNext,
 }: StepMetaProps) {
   return (
@@ -38,26 +33,6 @@ export default function StepMeta({
           maxLength={60}
           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-white/30 transition-colors"
         />
-      </div>
-
-      <div>
-        <label className="text-xs text-white/40 uppercase tracking-widest font-medium mb-3 block">
-          Color
-        </label>
-        <div className="flex flex-wrap gap-3">
-          {TRIP_COLORS.map((c) => (
-            <button
-              key={c}
-              onClick={() => onColorChange(c)}
-              className="w-8 h-8 rounded-full transition-transform hover:scale-110 active:scale-95"
-              style={{
-                backgroundColor: c,
-                boxShadow: color === c ? `0 0 0 3px rgba(255,255,255,0.15), 0 0 0 5px ${c}` : 'none',
-                transform: color === c ? 'scale(1.15)' : undefined,
-              }}
-            />
-          ))}
-        </div>
       </div>
 
       <button

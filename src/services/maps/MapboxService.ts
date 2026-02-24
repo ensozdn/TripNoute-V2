@@ -794,7 +794,7 @@ class MapboxService implements IMapboxService {
         type: 'Feature',
         properties: {
           transportMode: current.transportToNext,
-          color: journey.color,
+          color: 'rgba(255,255,255,0.5)',
         },
         geometry: {
           type: 'LineString',
@@ -854,46 +854,15 @@ class MapboxService implements IMapboxService {
     console.log(`✅ Route drawn with ${segments.length} segment(s)`);
   }
 
-  private getRouteStyle(transport: TransportMode | null): any {
-    const styles: Record<string, any> = {
-      flight: {
-        'line-color': '#4ECDC4',
-        'line-width': 2,
-        'line-dasharray': [2, 2],
-        'line-blur': 2,
-        'line-opacity': 0.9,
-      },
-      car: {
-        'line-color': '#FF6B6B',
-        'line-width': 4,
-        'line-opacity': 0.9,
-      },
-      bus: {
-        'line-color': '#FFA07A',
-        'line-width': 4,
-        'line-opacity': 0.9,
-      },
-      train: {
-        'line-color': '#45B7D1',
-        'line-width': 3,
-        'line-dasharray': [4, 2],
-        'line-opacity': 0.9,
-      },
-      ship: {
-        'line-color': '#85C1E2',
-        'line-width': 3,
-        'line-dasharray': [6, 3],
-        'line-opacity': 0.9,
-      },
-      walk: {
-        'line-color': '#95E1D3',
-        'line-width': 1.5,
-        'line-dasharray': [1, 3],
-        'line-opacity': 0.8,
-      },
+  private getRouteStyle(_transport: TransportMode | null): any {
+    // All transport modes: subtle white dashed line
+    return {
+      'line-color': 'rgba(255, 255, 255, 0.55)',
+      'line-width': 2,
+      'line-dasharray': [3, 4],
+      'line-opacity': 1,
+      'line-blur': 0,
     };
-
-    return styles[transport || 'car'] || styles.car;
   }
 
   private addJourneyStopMarkers(journey: Journey | Trip): void {
@@ -908,15 +877,16 @@ class MapboxService implements IMapboxService {
       el.style.width = '24px';
       el.style.height = '24px';
       el.style.borderRadius = '50%';
-      el.style.backgroundColor = journey.color;
-      el.style.border = '3px solid white';
-      el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+      el.style.backgroundColor = 'rgba(255, 255, 255, 0.85)';
+      el.style.border = '2px solid rgba(255, 255, 255, 0.4)';
+      el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.35)';
       el.style.cursor = 'pointer';
 
       if (isFirst || isLast) {
         el.style.width = '32px';
         el.style.height = '32px';
-        el.style.border = '4px solid white';
+        el.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
+        el.style.border = '3px solid rgba(255, 255, 255, 0.5)';
       }
 
       const marker = new mapboxgl.Marker({ element: el })
@@ -954,8 +924,8 @@ class MapboxService implements IMapboxService {
               width: 8px;
               height: 8px;
               border-radius: 50%;
-              background: ${journey.color};
-              box-shadow: 0 0 8px ${journey.color}40;
+              background: rgba(255, 255, 255, 0.7);
+              box-shadow: 0 0 6px rgba(255,255,255,0.3);
             "></div>
             <h3 style="
               margin: 0;
@@ -1029,7 +999,7 @@ class MapboxService implements IMapboxService {
           transport: current.transportToNext,
           bearing,
           segmentId: `${journey.id}-seg-${i}`,
-          color: journey.color,
+          color: 'rgba(255,255,255,0.4)',
         },
       });
     }
