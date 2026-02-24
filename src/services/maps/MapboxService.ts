@@ -129,8 +129,15 @@ class MapboxService implements IMapboxService {
       ctx.textBaseline = 'middle';
       ctx.fillText(emoji, size / 2, size / 2 + 1);
 
+      // Extract raw RGBA pixel data — the only format Mapbox reliably accepts
+      const imageData = ctx.getImageData(0, 0, size, size);
+
       try {
-        this.map?.addImage(imageName, canvas as unknown as HTMLImageElement);
+        this.map?.addImage(imageName, {
+          width: size,
+          height: size,
+          data: imageData.data,
+        });
       } catch (e) {
         // Image might already exist — safe to ignore
       }
@@ -857,7 +864,7 @@ class MapboxService implements IMapboxService {
   private getRouteStyle(_transport: TransportMode | null): any {
     // All transport modes: subtle white dashed line
     return {
-      'line-color': 'rgba(255, 255, 255, 0.55)',
+      'line-color': 'rgba(255, 255, 255, 1)',
       'line-width': 2,
       'line-dasharray': [3, 4],
       'line-opacity': 1,
