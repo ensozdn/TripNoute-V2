@@ -25,15 +25,40 @@ class MapboxService implements IMapboxService {
   private journeyLayers: Map<string, string[]> = new Map();
   private journeySources: Set<string> = new Set();
   private medallionMarkers: Map<string, mapboxgl.Marker[]> = new Map();
-  private readonly TRANSPORT_EMOJIS: Record<string, string> = {
-    flight:  '✈️',
-    car:     '🚗',
-    train:   '🚂',
-    bus:     '🚌',
-    ship:    '🚢',
-    bike:    '🚲',
-    walk:    '🚶',
-    walking: '🚶',
+  // SVG icon paths (viewBox 0 0 24 24) for each transport mode
+  private readonly TRANSPORT_ICONS: Record<string, { path: string; color: string }> = {
+    flight: {
+      color: '#6366f1',
+      path: 'M21 16v-2l-8-5V3.5A1.5 1.5 0 0 0 11.5 2A1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1l3.5 1v-1.5L13 19v-5.5z',
+    },
+    car: {
+      color: '#10b981',
+      path: 'M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.85 7h10.29l1.08 3.11H5.77L6.85 7zM19 17H5v-5h14v5zm-2-2.5a1 1 0 1 1 2 0 1 1 0 0 1-2 0zm-10 0a1 1 0 1 1 2 0 1 1 0 0 1-2 0z',
+    },
+    train: {
+      color: '#f59e0b',
+      path: 'M12 2c-4 0-8 .5-8 4v9.5A2.5 2.5 0 0 0 6.5 18l-1.5 1.5v.5h2l2-2h6l2 2h2v-.5L17.5 18a2.5 2.5 0 0 0 2.5-2.5V6c0-3.5-4-4-8-4zm0 2c3.51 0 5.5.48 6 1.75V8H6V5.75C6.5 4.48 8.49 4 12 4zM6 10h5v3H6v-3zm7 0h5v3h-5v-3zm-8.5 5A1.5 1.5 0 1 1 6 16.5 1.5 1.5 0 0 1 4.5 15zm15 0a1.5 1.5 0 1 1-1.5 1.5 1.5 1.5 0 0 1 1.5-1.5z',
+    },
+    bus: {
+      color: '#3b82f6',
+      path: 'M4 16c0 .88.39 1.67 1 2.22V20c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h8v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-3.5-3.58-4-8-4s-8 .5-8 4v10zm3.5 1a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm9 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zM19 13H5V6h14v7z',
+    },
+    ship: {
+      color: '#06b6d4',
+      path: 'M20 21c-1.39 0-2.78-.47-4-1.32-2.44 1.71-5.56 1.71-8 0C6.78 20.53 5.39 21 4 21H2v2h2c1.38 0 2.74-.35 4-.99 2.52 1.29 5.48 1.29 8 0 1.26.65 2.62.99 4 .99h2v-2h-2zM3.95 19H4c1.6 0 3.02-.88 4-2 .98 1.12 2.4 2 4 2s3.02-.88 4-2c.98 1.12 2.4 2 4 2h.05l1.89-6.68c.08-.26.06-.54-.06-.78s-.34-.42-.6-.5L20 10.62V6c0-1.1-.9-2-2-2h-3V1H9v3H6c-1.1 0-2 .9-2 2v4.62l-1.29.42c-.26.08-.48.26-.6.5s-.15.52-.06.78L3.95 19zM6 6h12v3.97L12 8 6 9.97V6z',
+    },
+    bike: {
+      color: '#f97316',
+      path: 'M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5S3.1 13.5 5 13.5s3.5 1.6 3.5 3.5S6.9 20.5 5 20.5zm5.8-10l2.4-2.4.8.8c1.3 1.3 3 2.1 5.1 2.1V9c-1.5 0-2.7-.6-3.6-1.5l-1.9-1.9c-.5-.4-1-.6-1.6-.6s-1.1.2-1.4.6L7.8 8.4C7.3 8.8 7 9.4 7 10c0 .6.3 1.2.8 1.6l3.2 2.4V19h2v-6.2l-2.2-1.8zM19 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z',
+    },
+    walk: {
+      color: '#8b5cf6',
+      path: 'M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z',
+    },
+    walking: {
+      color: '#8b5cf6',
+      path: 'M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z',
+    },
   };
   async initializeMap(config: MapboxConfig): Promise<mapboxgl.Map> {
     if (this.map) {
@@ -99,16 +124,15 @@ class MapboxService implements IMapboxService {
   private loadTransportIcons(): void {
     if (!this.map) return;
 
-    const size = 64;
-    let allLoaded = true;
+    const size = 88; // Higher res for crispness
+    const center = size / 2;
+    const radius = size / 2 - 3;
 
-    Object.entries(this.TRANSPORT_EMOJIS).forEach(([mode, emoji]) => {
+    Object.entries(this.TRANSPORT_ICONS).forEach(([mode, { path, color }]) => {
       const imageName = `medallion-${mode}`;
 
       // Always check hasImage() — style reload wipes Mapbox's image registry
       if (this.map?.hasImage(imageName)) return;
-
-      allLoaded = false;
 
       const canvas = document.createElement('canvas');
       canvas.width = size;
@@ -116,22 +140,44 @@ class MapboxService implements IMapboxService {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // White circle background
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+      // ── Drop shadow ────────────────────────────────────────────────
+      ctx.shadowColor = 'rgba(0,0,0,0.32)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetY = 3;
+
+      // ── Gradient circle background ─────────────────────────────────
+      const grad = ctx.createRadialGradient(center - 4, center - 6, 2, center, center, radius);
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(1, '#f1f5f9');
+      ctx.fillStyle = grad;
       ctx.beginPath();
-      ctx.arc(size / 2, size / 2, size / 2 - 1, 0, Math.PI * 2);
+      ctx.arc(center, center, radius, 0, Math.PI * 2);
       ctx.fill();
 
-      // Subtle shadow ring
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.25)';
-      ctx.lineWidth = 2;
+      // Reset shadow for the border
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+
+      // ── Colored border ring ────────────────────────────────────────
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.arc(center, center, radius - 1.5, 0, Math.PI * 2);
       ctx.stroke();
 
-      // Emoji
-      ctx.font = `${Math.floor(size * 0.48)}px serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(emoji, size / 2, size / 2 + 1);
+      // ── SVG icon via Path2D ────────────────────────────────────────
+      // The SVG paths are 24×24; scale & center them inside our canvas
+      const iconSize = size * 0.46;
+      const offset = (size - iconSize) / 2;
+      const scale = iconSize / 24;
+
+      ctx.save();
+      ctx.translate(offset, offset);
+      ctx.scale(scale, scale);
+      ctx.fillStyle = color;
+      ctx.fill(new Path2D(path));
+      ctx.restore();
 
       // Extract raw RGBA pixel data — the only format Mapbox reliably accepts
       const imageData = ctx.getImageData(0, 0, size, size);
@@ -148,9 +194,7 @@ class MapboxService implements IMapboxService {
       }
     });
 
-    if (!allLoaded) {
-      console.log('✅ Transport icons loaded into Mapbox image registry');
-    }
+    console.log('✅ Transport icons loaded into Mapbox image registry');
   }
   private calculateBearing(from: [number, number], to: [number, number]): number {
     const [lon1, lat1] = from;
@@ -1045,23 +1089,7 @@ class MapboxService implements IMapboxService {
       },
     });
 
-    // Layer 1: White circle background (bottom)
-    this.map.addLayer({
-      id: layerBgId,
-      type: 'circle',
-      source: sourceId,
-      paint: {
-        'circle-radius': 18,
-        'circle-color': '#ffffff',
-        'circle-opacity': 0.98,
-        'circle-stroke-width': 2,
-        'circle-stroke-color': '#e5e7eb',
-        'circle-stroke-opacity': 0.8,
-        'circle-blur': 0.3, // Subtle shadow effect
-      },
-    });
-
-    // Layer 2: Transport icon (on top)
+    // Single symbol layer — the canvas icon already contains the circle background
     this.map.addLayer({
       id: layerIconId,
       type: 'symbol',
@@ -1079,9 +1107,7 @@ class MapboxService implements IMapboxService {
           'walking', 'medallion-walking',
           'medallion-car',
         ],
-        'icon-size': 0.6,
-        'icon-rotate': ['get', 'bearing'],
-        'icon-rotation-alignment': 'map',
+        'icon-size': 0.45,
         'icon-allow-overlap': true,
         'icon-ignore-placement': true,
         'icon-anchor': 'center',
@@ -1089,9 +1115,6 @@ class MapboxService implements IMapboxService {
       },
       paint: {
         'icon-opacity': 1.0,
-        'icon-halo-color': ['get', 'color'],
-        'icon-halo-width': 2,
-        'icon-halo-blur': 1,
       },
     });
 
