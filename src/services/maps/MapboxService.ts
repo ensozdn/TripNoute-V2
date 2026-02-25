@@ -935,23 +935,23 @@ class MapboxService implements IMapboxService {
 
       if (isFirst || isLast) {
         // Start / end — slightly larger, with a subtle inner dot
-        el.style.width = '18px';
-        el.style.height = '18px';
+        el.style.width = '22px';
+        el.style.height = '22px';
         el.style.borderRadius = '50%';
-        el.style.backgroundColor = 'rgba(255, 255, 255, 0.18)';
-        el.style.border = '1.5px solid rgba(255, 255, 255, 0.55)';
-        el.style.boxShadow = '0 1px 6px rgba(0,0,0,0.22), inset 0 0 0 4px rgba(255,255,255,0.22)';
-        el.style.backdropFilter = 'blur(4px)';
+        el.style.backgroundColor = 'rgba(255, 255, 255, 0.45)';
+        el.style.border = '2px solid rgba(255, 255, 255, 0.85)';
+        el.style.boxShadow = '0 2px 10px rgba(0,0,0,0.35), inset 0 0 0 4px rgba(255,255,255,0.15)';
+        el.style.backdropFilter = 'blur(6px)';
         el.style.cursor = 'pointer';
       } else {
         // Waypoint — small, very subtle
-        el.style.width = '10px';
-        el.style.height = '10px';
+        el.style.width = '13px';
+        el.style.height = '13px';
         el.style.borderRadius = '50%';
-        el.style.backgroundColor = 'rgba(255, 255, 255, 0.12)';
-        el.style.border = '1.5px solid rgba(255, 255, 255, 0.35)';
-        el.style.boxShadow = '0 1px 4px rgba(0,0,0,0.18)';
-        el.style.backdropFilter = 'blur(2px)';
+        el.style.backgroundColor = 'rgba(255, 255, 255, 0.30)';
+        el.style.border = '2px solid rgba(255, 255, 255, 0.65)';
+        el.style.boxShadow = '0 1px 6px rgba(0,0,0,0.28)';
+        el.style.backdropFilter = 'blur(4px)';
         el.style.cursor = 'pointer';
       }
 
@@ -959,7 +959,7 @@ class MapboxService implements IMapboxService {
         .setLngLat(step.coordinates)
         .addTo(this.map!);
 
-      const markerHeight = isFirst || isLast ? 18 : 10;
+      const markerHeight = isFirst || isLast ? 22 : 13;
       const popupOffsetValue = markerHeight / 2 + 8;
 
       const popup = new mapboxgl.Popup({ 
