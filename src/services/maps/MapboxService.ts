@@ -932,28 +932,35 @@ class MapboxService implements IMapboxService {
 
       const el = document.createElement('div');
       el.className = 'journey-stop-marker';
-      el.style.width = '24px';
-      el.style.height = '24px';
-      el.style.borderRadius = '50%';
-      el.style.backgroundColor = 'rgba(255, 255, 255, 0.85)';
-      el.style.border = '2px solid rgba(255, 255, 255, 0.4)';
-      el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.35)';
-      el.style.cursor = 'pointer';
 
       if (isFirst || isLast) {
-        el.style.width = '32px';
-        el.style.height = '32px';
-        el.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
-        el.style.border = '3px solid rgba(255, 255, 255, 0.5)';
+        // Start / end — slightly larger, with a subtle inner dot
+        el.style.width = '18px';
+        el.style.height = '18px';
+        el.style.borderRadius = '50%';
+        el.style.backgroundColor = 'rgba(255, 255, 255, 0.18)';
+        el.style.border = '1.5px solid rgba(255, 255, 255, 0.55)';
+        el.style.boxShadow = '0 1px 6px rgba(0,0,0,0.22), inset 0 0 0 4px rgba(255,255,255,0.22)';
+        el.style.backdropFilter = 'blur(4px)';
+        el.style.cursor = 'pointer';
+      } else {
+        // Waypoint — small, very subtle
+        el.style.width = '10px';
+        el.style.height = '10px';
+        el.style.borderRadius = '50%';
+        el.style.backgroundColor = 'rgba(255, 255, 255, 0.12)';
+        el.style.border = '1.5px solid rgba(255, 255, 255, 0.35)';
+        el.style.boxShadow = '0 1px 4px rgba(0,0,0,0.18)';
+        el.style.backdropFilter = 'blur(2px)';
+        el.style.cursor = 'pointer';
       }
 
       const marker = new mapboxgl.Marker({ element: el })
         .setLngLat(step.coordinates)
         .addTo(this.map!);
 
-      // CRITICAL FIX: Calculate proper offset for journey stop markers
-      const markerHeight = isFirst || isLast ? 32 : 24;
-      const popupOffsetValue = markerHeight / 2 + 8; // Half marker height + 8px gap
+      const markerHeight = isFirst || isLast ? 18 : 10;
+      const popupOffsetValue = markerHeight / 2 + 8;
 
       const popup = new mapboxgl.Popup({ 
         offset: { 'bottom': [0, -popupOffsetValue] as [number, number] },
