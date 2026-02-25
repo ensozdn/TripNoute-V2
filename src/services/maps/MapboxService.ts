@@ -124,9 +124,9 @@ class MapboxService implements IMapboxService {
   private loadTransportIcons(): void {
     if (!this.map) return;
 
-    const size = 88; // Higher res for crispness
+    const size = 64; // Smaller canvas → less visual weight on the map
     const center = size / 2;
-    const radius = size / 2 - 3;
+    const radius = size / 2 - 2;
 
     Object.entries(this.TRANSPORT_ICONS).forEach(([mode, { path, color }]) => {
       const imageName = `medallion-${mode}`;
@@ -140,42 +140,39 @@ class MapboxService implements IMapboxService {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // ── Drop shadow ────────────────────────────────────────────────
-      ctx.shadowColor = 'rgba(0,0,0,0.32)';
-      ctx.shadowBlur = 8;
-      ctx.shadowOffsetY = 3;
+      // ── Subtle drop shadow ─────────────────────────────────────────
+      ctx.shadowColor = 'rgba(0,0,0,0.40)';
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetY = 2;
 
-      // ── Gradient circle background ─────────────────────────────────
-      const grad = ctx.createRadialGradient(center - 4, center - 6, 2, center, center, radius);
-      grad.addColorStop(0, '#ffffff');
-      grad.addColorStop(1, '#f1f5f9');
-      ctx.fillStyle = grad;
+      // ── Solid colored circle background ───────────────────────────
+      ctx.fillStyle = color;
       ctx.beginPath();
       ctx.arc(center, center, radius, 0, Math.PI * 2);
       ctx.fill();
 
-      // Reset shadow for the border
+      // Reset shadow before border & icon
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
       ctx.shadowOffsetY = 0;
 
-      // ── Colored border ring ────────────────────────────────────────
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 3.5;
+      // ── Thin white border ring ─────────────────────────────────────
+      ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
       ctx.arc(center, center, radius - 1.5, 0, Math.PI * 2);
       ctx.stroke();
 
-      // ── SVG icon via Path2D ────────────────────────────────────────
+      // ── White SVG icon via Path2D ──────────────────────────────────
       // The SVG paths are 24×24; scale & center them inside our canvas
-      const iconSize = size * 0.46;
+      const iconSize = size * 0.48;
       const offset = (size - iconSize) / 2;
       const scale = iconSize / 24;
 
       ctx.save();
       ctx.translate(offset, offset);
       ctx.scale(scale, scale);
-      ctx.fillStyle = color;
+      ctx.fillStyle = '#ffffff';
       ctx.fill(new Path2D(path));
       ctx.restore();
 
@@ -742,14 +739,67 @@ class MapboxService implements IMapboxService {
   }
 
   // Transport modes that use Mapbox Directions API for real road geometry.
-  // All others fall back to straight-line (great-circle) rendering.
+  // train uses 'driving' profile as Mapbox has no rail profile — routes are ~80% accurate.
+  // flight & ship use geodesic arc geometry instead (no road/sea API available).
   private readonly DIRECTIONS_PROFILES: Partial<Record<TransportMode, string>> = {
     car: 'driving-traffic',
     bus: 'driving',
+    train: 'driving',
     bike: 'cycling',
     walk: 'walking',
     walking: 'walking',
   };
+
+  // Generates a smooth geodesic arc between two points with N intermediate points.
+  // Used for flight and ship segments where no road/sea routing API is available.
+  private generateArcCoordinates(
+    from: [number, number],
+    to: [number, number],
+    numPoints: number = 64,
+  ): [number, number][] {
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
+    const toDeg = (rad: number) => (rad * 180) / Math.PI;
+
+    const lon1 = toRad(from[0]);
+    const lat1 = toRad(from[1]);
+    const lon2 = toRad(to[0]);
+    const lat2 = toRad(to[1]);
+
+    const coords: [number, number][] = [];
+
+    for (let i = 0; i <= numPoints; i++) {
+      const f = i / numPoints;
+
+      // Spherical linear interpolation (slerp) on great circle
+      const d =
+        2 *
+        Math.asin(
+          Math.sqrt(
+            Math.sin((lat2 - lat1) / 2) ** 2 +
+              Math.cos(lat1) * Math.cos(lat2) * Math.sin((lon2 - lon1) / 2) ** 2,
+          ),
+        );
+
+      if (d === 0) {
+        coords.push(from);
+        continue;
+      }
+
+      const A = Math.sin((1 - f) * d) / Math.sin(d);
+      const B = Math.sin(f * d) / Math.sin(d);
+
+      const x = A * Math.cos(lat1) * Math.cos(lon1) + B * Math.cos(lat2) * Math.cos(lon2);
+      const y = A * Math.cos(lat1) * Math.sin(lon1) + B * Math.cos(lat2) * Math.sin(lon2);
+      const z = A * Math.sin(lat1) + B * Math.sin(lat2);
+
+      const lat = toDeg(Math.atan2(z, Math.sqrt(x * x + y * y)));
+      const lon = toDeg(Math.atan2(y, x));
+
+      coords.push([lon, lat]);
+    }
+
+    return coords;
+  }
 
   // Fetches real road geometry from the Mapbox Directions API for a single segment.
   // Returns an ordered array of [lng, lat] coordinate pairs, or null on failure.
@@ -779,18 +829,31 @@ class MapboxService implements IMapboxService {
 
   // Resolves geometry for every step that needs it.
   // Steps with cached routeGeometry are skipped (no API call).
+  // - Directions API: car, bus, train, bike, walk
+  // - Geodesic arc: flight, ship (no routing API available)
   // Mutates the steps array in-place so drawJourneyRoute can use it directly.
   private async resolveRouteGeometries(steps: Trip['steps']): Promise<void> {
     const tasks = steps.slice(0, -1).map(async (step, i) => {
-      const profile = this.DIRECTIONS_PROFILES[step.transportToNext as TransportMode];
+      const mode = step.transportToNext as TransportMode;
+      const next = steps[i + 1];
 
-      // Use Directions API only for ground/water transport without cached geometry
+      // Ship → smooth geodesic arc (64 points), cached in routeGeometry
+      if (mode === 'ship') {
+        if (step.routeGeometry === undefined) {
+          step.routeGeometry = this.generateArcCoordinates(step.coordinates, next.coordinates, 64);
+        }
+        return;
+      }
+
+      // Directions API modes (car, bus, train, bike, walk)
+      const profile = this.DIRECTIONS_PROFILES[mode];
       if (profile && step.routeGeometry === undefined) {
-        const next = steps[i + 1];
         const geometry = await this.fetchDirectionsRoute(step.coordinates, next.coordinates, profile);
-        // Assign result; null means API failed → straight line will be used
+        // null means API failed → straight line fallback in drawJourneyRoute
         step.routeGeometry = geometry;
       }
+
+      // flight & unknown modes: routeGeometry stays undefined → straight great-circle line
     });
 
     await Promise.all(tasks);
@@ -912,15 +975,45 @@ class MapboxService implements IMapboxService {
     console.log(`✅ Route drawn with ${segments.length} segment(s)`);
   }
 
-  private getRouteStyle(_transport: TransportMode | null): any {
-    // All transport modes: subtle white dashed line
-    return {
-      'line-color': 'rgba(255, 255, 255, 1)',
-      'line-width': 2,
-      'line-dasharray': [3, 4],
-      'line-opacity': 1,
-      'line-blur': 0,
-    };
+  private getRouteStyle(transport: TransportMode | null): any {
+    switch (transport) {
+      case 'ship':
+        // Teal/cyan dashed arc — deniz hissi
+        return {
+          'line-color': 'rgba(6, 182, 212, 0.9)',   // cyan-500
+          'line-width': 2.5,
+          'line-dasharray': [2, 3],
+          'line-opacity': 0.9,
+          'line-blur': 0,
+        };
+      case 'train':
+        // Amber/sarı çizgi — tren hattı hissi
+        return {
+          'line-color': 'rgba(245, 158, 11, 0.9)',  // amber-500
+          'line-width': 2,
+          'line-dasharray': [4, 2],
+          'line-opacity': 0.9,
+          'line-blur': 0,
+        };
+      case 'flight':
+        // Beyaz ince arc — uçak güzergahı
+        return {
+          'line-color': 'rgba(255, 255, 255, 0.8)',
+          'line-width': 1.5,
+          'line-dasharray': [3, 4],
+          'line-opacity': 0.8,
+          'line-blur': 0,
+        };
+      default:
+        // car, bus, bike, walk → beyaz yol çizgisi
+        return {
+          'line-color': 'rgba(255, 255, 255, 1)',
+          'line-width': 2,
+          'line-dasharray': [3, 4],
+          'line-opacity': 1,
+          'line-blur': 0,
+        };
+    }
   }
 
   private addJourneyStopMarkers(journey: Journey | Trip): void {
@@ -1114,7 +1207,7 @@ class MapboxService implements IMapboxService {
           'walking', 'medallion-walking',
           'medallion-car',
         ],
-        'icon-size': 0.45,
+        'icon-size': 0.38,
         'icon-allow-overlap': true,
         'icon-ignore-placement': true,
         'icon-anchor': 'center',
