@@ -25,7 +25,6 @@ class MapboxService implements IMapboxService {
   private journeyLayers: Map<string, string[]> = new Map();
   private journeySources: Set<string> = new Set();
   private medallionMarkers: Map<string, mapboxgl.Marker[]> = new Map();
-  private transportIconsLoaded: boolean = false;
   private readonly TRANSPORT_EMOJIS: Record<string, string> = {
     flight:  '✈️',
     car:     '🚗',
@@ -98,13 +97,18 @@ class MapboxService implements IMapboxService {
     }
   }
   private loadTransportIcons(): void {
-    if (!this.map || this.transportIconsLoaded) return;
+    if (!this.map) return;
 
     const size = 64;
+    let allLoaded = true;
 
     Object.entries(this.TRANSPORT_EMOJIS).forEach(([mode, emoji]) => {
       const imageName = `medallion-${mode}`;
+
+      // Always check hasImage() — style reload wipes Mapbox's image registry
       if (this.map?.hasImage(imageName)) return;
+
+      allLoaded = false;
 
       const canvas = document.createElement('canvas');
       canvas.width = size;
@@ -138,12 +142,15 @@ class MapboxService implements IMapboxService {
           height: size,
           data: imageData.data,
         });
+        console.log(`  🖼️  Loaded icon: ${imageName}`);
       } catch (e) {
         // Image might already exist — safe to ignore
       }
     });
 
-    this.transportIconsLoaded = true;
+    if (!allLoaded) {
+      console.log('✅ Transport icons loaded into Mapbox image registry');
+    }
   }
   private calculateBearing(from: [number, number], to: [number, number]): number {
     const [lon1, lat1] = from;

@@ -79,6 +79,22 @@ export default function DashboardPage() {
     return () => { mapboxService.stopRotation(); };
   }, []);
 
+  const [mapReady, setMapReady] = useState(false);
+
+  // Watch for the map to become ready (style loaded)
+  useEffect(() => {
+    let cancelled = false;
+    const poll = setInterval(() => {
+      const mapboxService = getMapboxService();
+      const map = mapboxService.getMap();
+      if (map && map.isStyleLoaded()) {
+        if (!cancelled) setMapReady(true);
+        clearInterval(poll);
+      }
+    }, 100);
+    return () => { cancelled = true; clearInterval(poll); };
+  }, []);
+
   useEffect(() => {
     const handleClickOutside = () => {
       if (openMenuId) setOpenMenuId(null);
@@ -88,17 +104,16 @@ export default function DashboardPage() {
   }, [openMenuId]);
 
   useEffect(() => {
+    if (!mapReady || journeys.length === 0) return;
+
     const mapboxService = getMapboxService();
     const map = mapboxService.getMap();
-    if (!map || journeys.length === 0) return;
+    if (!map || !map.isStyleLoaded()) return;
 
     const renderJourneys = async () => {
       try {
-        // Only render journeys that aren't already on the map
-        const toRender = journeys.filter(
-          (j) => !mapboxService.hasJourney(j.id)
-        );
-        for (const journey of toRender) {
+        mapboxService.clearAllJourneys();
+        for (const journey of journeys) {
           await mapboxService.renderJourney(journey);
         }
       } catch (error) {
@@ -106,12 +121,8 @@ export default function DashboardPage() {
       }
     };
 
-    if (map.isStyleLoaded()) {
-      renderJourneys();
-    } else {
-      map.once('style.load', () => { renderJourneys(); });
-    }
-  }, [journeys]);
+    renderJourneys();
+  }, [mapReady, journeys]);
 
   const handleLogout = async () => {
     await logout();
