@@ -10,12 +10,18 @@ interface MapboxLocationPickerProps {
   initialLocation?: { lat: number; lng: number };
   onLocationSelect: (location: { lat: number; lng: number; address?: string }) => void;
   className?: string;
+  hideSearch?: boolean;
+  hideLocate?: boolean;
+  flyToLocation?: { lat: number; lng: number } | null;
 }
 
 export default function MapboxLocationPicker({
   initialLocation,
   onLocationSelect,
   className = '',
+  hideSearch = false,
+  hideLocate = false,
+  flyToLocation,
 }: MapboxLocationPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedLocation, setSelectedLocation] = useState(initialLocation || null);
@@ -108,6 +114,14 @@ export default function MapboxLocationPicker({
     }
   }, [selectedLocation, isLoaded, flyTo]);
 
+  // Fly to externally provided location (e.g. search from parent)
+  useEffect(() => {
+    if (!isLoaded || !flyToLocation) return;
+    flyTo(flyToLocation.lat, flyToLocation.lng, 14);
+    setShowHint(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flyToLocation?.lat, flyToLocation?.lng, isLoaded]);
+
   if (!accessToken) return null;
   if (error) return null;
 
@@ -117,24 +131,22 @@ export default function MapboxLocationPicker({
       {}
       <div ref={containerRef} className="absolute inset-0 w-full h-full" />
 
-      {}
-      <div className="absolute top-0 left-0 right-0 p-4 space-y-4 z-10 pointer-events-none">
-
-        {}
-        <div className="pointer-events-auto shadow-2xl shadow-black/20">
-          <PlaceSearchBar
-            onPlaceSelect={handlePlaceSelect}
-            placeholder="Konum ara..."
-            className="w-full"
-          />
+      {/* Search bar */}
+      {!hideSearch && (
+        <div className="absolute top-0 left-0 right-0 p-4 space-y-4 z-10 pointer-events-none">
+          <div className="pointer-events-auto shadow-2xl shadow-black/20">
+            <PlaceSearchBar
+              onPlaceSelect={handlePlaceSelect}
+              placeholder="Konum ara..."
+              className="w-full"
+            />
+          </div>
         </div>
+      )}
 
-      </div>
-
-      {}
-      <div className="absolute top-24 right-4 flex flex-col gap-3 z-10 pointer-events-none">
-        {}
-        {isLoaded && (
+      {/* Locate me button */}
+      <div className={`absolute ${hideSearch ? 'top-4' : 'top-24'} right-4 flex flex-col gap-3 z-10 pointer-events-none`}>
+        {!hideLocate && isLoaded && (
           <button
             onClick={handleLocateMe}
             disabled={isLocating}
