@@ -8,22 +8,33 @@ interface PlaceSearchBarProps {
   onPlaceSelect: (place: GooglePlaceResult) => void;
   placeholder?: string;
   className?: string;
+  dropdownDirection?: 'down' | 'up';
 }
 
 export default function PlaceSearchBar({
   onPlaceSelect,
   placeholder = 'Yer ara...',
   className = '',
+  dropdownDirection = 'down',
 }: PlaceSearchBarProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<GooglePlaceResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [dropdownRect, setDropdownRect] = useState<DOMRect | null>(null);
 
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const googlePlacesService = useRef(getGooglePlacesService());
+  const justSelected = useRef(false);
+
+  // Recompute input position whenever dropdown opens
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      setDropdownRect(inputRef.current.getBoundingClientRect());
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -40,6 +51,12 @@ export default function PlaceSearchBar({
     if (query.length < 3) {
       setResults([]);
       setIsOpen(false);
+      return;
+    }
+
+    // Block re-search after a selection was made
+    if (justSelected.current) {
+      justSelected.current = false;
       return;
     }
 
@@ -88,8 +105,10 @@ export default function PlaceSearchBar({
   };
 
   const handleSelect = (place: GooglePlaceResult) => {
+    justSelected.current = true;
     setQuery(place.name);
     setIsOpen(false);
+    setResults([]);
     setSelectedIndex(-1);
     onPlaceSelect(place);
   };
@@ -131,9 +150,19 @@ export default function PlaceSearchBar({
         </div>
       </div>
 
-      {}
-      {isOpen && results.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800/95 backdrop-blur-sm border border-white/20 rounded-xl shadow-xl max-h-80 overflow-y-auto z-50">
+      {/* Results dropdown — fixed positioned to escape any overflow:hidden parent */}
+      {isOpen && results.length > 0 && dropdownRect && (
+        <div
+          className="fixed bg-slate-800/98 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl overflow-y-auto z-[9999]"
+          style={{
+            left: dropdownRect.left,
+            width: dropdownRect.width,
+            maxHeight: '260px',
+            ...(dropdownDirection === 'up'
+              ? { bottom: window.innerHeight - dropdownRect.top + 8 }
+              : { top: dropdownRect.bottom + 8 }),
+          }}
+        >
           {results.map((place, index) => (
             <button
               key={place.placeId}
@@ -145,33 +174,15 @@ export default function PlaceSearchBar({
               } ${index > 0 ? 'border-t border-white/10' : ''}`}
             >
               <div className="flex items-start gap-3">
-                {}
-                <div className="mt-1">
-                  <svg
-                    className="w-5 h-5 text-primary-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
+                <div className="mt-1 shrink-0">
+                  <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                 </div>
-
-                {}
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-white truncate">{place.name}</p>
-                  <p className="text-sm text-slate-400 truncate">{place.formattedAddress}</p>
+                  <p className="text-sm font-medium text-white truncate">{place.name}</p>
+                  <p className="text-xs text-slate-400 truncate">{place.formattedAddress}</p>
                 </div>
               </div>
             </button>
@@ -179,10 +190,19 @@ export default function PlaceSearchBar({
         </div>
       )}
 
-      {}
-      {isOpen && !isLoading && query.length >= 3 && results.length === 0 && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800/95 backdrop-blur-sm border border-white/20 rounded-xl shadow-xl p-4 z-50">
-          <p className="text-slate-400 text-center">Sonuç bulunamadı</p>
+      {/* No results */}
+      {isOpen && !isLoading && query.length >= 3 && results.length === 0 && dropdownRect && (
+        <div
+          className="fixed bg-slate-800/98 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl p-4 z-[9999]"
+          style={{
+            left: dropdownRect.left,
+            width: dropdownRect.width,
+            ...(dropdownDirection === 'up'
+              ? { bottom: window.innerHeight - dropdownRect.top + 8 }
+              : { top: dropdownRect.bottom + 8 }),
+          }}
+        >
+          <p className="text-slate-400 text-center text-sm">Sonuç bulunamadı</p>
         </div>
       )}
     </div>

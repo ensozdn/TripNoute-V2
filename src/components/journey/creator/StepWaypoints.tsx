@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Plus, Trash2, GripVertical } from 'lucide-react';
+import { MapPin, Plus, Trash2, GripVertical, Search } from 'lucide-react';
 import { Place } from '@/types';
 import { TransportMode } from '@/types/trip';
+import PlaceSearchBar from '@/components/PlaceSearchBar';
+import type { GooglePlaceResult } from '@/types/maps';
 
 export interface DraftStep {
   // Temporary id for UI keying only — replaced by DB on save
@@ -121,6 +123,7 @@ export default function StepWaypoints({
   saveLabel = 'Save Journey',
 }: StepWaypointsProps) {
   const [showPlacePicker, setShowPlacePicker] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
 
   const addFromPlace = (place: Place) => {
     const newStep: DraftStep = {
@@ -137,6 +140,20 @@ export default function StepWaypoints({
     };
     onStepsChange([...steps, newStep]);
     setShowPlacePicker(false);
+  };
+
+  const addFromSearch = (result: GooglePlaceResult) => {
+    const newStep: DraftStep = {
+      _key: `search-${Date.now()}`,
+      name: result.name || result.formattedAddress,
+      coordinates: [result.location.lng, result.location.lat],
+      address: {
+        formatted: result.formattedAddress,
+      },
+      transportToNext: null,
+    };
+    onStepsChange([...steps, newStep]);
+    setShowSearch(false);
   };
 
   const removeStep = (key: string) => {
@@ -184,25 +201,61 @@ export default function StepWaypoints({
         </div>
       )}
 
-      {/* Add buttons */}
+      {/* Add buttons — 3 options */}
       <div className="flex gap-2">
         <button
-          onClick={() => setShowPlacePicker(!showPlacePicker)}
+          onClick={() => { setShowPlacePicker(!showPlacePicker); setShowSearch(false); }}
           disabled={availablePlaces.length === 0}
-          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed text-sm text-white/70 transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed text-xs text-white/70 transition-colors"
         >
-          <Plus className="w-4 h-4" strokeWidth={2} />
-          From My Places
+          <Plus className="w-3.5 h-3.5" strokeWidth={2} />
+          My Places
         </button>
 
         <button
-          onClick={onRequestMapPin}
-          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-sm text-white/70 transition-colors"
+          onClick={() => { setShowSearch(!showSearch); setShowPlacePicker(false); }}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl border text-xs transition-colors ${
+            showSearch
+              ? 'border-blue-500/40 bg-blue-500/15 text-blue-300'
+              : 'border-white/10 bg-white/5 hover:bg-white/10 text-white/70'
+          }`}
         >
-          <MapPin className="w-4 h-4" strokeWidth={2} />
-          Tap on Map
+          <Search className="w-3.5 h-3.5" strokeWidth={2} />
+          Search
+        </button>
+
+        <button
+          onClick={() => { setShowSearch(false); setShowPlacePicker(false); onRequestMapPin(); }}
+          className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-xs text-white/70 transition-colors"
+        >
+          <MapPin className="w-3.5 h-3.5" strokeWidth={2} />
+          Tap Map
         </button>
       </div>
+
+      {/* Search bar — inline dropdown */}
+      <AnimatePresence>
+        {showSearch && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-visible"
+          >
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-3 overflow-visible">
+              <PlaceSearchBar
+                onPlaceSelect={addFromSearch}
+                placeholder="Search any place..."
+                className="w-full"
+                dropdownDirection="up"
+              />
+              <p className="text-[11px] text-white/25 mt-2 text-center">
+                Select a result to add as waypoint
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Place picker inline list */}
       <AnimatePresence>

@@ -169,7 +169,7 @@ export default function JourneyCreator({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl overflow-hidden"
+            className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl"
             style={{
               background: 'linear-gradient(to bottom, rgba(15,20,30,0.98), rgba(10,14,22,0.98))',
               backdropFilter: 'blur(24px)',
@@ -222,7 +222,7 @@ export default function JourneyCreator({
             </div>
 
             {/* Content */}
-            <div className="px-5 pb-8 overflow-y-auto" style={{ maxHeight: 'calc(85vh - 120px)' }}>
+            <div className="px-5 pb-8 overflow-y-auto overflow-x-visible" style={{ maxHeight: 'calc(85vh - 120px)' }}>
               <AnimatePresence mode="wait">
                 {wizardStep === 'meta' ? (
                   <StepMeta

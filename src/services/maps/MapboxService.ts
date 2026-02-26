@@ -374,14 +374,14 @@ class MapboxService implements IMapboxService {
 
       wrapper.addEventListener('mouseenter', () => {
         const popupInstance = mapboxMarker.getPopup();
-        if (popupInstance && this.map) {
-          popupInstance.addTo(this.map);
+        if (popupInstance && !popupInstance.isOpen()) {
+          mapboxMarker.togglePopup();
         }
       });
       wrapper.addEventListener('mouseleave', () => {
         const popupInstance = mapboxMarker.getPopup();
-        if (popupInstance) {
-          popupInstance.remove();
+        if (popupInstance && popupInstance.isOpen()) {
+          mapboxMarker.togglePopup();
         }
       });
     }

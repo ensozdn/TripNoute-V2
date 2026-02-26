@@ -81,8 +81,9 @@ export default function DashboardPage() {
 
   const [mapReady, setMapReady] = useState(false);
 
-  // Watch for the map to become ready (style loaded)
+  // Watch for the map to become ready (style loaded).
   useEffect(() => {
+    setMapReady(false);
     let cancelled = false;
     const poll = setInterval(() => {
       const mapboxService = getMapboxService();
@@ -104,17 +105,21 @@ export default function DashboardPage() {
   }, [openMenuId]);
 
   useEffect(() => {
-    if (!mapReady || journeys.length === 0) return;
+    if (!mapReady) return;
 
     const mapboxService = getMapboxService();
     const map = mapboxService.getMap();
     if (!map || !map.isStyleLoaded()) return;
 
+    // Render any journeys not yet on the map.
+    // Runs on mapReady=true AND whenever journeys array changes,
+    // so it works both on initial load and after data fetches complete.
     const renderJourneys = async () => {
       try {
-        mapboxService.clearAllJourneys();
         for (const journey of journeys) {
-          await mapboxService.renderJourney(journey);
+          if (!mapboxService.hasJourney(journey.id)) {
+            await mapboxService.renderJourney(journey);
+          }
         }
       } catch (error) {
         console.error('Error rendering journeys:', error);
@@ -122,7 +127,7 @@ export default function DashboardPage() {
     };
 
     renderJourneys();
-  }, [mapReady, journeys]);
+  }, [mapReady, journeys]); // both dependencies: covers all timing scenarios
 
   const handleLogout = async () => {
     await logout();
@@ -159,12 +164,17 @@ export default function DashboardPage() {
 
   const handleJourneyCreated = useCallback((journey: Trip) => {
     setJourneys((prev) => [journey, ...prev]);
-    // useEffect([journeys]) will re-render all journeys automatically
+    // Directly render — don't rely on useEffect which no longer watches journeys
+    const mapboxService = getMapboxService();
+    mapboxService.renderJourney(journey);
   }, []);
 
   const handleJourneyUpdated = useCallback((updated: Trip) => {
     setJourneys((prev) => prev.map((j) => (j.id === updated.id ? updated : j)));
-    // useEffect([journeys]) will re-render the updated journey on the map
+    // Clear old layers and re-render with new data
+    const mapboxService = getMapboxService();
+    mapboxService.clearJourney(updated.id);
+    mapboxService.renderJourney(updated);
   }, []);
 
   const handleJourneySelect = useCallback((journey: Trip) => {

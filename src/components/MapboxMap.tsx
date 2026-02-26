@@ -103,11 +103,7 @@ export default function MapboxMap({
   useEffect(() => {
     if (!isLoaded || !map) return;
 
-    const mapboxService = getMapboxService();
-
-    return () => {
-      mapboxService.clearRouteLines();
-    };
+    // No cleanup needed here — journey layers are managed by dashboard callbacks
   }, [isLoaded, map]);
 
   if (!accessToken) {
