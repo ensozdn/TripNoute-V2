@@ -232,6 +232,7 @@ export default function JourneyHub({
           <InsightsTab
             stats={stats}
             placeFrequencies={placeFrequencies}
+            journeys={journeys}
           />
         );
       case 'gallery':

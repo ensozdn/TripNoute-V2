@@ -83,19 +83,11 @@ export default function DashboardPage() {
 
   const [mapReady, setMapReady] = useState(false);
 
-  // Watch for the map to become ready (style loaded).
+  // Ask the MapboxService to notify us when the style has fully loaded.
+  // This is reliable regardless of whether Firebase data or the map loads first.
   useEffect(() => {
-    setMapReady(false);
-    let cancelled = false;
-    const poll = setInterval(() => {
-      const mapboxService = getMapboxService();
-      const map = mapboxService.getMap();
-      if (map && map.isStyleLoaded()) {
-        if (!cancelled) setMapReady(true);
-        clearInterval(poll);
-      }
-    }, 100);
-    return () => { cancelled = true; clearInterval(poll); };
+    const mapboxService = getMapboxService();
+    mapboxService.onMapReady(() => setMapReady(true));
   }, []);
 
   useEffect(() => {
@@ -107,29 +99,17 @@ export default function DashboardPage() {
   }, [openMenuId]);
 
   useEffect(() => {
-    if (!mapReady) return;
+    // Both mapReady and journeys must be set before we can render anything.
+    if (!mapReady || journeys.length === 0) return;
+
 
     const mapboxService = getMapboxService();
-    const map = mapboxService.getMap();
-    if (!map || !map.isStyleLoaded()) return;
-
-    // Render any journeys not yet on the map.
-    // Runs on mapReady=true AND whenever journeys array changes,
-    // so it works both on initial load and after data fetches complete.
-    const renderJourneys = async () => {
-      try {
-        for (const journey of journeys) {
-          if (!mapboxService.hasJourney(journey.id)) {
-            await mapboxService.renderJourney(journey);
-          }
-        }
-      } catch (error) {
-        console.error('Error rendering journeys:', error);
-      }
-    };
-
-    renderJourneys();
-  }, [mapReady, journeys]); // both dependencies: covers all timing scenarios
+    // renderAllJourneys: clears everything first, then renders each journey
+    // through the internal queue — guaranteed sequential, no race conditions.
+    mapboxService.renderAllJourneys(journeys).catch((err) => {
+      console.error('Error rendering journeys:', err);
+    });
+  }, [mapReady, journeys]);
 
   const handleLogout = async () => {
     await logout();
@@ -165,18 +145,13 @@ export default function DashboardPage() {
   };
 
   const handleJourneyCreated = useCallback((journey: Trip) => {
+    // State update triggers the render useEffect which calls renderAllJourneys.
     setJourneys((prev) => [journey, ...prev]);
-    // Directly render — don't rely on useEffect which no longer watches journeys
-    const mapboxService = getMapboxService();
-    mapboxService.renderJourney(journey);
   }, []);
 
   const handleJourneyUpdated = useCallback((updated: Trip) => {
+    // State update triggers the render useEffect which re-renders everything.
     setJourneys((prev) => prev.map((j) => (j.id === updated.id ? updated : j)));
-    // Clear old layers and re-render with new data
-    const mapboxService = getMapboxService();
-    mapboxService.clearJourney(updated.id);
-    mapboxService.renderJourney(updated);
   }, []);
 
   const handleJourneySelect = useCallback((journey: Trip) => {
@@ -281,16 +256,16 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <header className="absolute top-4 left-4 z-40">
-          <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+        <header className="absolute top-5 left-5 z-40">
+          <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <Image
               src="/tripnoute-logo-v2.jpg"
               alt="TripNoute"
-              width={36}
-              height={36}
-              className="rounded-[9px] shadow-lg shadow-black/20"
+              width={43}
+              height={43}
+              className="rounded-[10px] shadow-lg shadow-black/20"
             />
-            <span className="text-2xl font-bold text-white tracking-tighter drop-shadow-md font-sans">
+            <span className="text-4xl font-bold text-white tracking-tighter drop-shadow-md font-sans">
               TripNoute
             </span>
           </Link>

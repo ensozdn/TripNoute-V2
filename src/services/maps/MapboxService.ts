@@ -25,6 +25,16 @@ class MapboxService implements IMapboxService {
   private journeyLayers: Map<string, string[]> = new Map();
   private journeySources: Set<string> = new Set();
   private medallionMarkers: Map<string, mapboxgl.Marker[]> = new Map();
+
+  // ── Map-ready callback ────────────────────────────────────────────────────
+  // Called once when the map style finishes loading for the first time.
+  private mapReadyCallbacks: Array<() => void> = [];
+
+  // ── Render guard ──────────────────────────────────────────────────────────
+  // Each renderAllJourneys call gets a unique runId. If a newer call starts
+  // before the current one finishes, the old call detects it's stale and
+  // skips writing to the map — preventing layer conflicts and visual glitches.
+  private currentRenderRunId: number = 0;
   // SVG icon paths (viewBox 0 0 24 24) for each transport mode
   private readonly TRANSPORT_ICONS: Record<string, { path: string; color: string }> = {
     // violet — matches line color #a78bfa
@@ -78,7 +88,7 @@ class MapboxService implements IMapboxService {
 
       const isMobile = window.innerWidth < 768;
 
-      const mobileZoom = 0.9;
+      const mobileZoom = 0.8;
       const desktopZoom = config.zoom || 1.5;
 
       this.map = new mapboxgl.Map({
@@ -107,6 +117,9 @@ class MapboxService implements IMapboxService {
 
         this.map!.on('load', () => {
           clearTimeout(timeout);
+          // Fire all registered onMapReady callbacks
+          this.mapReadyCallbacks.forEach((cb) => cb());
+          this.mapReadyCallbacks = [];
           resolve();
         });
 
@@ -192,13 +205,11 @@ class MapboxService implements IMapboxService {
           height: size,
           data: imageData.data,
         });
-        console.log(`    Loaded icon: ${imageName}`);
       } catch (e) {
         // Image might already exist — safe to ignore
       }
     });
 
-    console.log(' Transport icons loaded into Mapbox image registry');
   }
   private calculateBearing(from: [number, number], to: [number, number]): number {
     const [lon1, lat1] = from;
@@ -607,7 +618,6 @@ class MapboxService implements IMapboxService {
       .setLngLat([lng, lat])
       .addTo(this.map);
 
-    console.log(' User location marker added to map');
   }
   removeUserLocationMarker(): void {
     if (this.userLocationMarker) {
@@ -807,7 +817,10 @@ class MapboxService implements IMapboxService {
       `?geometries=geojson&overview=full&access_token=${token}`;
 
     try {
-      const res = await fetch(url);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000); // 8s hard timeout
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeout);
       if (!res.ok) return null;
       const json = await res.json();
       const coords = json.routes?.[0]?.geometry?.coordinates as [number, number][] | undefined;
@@ -849,13 +862,43 @@ class MapboxService implements IMapboxService {
     await Promise.all(tasks);
   }
 
+  // Register a callback to be fired once the map style is ready.
+  // If the map is already ready, the callback fires on the next microtask tick.
+  onMapReady(cb: () => void): void {
+    if (this.map && this.map.isStyleLoaded()) {
+      Promise.resolve().then(cb);
+    } else {
+      this.mapReadyCallbacks.push(cb);
+    }
+  }
+
+  // Renders a single journey. If called from renderAllJourneys, runs sequentially.
+  // If called standalone (e.g. after create/update), runs immediately.
   async renderJourney(journey: Journey | Trip): Promise<void> {
+    try {
+      await this._renderJourneyImpl(journey);
+    } catch (err) {
+      console.error(` renderJourney failed for ${journey.id}:`, err);
+    }
+  }
+
+  private async _renderJourneyImpl(journey: Journey | Trip): Promise<void> {
     if (!this.map) return;
 
-    // CRITICAL FIX: Ensure map style is loaded before rendering
+    // Ensure map style is loaded before rendering
+    // NOTE: We poll with a short interval rather than waiting for 'style.load',
+    // because 'style.load' only fires on full style reloads — it will never fire
+    // when isStyleLoaded() returns false briefly after adding sources/layers.
     if (!this.map.isStyleLoaded()) {
       await new Promise<void>((resolve) => {
-        this.map!.once('style.load', () => resolve());
+        const check = () => {
+          if (this.map?.isStyleLoaded()) {
+            resolve();
+          } else {
+            setTimeout(check, 50);
+          }
+        };
+        check();
       });
     }
 
@@ -882,6 +925,7 @@ class MapboxService implements IMapboxService {
 
     // STEP 7: Add stop markers LAST (topmost layer)
     this.addJourneyStopMarkers(journeyToRender);
+
   }
 
   private drawJourneyRoute(journey: Journey | Trip): void {
@@ -939,7 +983,6 @@ class MapboxService implements IMapboxService {
       layerIds.push(layerId);
 
       if (this.map!.getLayer(layerId)) {
-        console.log(`  ⏭️  Layer ${layerId} already exists, skipping`);
         return;
       }
 
@@ -958,64 +1001,56 @@ class MapboxService implements IMapboxService {
         paint: style,
       });
 
-      console.log(`  ✅ Added line layer: ${layerId} (${segment.properties.transportMode})`);
     });
 
     this.journeyLayers.set(journey.id, layerIds);
-    console.log(`✅ Route drawn with ${segments.length} segment(s)`);
   }
 
   private getRouteStyle(transport: TransportMode | null): any {
     switch (transport) {
       case 'flight':
-        // Violet/purple dashed arc — uçak güzergahı
         return {
-          'line-color': '#a78bfa',   // violet-400
+          'line-color': '#7c3aed',   // violet-600
           'line-width': 2,
           'line-dasharray': [3, 4],
           'line-opacity': 0.95,
           'line-blur': 0,
         };
       case 'ship':
-        // Cyan dashed arc — deniz hissi
         return {
-          'line-color': '#22d3ee',   // cyan-400
+          'line-color': '#0891b2',   // cyan-600
           'line-width': 2.5,
           'line-dasharray': [2, 3],
           'line-opacity': 0.95,
           'line-blur': 0,
         };
       case 'train':
-        // Amber/sarı çizgi — tren hattı hissi
         return {
-          'line-color': '#fbbf24',   // amber-400
+          'line-color': '#d97706',   // amber-600
           'line-width': 2.5,
           'line-dasharray': [4, 2],
           'line-opacity': 0.95,
           'line-blur': 0,
         };
       case 'bus':
-        // Orange — otobüs hattı
         return {
-          'line-color': '#fb923c',   // orange-400
+          'line-color': '#ea580c',   // orange-600
           'line-width': 2,
           'line-dasharray': [4, 3],
           'line-opacity': 0.95,
           'line-blur': 0,
         };
       case 'car':
-        // Emerald/yeşil — kara yolu
         return {
-          'line-color': '#34d399',   // emerald-400
+          'line-color': '#059669',   // emerald-600
           'line-width': 2.5,
           'line-dasharray': [1, 0],
           'line-opacity': 0.95,
           'line-blur': 0,
         };
       default:
-        // bike, walk, other → sky blue
         return {
-          'line-color': '#38bdf8',   // sky-400
+          'line-color': '#0284c7',   // sky-600
           'line-width': 2,
           'line-dasharray': [3, 4],
           'line-opacity': 0.95,
@@ -1124,7 +1159,6 @@ class MapboxService implements IMapboxService {
   private async addTransportMedallions(journey: Journey | Trip): Promise<void> {
     if (!this.map) return;
 
-    console.log(`🏅 Creating premium medallions for journey: ${journey.id}, steps: ${journey.steps.length}`);
 
     // Pre-load icons if not already loaded
     this.loadTransportIcons();
@@ -1136,7 +1170,6 @@ class MapboxService implements IMapboxService {
       const next = journey.steps[i + 1];
 
       if (!current.transportToNext) {
-        console.log(`  ⏭️  Segment ${i}: No transport mode, skipping`);
         continue;
       }
 
@@ -1158,12 +1191,11 @@ class MapboxService implements IMapboxService {
 
       const bearing = this.calculateBearing(current.coordinates, next.coordinates);
 
-      console.log(`  ✈️  Segment ${i}: ${current.transportToNext} | ${current.name} → ${next.name} | Bearing: ${bearing.toFixed(1)}° | Midpoint: [${midpoint[0].toFixed(2)}, ${midpoint[1].toFixed(2)}]`);
 
       // Verify icon exists
       const iconName = `medallion-${current.transportToNext}`;
       if (!this.map.hasImage(iconName)) {
-        console.warn(`  ⚠️  Icon missing: ${iconName} - will use fallback`);
+        console.warn(`    Icon missing: ${iconName} - will use fallback`);
       }
 
       features.push({
@@ -1182,11 +1214,9 @@ class MapboxService implements IMapboxService {
     }
 
     if (features.length === 0) {
-      console.log('  ⚠️  No transport segments found, skipping medallions');
       return;
     }
 
-    console.log(`  🎯 Creating ${features.length} premium medallion icons`);
 
     const sourceId = `medallions-${journey.id}`;
     const layerBgId = `medallions-bg-${journey.id}`;
@@ -1243,7 +1273,6 @@ class MapboxService implements IMapboxService {
     this.journeyLayers.set(journey.id, layers);
     this.journeySources.add(sourceId);
 
-    console.log(`  ✅ Premium medallion layers created: ${layerBgId}, ${layerIconId}`);
   }
 
   private calculateMidpoint(from: [number, number], to: [number, number]): [number, number] {
@@ -1256,7 +1285,6 @@ class MapboxService implements IMapboxService {
   clearJourney(journeyId: string): void {
     if (!this.map) return;
 
-    console.log(`🧹 Clearing journey: ${journeyId}`);
 
     // Remove line layers
     const layerIds = this.journeyLayers.get(journeyId);
@@ -1264,7 +1292,6 @@ class MapboxService implements IMapboxService {
       layerIds.forEach(layerId => {
         if (this.map!.getLayer(layerId)) {
           this.map!.removeLayer(layerId);
-          console.log(`  🗑️  Removed layer: ${layerId}`);
         }
       });
       this.journeyLayers.delete(journeyId);
@@ -1275,7 +1302,6 @@ class MapboxService implements IMapboxService {
     if (this.map.getSource(sourceId)) {
       this.map.removeSource(sourceId);
       this.journeySources.delete(sourceId);
-      console.log(`  🗑️  Removed source: ${sourceId}`);
     }
 
     // Remove medallion layers
@@ -1283,11 +1309,9 @@ class MapboxService implements IMapboxService {
     const medallionIconLayerId = `medallions-icon-${journeyId}`;
     if (this.map.getLayer(medallionIconLayerId)) {
       this.map.removeLayer(medallionIconLayerId);
-      console.log(`  🗑️  Removed medallion icon layer`);
     }
     if (this.map.getLayer(medallionBgLayerId)) {
       this.map.removeLayer(medallionBgLayerId);
-      console.log(`  🗑️  Removed medallion bg layer`);
     }
 
     // Remove medallion source
@@ -1295,7 +1319,6 @@ class MapboxService implements IMapboxService {
     if (this.map.getSource(medallionSourceId)) {
       this.map.removeSource(medallionSourceId);
       this.journeySources.delete(medallionSourceId);
-      console.log(`  🗑️  Removed medallion source`);
     }
 
     // Remove stop markers
@@ -1303,10 +1326,8 @@ class MapboxService implements IMapboxService {
     if (markers) {
       markers.forEach(marker => marker.remove());
       this.medallionMarkers.delete(journeyId);
-      console.log(`  🗑️  Removed ${markers.length} stop marker(s)`);
     }
 
-    console.log(`✅ Journey ${journeyId} cleared`);
   }
 
   hasJourney(journeyId: string): boolean {
@@ -1316,14 +1337,30 @@ class MapboxService implements IMapboxService {
   clearAllJourneys(): void {
     if (!this.map) return;
 
-    console.log('🧹 Clearing all journeys');
-    const count = this.journeyLayers.size;
-
     this.journeyLayers.forEach((_, journeyId) => {
       this.clearJourney(journeyId);
     });
+  }
 
-    console.log(`✅ Cleared ${count} journey(s)`);
+  // Clears all existing journeys then renders each one sequentially.
+  async renderAllJourneys(journeys: Array<Journey | Trip>): Promise<void> {
+    // Bump the run ID — any in-progress render will see it's stale and bail out.
+    const runId = ++this.currentRenderRunId;
+
+    this.clearAllJourneys();
+
+    for (let i = 0; i < journeys.length; i++) {
+      // If a newer renderAllJourneys call came in while we were awaiting, stop.
+      if (runId !== this.currentRenderRunId) {
+        return;
+      }
+      const journey = journeys[i];
+      await this.renderJourney(journey);
+    }
+
+    if (runId !== this.currentRenderRunId) {
+      return;
+    }
   }
 }
 
