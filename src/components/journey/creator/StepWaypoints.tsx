@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Plus, Trash2, GripVertical, Search } from 'lucide-react';
+import { MapPin, Plus, Trash2, GripVertical, Search, Plane, Car, Train, Bus, Ship, Bike, PersonStanding } from 'lucide-react';
 import { Place } from '@/types';
 import { TransportMode } from '@/types/trip';
 import PlaceSearchBar from '@/components/PlaceSearchBar';
@@ -19,15 +19,24 @@ export interface DraftStep {
   placeId?: string;
 }
 
-const TRANSPORT_OPTIONS: { mode: TransportMode; emoji: string; label: string }[] = [
-  { mode: 'flight', emoji: '✈️', label: 'Flight' },
-  { mode: 'car',    emoji: '🚗', label: 'Car' },
-  { mode: 'train',  emoji: '🚂', label: 'Train' },
-  { mode: 'bus',    emoji: '🚌', label: 'Bus' },
-  { mode: 'ship',   emoji: '🚢', label: 'Ship' },
-  { mode: 'bike',   emoji: '🚲', label: 'Bike' },
-  { mode: 'walk',   emoji: '🚶', label: 'Walk' },
+const TRANSPORT_OPTIONS: { mode: TransportMode; icon: React.ReactNode; label: string; color: string }[] = [
+  { mode: 'flight', icon: <Plane      className="w-3.5 h-3.5" strokeWidth={1.8} />, label: 'Flight', color: 'violet' },
+  { mode: 'car',    icon: <Car        className="w-3.5 h-3.5" strokeWidth={1.8} />, label: 'Car',    color: 'emerald' },
+  { mode: 'train',  icon: <Train      className="w-3.5 h-3.5" strokeWidth={1.8} />, label: 'Train',  color: 'amber' },
+  { mode: 'bus',    icon: <Bus        className="w-3.5 h-3.5" strokeWidth={1.8} />, label: 'Bus',    color: 'orange' },
+  { mode: 'ship',   icon: <Ship       className="w-3.5 h-3.5" strokeWidth={1.8} />, label: 'Ship',   color: 'cyan' },
+  { mode: 'bike',   icon: <Bike       className="w-3.5 h-3.5" strokeWidth={1.8} />, label: 'Bike',   color: 'sky' },
+  { mode: 'walk',   icon: <PersonStanding className="w-3.5 h-3.5" strokeWidth={1.8} />, label: 'Walk', color: 'sky' },
 ];
+
+const COLOR_MAP: Record<string, { active: string; dot: string }> = {
+  violet:  { active: 'bg-violet-500/20 border-violet-500/50 text-violet-300',  dot: 'bg-violet-400' },
+  emerald: { active: 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300', dot: 'bg-emerald-400' },
+  amber:   { active: 'bg-amber-500/20 border-amber-500/50 text-amber-300',    dot: 'bg-amber-400' },
+  orange:  { active: 'bg-orange-500/20 border-orange-500/50 text-orange-300',  dot: 'bg-orange-400' },
+  cyan:    { active: 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300',       dot: 'bg-cyan-400' },
+  sky:     { active: 'bg-sky-500/20 border-sky-500/50 text-sky-300',          dot: 'bg-sky-400' },
+};
 
 interface StepWaypointsProps {
   steps: DraftStep[];
@@ -86,19 +95,23 @@ function WaypointRow({
             <div className="mt-2.5 mb-1">
               <p className="text-[10px] text-white/25 uppercase tracking-wider mb-1.5 ml-0.5">How to get there</p>
               <div className="flex flex-wrap gap-1.5">
-                {TRANSPORT_OPTIONS.map(({ mode, emoji, label }) => {
+                {TRANSPORT_OPTIONS.map(({ mode, icon, label, color }) => {
                   const isSelected = step.transportToNext === mode;
+                  const colors = COLOR_MAP[color];
                   return (
                     <button
                       key={mode}
                       onClick={() => onTransportChange(mode)}
-                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium border transition-all ${
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium border transition-all ${
                         isSelected
-                          ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
+                          ? colors.active
                           : 'bg-white/5 border-white/10 text-white/40 hover:text-white/70 hover:bg-white/10'
                       }`}
                     >
-                      <span>{emoji}</span>
+                      {isSelected && (
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${colors.dot}`} />
+                      )}
+                      {icon}
                       <span>{label}</span>
                     </button>
                   );

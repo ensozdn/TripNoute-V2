@@ -13,7 +13,8 @@ import { Place } from '@/types';
 import { Trip } from '@/types/trip';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { JourneyHub } from '@/components/journey';
-import { Plus, Locate, MapPin } from 'lucide-react';
+import SettingsTab from '@/components/journey/tabs/SettingsTab';
+import { Locate, MapPin, Settings, X } from 'lucide-react';
 
 const MapboxMap = dynamic(() => import('@/components/MapboxMap'), {
   ssr: false,
@@ -34,6 +35,7 @@ export default function DashboardPage() {
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [mapPinMode, setMapPinMode] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Callback ref for map-pin mode: JourneyCreator passes a handler here
   // so the user can tap the map to drop a waypoint.
@@ -65,7 +67,7 @@ export default function DashboardPage() {
     if (!map) return;
 
     const startRotation = () => {
-      if (map.getZoom() < 3) {
+      if (map.getZoom() < 4) {
         setTimeout(() => { mapboxService.startSlowRotation(); }, 1000);
       }
     };
@@ -272,23 +274,23 @@ export default function DashboardPage() {
               selectedPlace={selectedPlace}
               onMarkerClick={handleMarkerClick}
               onMapClick={handleMapClick}
-              zoom={2}
+              zoom={1.5}
               style="mapbox://styles/mapbox/satellite-streets-v12"
               className="absolute top-0 left-0 w-full h-screen"
             />
           )}
         </div>
 
-        <header className="absolute top-6 left-6 z-40">
-          <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+        <header className="absolute top-4 left-4 z-40">
+          <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
             <Image
               src="/tripnoute-logo-v2.jpg"
               alt="TripNoute"
-              width={42}
-              height={42}
-              className="rounded-[10px] shadow-lg shadow-black/20"
+              width={36}
+              height={36}
+              className="rounded-[9px] shadow-lg shadow-black/20"
             />
-            <span className="text-3xl font-bold text-white tracking-tighter drop-shadow-md font-sans">
+            <span className="text-2xl font-bold text-white tracking-tighter drop-shadow-md font-sans">
               TripNoute
             </span>
           </Link>
@@ -307,20 +309,50 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div className="absolute top-5 right-5 z-30">
+        <div className="absolute top-4 right-4 z-30 flex flex-col gap-2">
+          <button
+            onClick={() => setSettingsOpen(true)}
+            className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-2 shadow-2xl shadow-black/20 hover:bg-white/20 transition-all"
+            title="Settings"
+          >
+            <Settings className="w-4 h-4 text-white" />
+          </button>
           <button
             onClick={handleGoToMyLocation}
             disabled={isLocating}
-            className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-2.5 shadow-2xl shadow-black/20 hover:bg-white/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-2 shadow-2xl shadow-black/20 hover:bg-white/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             title="Konumuma Git"
           >
             {isLocating ? (
-              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
-              <Locate className="w-5 h-5 text-white" />
+              <Locate className="w-4 h-4 text-white" />
             )}
           </button>
         </div>
+
+        {/* Settings overlay */}
+        {settingsOpen && (
+          <div className="absolute inset-0 z-50 bg-slate-900/95 backdrop-blur-sm flex flex-col">
+            <div className="flex items-center justify-between px-5 pt-12 pb-4 border-b border-white/10">
+              <span className="text-white font-semibold text-lg">Settings</span>
+              <button
+                onClick={() => setSettingsOpen(false)}
+                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-all"
+              >
+                <X className="w-4 h-4 text-white" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <SettingsTab
+                userName={user?.displayName ?? null}
+                userEmail={user?.email ?? null}
+                userPhoto={user?.photoURL ?? null}
+                onLogout={handleLogout}
+              />
+            </div>
+          </div>
+        )}
 
         <JourneyHub
           places={places}
@@ -339,14 +371,9 @@ export default function DashboardPage() {
           userEmail={user?.email}
           userPhoto={user?.photoURL}
           onLogout={handleLogout}
+          onAddPlace={() => router.push('/places/add')}
         />
 
-        <Link
-          href="/places/add"
-          className="absolute bottom-24 right-6 sm:right-8 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-2xl shadow-blue-500/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95 group"
-        >
-          <Plus className="w-6 h-6 text-white group-hover:rotate-90 transition-transform duration-300" />
-        </Link>
       </div>
     </ProtectedRoute>
   );

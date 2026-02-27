@@ -46,7 +46,7 @@ export default function MapboxMap({
           },
           title: place.title,
           description: `${place.address?.city || ''}, ${place.address?.country || ''}`,
-          color: selectedPlace?.id === place.id ? '#10b981' : '#3b82f6',
+          color: selectedPlace?.id === place.id ? '#0037ffff' : '#0062ffff',
           icon: photoUrl,
         };
       });
@@ -84,16 +84,11 @@ export default function MapboxMap({
     const mapboxService = getMapboxService();
 
     const timer = setTimeout(() => {
-
-      if (map.getZoom() < 3) {
+      if (map.getZoom() < 4) {
         mapboxService.startSlowRotation();
       }
     }, 1000);
 
-    return () => {
-      clearTimeout(timer);
-      mapboxService.stopRotation();
-    };
     return () => {
       clearTimeout(timer);
       mapboxService.stopRotation();
@@ -122,17 +117,6 @@ export default function MapboxMap({
   if (error) {
     return (
       <div className={`flex items-center justify-center bg-slate-900/50 w-full h-full ${className}`} style={{ minHeight: '400px' }}>
-        <div className="text-center">
-          <p className="text-red-400 font-medium">Harita yüklenemedi</p>
-          <p className="text-slate-400 text-sm mt-2">{error}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className={`flex items-center justify-center bg-slate-900/50 ${className}`}>
         <div className="text-center">
           <p className="text-red-400 font-medium">Harita yüklenemedi</p>
           <p className="text-slate-400 text-sm mt-2">{error}</p>

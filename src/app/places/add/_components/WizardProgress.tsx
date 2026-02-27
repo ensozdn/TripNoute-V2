@@ -16,28 +16,28 @@ const STEPS = [
 
 export default function WizardProgress({ currentStep, onBack, onClose }: WizardProgressProps) {
   return (
-    <div className="absolute top-0 left-0 right-0 z-50 pointer-events-none bg-slate-900/95 backdrop-blur-xl border-b border-white/8">
-      {/* Main bar */}
-      <div className="flex items-center gap-3 px-4 pt-5 pb-4">
+    <div className="absolute top-0 left-0 right-0 z-50 pointer-events-none bg-slate-900/98 backdrop-blur-xl border-b border-white/8">
+      {/* Compact single bar */}
+      <div className="flex items-center gap-2.5 px-3 pt-3 pb-2.5">
         {/* Back / Close button */}
         <button
           onClick={currentStep === 1 ? onClose : onBack}
-          className="pointer-events-auto w-10 h-10 flex items-center justify-center rounded-2xl bg-black/40 backdrop-blur-xl border border-white/15 text-white shrink-0 hover:bg-black/60 active:scale-95 transition-all shadow-lg"
+          className="pointer-events-auto w-8 h-8 flex items-center justify-center rounded-xl bg-black/40 border border-white/15 text-white shrink-0 hover:bg-black/60 active:scale-95 transition-all"
         >
           {currentStep === 1 ? (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           ) : (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           )}
         </button>
 
         {/* Step name */}
-        <div className="flex-1">
-          <p className="text-xs text-white/40 font-medium">Step {currentStep} of 3</p>
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] text-white/35 font-medium leading-none mb-0.5">Step {currentStep} of 3</p>
           <p className="text-sm font-semibold text-white leading-tight">
             {STEPS[currentStep - 1].label}
           </p>
@@ -52,7 +52,7 @@ export default function WizardProgress({ currentStep, onBack, onClose }: WizardP
               <motion.div
                 key={step.n}
                 animate={{
-                  width: isActive ? 20 : 6,
+                  width: isActive ? 18 : 5,
                   backgroundColor: isDone
                     ? 'rgba(255,255,255,0.8)'
                     : isActive
@@ -78,3 +78,4 @@ export default function WizardProgress({ currentStep, onBack, onClose }: WizardP
     </div>
   );
 }
+

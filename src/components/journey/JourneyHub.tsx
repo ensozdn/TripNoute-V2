@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
 import { Place } from '@/types';
 import { Trip } from '@/types/trip';
@@ -9,12 +9,11 @@ import TimelineTab from './tabs/TimelineTab';
 import JourneysTab from './tabs/JourneysTab';
 import InsightsTab from './tabs/InsightsTab';
 import GalleryTab from './tabs/GalleryTab';
-import SettingsTab from './tabs/SettingsTab';
 import JourneyCreator from './creator/JourneyCreator';
-import { Map, Route, BarChart3, ImageIcon, Settings } from 'lucide-react';
+import { Map, Route, BarChart3, ImageIcon, Plus } from 'lucide-react';
 import { deduplicateCountries, sortByFrequency } from '@/utils/dataNormalizer';
 
-type TabType = 'timeline' | 'journeys' | 'insights' | 'gallery' | 'settings';
+type TabType = 'timeline' | 'journeys' | 'insights' | 'gallery';
 type SheetState = 'closed' | 'middle' | 'full';
 
 interface TabConfig {
@@ -41,19 +40,19 @@ interface JourneyHubProps {
   userEmail?: string | null;
   userPhoto?: string | null;
   onLogout: () => void;
+  onAddPlace: () => void;
 }
 
 const TABS: TabConfig[] = [
-  { id: 'timeline', label: 'Timeline', icon: <Map className="w-5 h-5" />, expandsTo: 'middle' },
-  { id: 'journeys', label: 'Journeys', icon: <Route className="w-5 h-5" />, expandsTo: 'middle' },
-  { id: 'insights', label: 'Insights', icon: <BarChart3 className="w-5 h-5" />, expandsTo: 'full' },
-  { id: 'gallery', label: 'Gallery', icon: <ImageIcon className="w-5 h-5" />, expandsTo: 'full' },
-  { id: 'settings', label: 'Settings', icon: <Settings className="w-5 h-5" />, expandsTo: 'full' },
+  { id: 'timeline', label: 'Timeline', icon: <Map className="w-4 h-4" />, expandsTo: 'middle' },
+  { id: 'journeys', label: 'Journeys', icon: <Route className="w-4 h-4" />, expandsTo: 'middle' },
+  { id: 'insights', label: 'Insights', icon: <BarChart3 className="w-4 h-4" />, expandsTo: 'full' },
+  { id: 'gallery',  label: 'Gallery',  icon: <ImageIcon className="w-4 h-4" />, expandsTo: 'full' },
 ];
 
 const SNAP_POINTS: Record<SheetState, number> = {
-  closed: 0.08,
-  middle: 0.5,
+  closed: 0.065,  // ~55px — just handle + tab bar, maximises map view
+  middle: 0.40,   // 60% of screen for map
   full: 0.95,
 };
 
@@ -70,16 +69,26 @@ export default function JourneyHub({
   onJourneyUpdated,
   onRequestMapPin,
   mapPinMode = false,
-  userName,
-  userEmail,
-  userPhoto,
-  onLogout,
+  userName: _userName,
+  userEmail: _userEmail,
+  userPhoto: _userPhoto,
+  onLogout: _onLogout,
+  onAddPlace,
 }: JourneyHubProps) {
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [sheetState, setSheetState] = useState<SheetState>('closed');
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [editingJourney, setEditingJourney] = useState<Trip | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
+
+  // Detect mobile once on mount
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768);
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   const stats: JourneyStats = useMemo(() => {
     const countries = new Set<string>();
@@ -231,16 +240,6 @@ export default function JourneyHub({
             photos={galleryPhotos}
           />
         );
-      case 'settings':
-        return (
-          <SettingsTab
-            userName={userName}
-            userEmail={userEmail}
-            userPhoto={userPhoto}
-            onLogout={onLogout}
-            places={places}
-          />
-        );
       default:
         return null;
     }
@@ -277,11 +276,11 @@ export default function JourneyHub({
 
       {}
       <motion.div
-        className="relative z-10 flex justify-center py-3"
+        className="relative z-10 flex justify-center py-2"
         animate={{ opacity: [0.5, 0.7, 0.5] }}
         transition={{ duration: 2, repeat: Infinity }}
       >
-        <div className="w-12 h-1.5 rounded-full bg-white/40 cursor-grab active:cursor-grabbing" />
+        <div className="w-10 h-1 rounded-full bg-white/30 cursor-grab active:cursor-grabbing" />
       </motion.div>
 
       {}
@@ -291,7 +290,7 @@ export default function JourneyHub({
             {}
             <motion.div
               layoutId="active-pill"
-              className="absolute h-10 bg-white/10 border border-white/20 rounded-xl"
+              className="absolute h-8 bg-white/10 border border-white/20 rounded-xl"
               transition={{
                 type: 'spring',
                 stiffness: 400,
@@ -308,7 +307,7 @@ export default function JourneyHub({
               <motion.button
                 key={tab.id}
                 onClick={() => handleTabClick(index)}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 px-3 text-sm font-medium relative z-20 transition-colors duration-200 ${
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-1 text-xs font-medium relative z-20 transition-colors duration-200 ${
                   index === activeTabIndex
                     ? 'text-white'
                     : 'text-slate-400 hover:text-slate-300'
@@ -317,10 +316,20 @@ export default function JourneyHub({
                 whileTap={{ scale: 0.95 }}
               >
                 {tab.icon}
-                <span className="hidden sm:inline">{tab.label}</span>
+                <span className={isMobile ? 'hidden' : 'inline'}>{tab.label}</span>
               </motion.button>
             ))}
           </div>
+
+          {/* Add Place button — always in fixed position, never overlaps list */}
+          <motion.button
+            onClick={onAddPlace}
+            className="relative z-20 ml-2 shrink-0 w-9 h-9 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center hover:bg-blue-500/35 active:scale-90 transition-all"
+            whileTap={{ scale: 0.88 }}
+            title="Add new place"
+          >
+            <Plus className="w-4 h-4 text-blue-400" strokeWidth={2.5} />
+          </motion.button>
         </div>
       </LayoutGroup>
 
@@ -351,7 +360,7 @@ export default function JourneyHub({
                 duration: 0.2,
               }
             }}
-            className="h-full w-full overflow-y-auto px-4 pb-8"
+            className="h-full w-full overflow-y-auto px-4 pb-28"
           >
             {}
             <div className="relative">

@@ -175,7 +175,7 @@ export default function JourneyCreator({
               backdropFilter: 'blur(24px)',
               border: '1px solid rgba(255,255,255,0.08)',
               borderBottom: 'none',
-              maxHeight: '85vh',
+              maxHeight: '78vh',
             }}
           >
             {/* Handle */}
@@ -222,7 +222,7 @@ export default function JourneyCreator({
             </div>
 
             {/* Content */}
-            <div className="px-5 pb-8 overflow-y-auto overflow-x-visible" style={{ maxHeight: 'calc(85vh - 120px)' }}>
+            <div className="px-5 pb-8 overflow-y-auto overflow-x-visible" style={{ maxHeight: 'calc(78vh - 110px)' }}>
               <AnimatePresence mode="wait">
                 {wizardStep === 'meta' ? (
                   <StepMeta
