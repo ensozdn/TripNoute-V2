@@ -327,7 +327,7 @@ export default function JourneyHub({
 
       {}
       <div
-        className="relative z-10 flex-1 min-h-0 overflow-hidden"
+        className="relative z-10 flex-1 min-h-0 overflow-y-auto"
         style={{
           touchAction: 'pan-y pinch-zoom',
         }}
@@ -352,7 +352,7 @@ export default function JourneyHub({
                 duration: 0.2,
               }
             }}
-            className="h-full w-full overflow-y-auto px-4 pb-28"
+            className="w-full px-4 pb-28"
           >
             {}
             <div className="relative">
