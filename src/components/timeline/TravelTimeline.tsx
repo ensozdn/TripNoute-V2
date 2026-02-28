@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Place } from '@/types';
 import {
   Calendar, Camera, MoreVertical, Edit2, Trash2,
-  Plane, Car, Bus, Train, Ship, Footprints, MapPin,
+  Plane, Car, Bus, Train, Ship, Footprints, MapPin, Plus,
 } from 'lucide-react';
 
 interface TravelTimelineProps {
@@ -15,6 +15,7 @@ interface TravelTimelineProps {
   onPlaceSelect: (place: Place) => void;
   onPlaceDelete?: (placeId: string) => Promise<void>;
   onPlaceEdit?: (place: Place) => void;
+  onAddPlace?: () => void;
   className?: string;
 }
 
@@ -40,6 +41,7 @@ export default function TravelTimeline({
   onPlaceSelect,
   onPlaceDelete,
   onPlaceEdit,
+  onAddPlace,
   className = '',
 }: TravelTimelineProps) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -104,7 +106,35 @@ export default function TravelTimeline({
     }
   };
 
-  if (sortedPlaces.length === 0) return null;
+  if (sortedPlaces.length === 0) {
+    return (
+      <div className={`relative ${className}`}>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="flex flex-col items-center justify-center py-16 px-4 text-center"
+        >
+          <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4">
+            <MapPin className="w-8 h-8 text-white/20" strokeWidth={1.5} />
+          </div>
+          <p className="text-white/60 text-base font-medium mb-1">No places yet</p>
+          <p className="text-white/25 text-sm mb-6 leading-relaxed max-w-[220px]">
+            Start adding the places you've visited to build your travel timeline
+          </p>
+          {onAddPlace && (
+            <button
+              onClick={onAddPlace}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-500/20 border border-blue-500/30 text-blue-400 text-sm font-medium hover:bg-blue-500/30 transition-colors"
+            >
+              <Plus className="w-4 h-4" strokeWidth={2} />
+              Add First Place
+            </button>
+          )}
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className={`relative ${className}`}>
@@ -119,6 +149,15 @@ export default function TravelTimeline({
             {new Set(sortedPlaces.map(p => p.address.country)).size === 1 ? 'country' : 'countries'}
           </p>
         </div>
+        {onAddPlace && (
+          <button
+            onClick={onAddPlace}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-500/15 border border-blue-500/25 text-blue-400 text-xs font-semibold hover:bg-blue-500/25 hover:border-blue-500/40 active:scale-95 transition-all"
+          >
+            <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
+            Add Place
+          </button>
+        )}
       </div>
 
       {/* Vertical timeline */}

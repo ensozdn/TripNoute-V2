@@ -153,10 +153,10 @@ export default function JourneysTab({
               </p>
               <button
                 onClick={onCreateJourney}
-                className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-500/15 border border-blue-500/25 text-blue-400 text-xs font-semibold hover:bg-blue-500/25 hover:border-blue-500/40 active:scale-95 transition-all"
               >
-                <Plus className="w-3.5 h-3.5" strokeWidth={2} />
-                New
+                <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
+                New Journey
               </button>
             </div>
 

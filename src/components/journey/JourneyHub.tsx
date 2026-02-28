@@ -10,7 +10,7 @@ import JourneysTab from './tabs/JourneysTab';
 import InsightsTab from './tabs/InsightsTab';
 import GalleryTab from './tabs/GalleryTab';
 import JourneyCreator from './creator/JourneyCreator';
-import { Map, Route, BarChart3, ImageIcon, Plus } from 'lucide-react';
+import { Map, Route, BarChart3, ImageIcon } from 'lucide-react';
 import { deduplicateCountries, sortByFrequency } from '@/utils/dataNormalizer';
 
 type TabType = 'timeline' | 'journeys' | 'insights' | 'gallery';
@@ -76,7 +76,7 @@ export default function JourneyHub({
   onAddPlace,
 }: JourneyHubProps) {
   const [activeTabIndex, setActiveTabIndex] = useState(0);
-  const [sheetState, setSheetState] = useState<SheetState>('closed');
+  const [sheetState, setSheetState] = useState<SheetState>('middle');
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [editingJourney, setEditingJourney] = useState<Trip | null>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -209,6 +209,7 @@ export default function JourneyHub({
             onPlaceSelect={onPlaceSelect}
             onPlaceDelete={onPlaceDelete}
             onPlaceEdit={onPlaceEdit}
+            onAddPlace={onAddPlace}
           />
         );
       case 'journeys':
@@ -321,16 +322,6 @@ export default function JourneyHub({
               </motion.button>
             ))}
           </div>
-
-          {/* Add Place button — always in fixed position, never overlaps list */}
-          <motion.button
-            onClick={onAddPlace}
-            className="relative z-20 ml-2 shrink-0 w-9 h-9 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center hover:bg-blue-500/35 active:scale-90 transition-all"
-            whileTap={{ scale: 0.88 }}
-            title="Add new place"
-          >
-            <Plus className="w-4 h-4 text-blue-400" strokeWidth={2.5} />
-          </motion.button>
         </div>
       </LayoutGroup>
 

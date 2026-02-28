@@ -9,6 +9,7 @@ interface TimelineTabProps {
   onPlaceSelect: (place: Place) => void;
   onPlaceDelete?: (placeId: string) => Promise<void>;
   onPlaceEdit?: (place: Place) => void;
+  onAddPlace?: () => void;
 }
 
 export default function TimelineTab({
@@ -17,6 +18,7 @@ export default function TimelineTab({
   onPlaceSelect,
   onPlaceDelete,
   onPlaceEdit,
+  onAddPlace,
 }: TimelineTabProps) {
   return (
     <TravelTimeline
@@ -25,6 +27,7 @@ export default function TimelineTab({
       onPlaceSelect={onPlaceSelect}
       onPlaceDelete={onPlaceDelete}
       onPlaceEdit={onPlaceEdit}
+      onAddPlace={onAddPlace}
     />
   );
 }
