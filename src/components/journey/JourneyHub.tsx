@@ -17,7 +17,7 @@ type SheetState = 'closed' | 'middle' | 'full';
 type ActiveMode = 'plan' | 'track';
 
 const SNAP_POINTS: Record<SheetState, number> = {
-  closed: 0.08,
+  closed: 0.0,
   middle: 0.42,
   full: 0.95,
 };
@@ -54,7 +54,6 @@ export default function JourneyHub({
   journeys = [],
   onJourneyCreated,
   onJourneyUpdated,
-  onJourneySelect,
   onJourneyDelete,
   onRequestMapPin,
   mapPinMode = false,
@@ -70,77 +69,93 @@ export default function JourneyHub({
   const [editingJourney, setEditingJourney] = useState<Trip | null>(null);
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
+  const dragStartY = useRef<number>(0);
+  const isDraggingRef = useRef<boolean>(false);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (mapPinMode) return;
+    dragStartY.current = e.clientY;
+    isDraggingRef.current = true;
+    if (sheetRef.current) {
+      // transition'ı kapat, anlık drag başlasın
+      sheetRef.current.style.transition = 'none';
+    }
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDraggingRef.current || !sheetRef.current || sheetState === 'closed') return;
+    const delta = e.clientY - dragStartY.current;
+    const vh = window.innerHeight;
+    const currentH = SNAP_POINTS[sheetState] * vh;
+    const newH = Math.max(60, Math.min(vh * 0.97, currentH - delta));
+    sheetRef.current.style.height = newH + 'px';
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!isDraggingRef.current || !sheetRef.current) return;
+    isDraggingRef.current = false;
+    const delta = e.clientY - dragStartY.current;
+
+    // hedef state hesapla
+    let next: SheetState = sheetState;
+    if (delta < -60) {
+      if (sheetState === 'closed') next = 'middle';
+      else if (sheetState === 'middle') next = 'full';
+    } else if (delta > 60) {
+      if (sheetState === 'full') next = 'middle';
+      else if (sheetState === 'middle') next = 'closed';
+    }
+
+    const vh = window.innerHeight;
+    const targetH = SNAP_POINTS[next === 'closed' ? 'middle' : next] * vh;
+    const targetTransform = next === 'closed' ? 'translateY(100%)' : 'translateY(0%)';
+
+    // önce hedef px'e transition ile git
+    sheetRef.current.style.transition = 'transform 0.42s cubic-bezier(0.32,0.72,0,1), height 0.42s cubic-bezier(0.32,0.72,0,1)';
+    sheetRef.current.style.height = targetH + 'px';
+    sheetRef.current.style.transform = targetTransform;
+
+    // animasyon bitince inline style'ları temizle, React state'e bırak
+    setTimeout(() => {
+      if (sheetRef.current) {
+        sheetRef.current.style.height = '';
+        sheetRef.current.style.transform = '';
+        sheetRef.current.style.transition = '';
+      }
+      setSheetState(next);
+    }, 440);
+  };
 
   const countriesCount = useMemo(() => {
     const countryMap = deduplicateCountries(places);
     return countryMap.size;
   }, [places]);
 
-  const handleDrag = (
-    _event: MouseEvent | TouchEvent | PointerEvent,
-    info: { offset: { y: number }; velocity: { y: number } }
-  ) => {
-    const viewportHeight = window.innerHeight;
-    const currentHeight = SNAP_POINTS[sheetState] * viewportHeight;
-    const newHeight = currentHeight - info.offset.y;
-    const newHeightRatio = newHeight / viewportHeight;
-
-    let nextState: SheetState = sheetState;
-
-    if (info.velocity.y < -300) {
-      if (sheetState === 'closed') nextState = 'middle';
-      else if (sheetState === 'middle') nextState = 'full';
-    } else if (info.velocity.y > 300) {
-      if (sheetState === 'full') nextState = 'middle';
-      else if (sheetState === 'middle') nextState = 'closed';
-    } else {
-      if (newHeightRatio > 0.7) nextState = 'full';
-      else if (newHeightRatio > 0.25) nextState = 'middle';
-      else nextState = 'closed';
-    }
-
-    setSheetState(nextState);
-  };
-
-  const sheetHeightPercent = SNAP_POINTS[sheetState];
-
   return (
     <>
       {/* Bottom Sheet */}
-      <motion.div
+      <div
         ref={sheetRef}
-        initial={{ y: '100%', opacity: 0 }}
-        animate={{
-          y: 0,
-          opacity: mapPinMode ? 0 : 1,
-          height: mapPinMode
-            ? `\${SNAP_POINTS.closed * 100}vh`
-            : `\${sheetHeightPercent * 100}vh`,
-          transition: {
-            type: 'spring',
-            damping: 25,
-            stiffness: 200,
-            mass: 1,
-          },
-        }}
-        drag={mapPinMode ? false : 'y'}
-        dragElastic={0.1}
-        dragConstraints={{ top: 0, bottom: 0 }}
-        onDrag={handleDrag}
         className="fixed bottom-0 left-0 right-0 z-40 flex flex-col rounded-t-3xl bg-white border-t border-black/8 shadow-2xl shadow-black/20"
         style={{
-          pointerEvents: mapPinMode ? 'none' : undefined,
-          touchAction: 'none',
+          height: `${SNAP_POINTS[sheetState === 'closed' ? 'middle' : sheetState] * 100}vh`,
+          transform: (mapPinMode || sheetState === 'closed') ? 'translateY(100%)' : 'translateY(0%)',
+          transition: 'transform 0.42s cubic-bezier(0.32,0.72,0,1), height 0.42s cubic-bezier(0.32,0.72,0,1)',
+          pointerEvents: (mapPinMode || sheetState === 'closed') ? 'none' : undefined,
         }}
       >
-        {/* Handle */}
-        <motion.div
-          className="flex justify-center pt-2.5 pb-1 shrink-0"
-          animate={{ opacity: [0.4, 0.65, 0.4] }}
-          transition={{ duration: 2, repeat: Infinity }}
+        {/* Handle — drag sadece buradan */}
+        <div
+          className="flex justify-center pt-2.5 pb-3 shrink-0 cursor-grab active:cursor-grabbing select-none"
+          style={{ touchAction: 'none' }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
         >
-          <div className="w-10 h-1 rounded-full bg-black/20 cursor-grab active:cursor-grabbing" />
-        </motion.div>
+          <div className="w-10 h-1 rounded-full bg-black/20" />
+        </div>
 
         {/* Scrollable content */}
         <div
@@ -187,14 +202,14 @@ export default function JourneyHub({
             </motion.div>
           </AnimatePresence>
         </div>
-      </motion.div>
+      </div>
 
       {/* Floating bottom UI — mode toggle + nav + FAB */}
       <div
         className="fixed bottom-0 left-0 right-0 z-50 flex flex-col items-center gap-2 pb-5 pt-2 pointer-events-none"
         style={{ background: 'linear-gradient(to top, rgba(255,255,255,0.08) 0%, transparent 100%)' }}
       >
-        {/* Mode Switcher */}
+        {/* ── Mode Switcher ── */}
         <div className="flex items-center bg-white/95 backdrop-blur-xl rounded-full shadow-lg shadow-black/10 border border-black/6 p-1 pointer-events-auto">
           {(['plan', 'track'] as ActiveMode[]).map((mode) => {
             const isActive = activeMode === mode;
@@ -211,7 +226,9 @@ export default function JourneyHub({
                     transition={{ type: 'spring', stiffness: 420, damping: 30 }}
                   />
                 )}
-                <span className={`relative z-10 transition-colors \${isActive ? 'text-white' : 'text-slate-400'}`}>
+                <span
+                  className={`relative z-10 transition-colors ${isActive ? 'text-white' : 'text-slate-400'}`}
+                >
                   {mode}
                 </span>
               </button>
@@ -219,8 +236,9 @@ export default function JourneyHub({
           })}
         </div>
 
-        {/* Nav pill + FAB row */}
+        {/* ── Nav pill + FAB row ── */}
         <div className="flex items-center justify-center gap-3 w-full px-4">
+          {/* Nav pill */}
           <div className="flex items-center bg-white/95 backdrop-blur-xl rounded-full shadow-2xl shadow-black/15 border border-black/6 pointer-events-auto">
             {NAV_ITEMS.map((item) => {
               const isActive = activeNav === item.id;
@@ -228,8 +246,12 @@ export default function JourneyHub({
                 <button
                   key={item.id}
                   onClick={() => {
-                    setActiveNav(item.id);
-                    if (sheetState === 'closed') setSheetState('middle');
+                    if (activeNav === item.id) {
+                      setSheetState(sheetState === 'closed' ? 'middle' : 'closed');
+                    } else {
+                      setActiveNav(item.id);
+                      if (sheetState === 'closed') setSheetState('middle');
+                    }
                   }}
                   className="relative flex flex-col items-center gap-0.5 px-5 py-3 transition-all duration-200"
                 >
@@ -240,10 +262,10 @@ export default function JourneyHub({
                       transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                     />
                   )}
-                  <span className={`relative z-10 transition-colors duration-200 \${isActive ? 'text-slate-900' : 'text-slate-400'}`}>
+                  <span className={`relative z-10 transition-colors duration-200 ${isActive ? 'text-slate-900' : 'text-slate-400'}`}>
                     {item.icon}
                   </span>
-                  <span className={`relative z-10 text-[10px] font-semibold transition-colors duration-200 \${isActive ? 'text-slate-900' : 'text-slate-400'}`}>
+                  <span className={`relative z-10 text-[10px] font-semibold transition-colors duration-200 ${isActive ? 'text-slate-900' : 'text-slate-400'}`}>
                     {item.label}
                   </span>
                 </button>
@@ -251,6 +273,7 @@ export default function JourneyHub({
             })}
           </div>
 
+          {/* Dynamic Action FAB */}
           <div className="pointer-events-auto">
             <JourneyActionMenu
               activeMode={activeMode}
@@ -298,13 +321,13 @@ export default function JourneyHub({
         />
       )}
 
-      {/* Trip Detail View — full screen, slide-in from right */}
+      {/* Trip Detail View — full screen */}
       <AnimatePresence>
         {selectedTrip && (
           <TripDetailView
             trip={selectedTrip}
-            userName={userName}
-            userPhoto={userPhoto}
+            userName={userName ?? ''}
+            userPhoto={userPhoto ?? undefined}
             onBack={() => setSelectedTrip(null)}
             onEdit={(trip) => {
               setSelectedTrip(null);
@@ -312,8 +335,8 @@ export default function JourneyHub({
               setCreatorOpen(true);
             }}
             onDelete={(tripId) => {
-              setSelectedTrip(null);
               onJourneyDelete?.(tripId);
+              setSelectedTrip(null);
             }}
           />
         )}
