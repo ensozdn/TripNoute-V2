@@ -274,25 +274,25 @@ export default function JourneyHub({
       }}
     >
       {}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/20 backdrop-blur-2xl border-t border-white/10 rounded-t-3xl" />
+      <div className="absolute inset-0 bg-white/80 backdrop-blur-2xl border-t border-black/8 rounded-t-3xl shadow-2xl shadow-black/20" />
 
       {}
       <motion.div
         className="relative z-10 flex justify-center py-2"
-        animate={{ opacity: [0.5, 0.7, 0.5] }}
+        animate={{ opacity: [0.4, 0.65, 0.4] }}
         transition={{ duration: 2, repeat: Infinity }}
       >
-        <div className="w-10 h-1 rounded-full bg-white/30 cursor-grab active:cursor-grabbing" />
+        <div className="w-10 h-1 rounded-full bg-black/20 cursor-grab active:cursor-grabbing" />
       </motion.div>
 
       {}
       <LayoutGroup>
-        <div className="relative z-10 flex items-center border-b border-white/5 px-4 pb-0">
+        <div className="relative z-10 flex items-center border-b border-black/8 px-4 pb-0">
           <div className="flex items-center w-full relative">
             {}
             <motion.div
               layoutId="active-pill"
-              className="absolute h-8 bg-white/10 border border-white/20 rounded-xl"
+              className="absolute h-8 bg-black/8 border border-black/10 rounded-xl"
               transition={{
                 type: 'spring',
                 stiffness: 400,
@@ -311,8 +311,8 @@ export default function JourneyHub({
                 onClick={() => handleTabClick(index)}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-1 text-xs font-medium relative z-20 transition-colors duration-200 ${
                   index === activeTabIndex
-                    ? 'text-white'
-                    : 'text-slate-400 hover:text-slate-300'
+                    ? 'text-slate-800'
+                    : 'text-slate-400 hover:text-slate-600'
                 }`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -359,7 +359,7 @@ export default function JourneyHub({
               {renderTabContent()}
 
               {}
-              <div className="sticky bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+              <div className="sticky bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white/60 to-transparent pointer-events-none" />
             </div>
           </motion.div>
         </AnimatePresence>

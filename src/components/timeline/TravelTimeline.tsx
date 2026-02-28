@@ -115,11 +115,11 @@ export default function TravelTimeline({
           transition={{ duration: 0.3 }}
           className="flex flex-col items-center justify-center py-16 px-4 text-center"
         >
-          <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4">
-            <MapPin className="w-8 h-8 text-white/20" strokeWidth={1.5} />
+          <div className="w-16 h-16 rounded-2xl bg-black/5 border border-black/8 flex items-center justify-center mb-4">
+            <MapPin className="w-8 h-8 text-slate-300" strokeWidth={1.5} />
           </div>
-          <p className="text-white/60 text-base font-medium mb-1">No places yet</p>
-          <p className="text-white/25 text-sm mb-6 leading-relaxed max-w-[220px]">
+          <p className="text-slate-600 text-base font-medium mb-1">No places yet</p>
+          <p className="text-slate-400 text-sm mb-6 leading-relaxed max-w-[220px]">
             Start adding the places you've visited to build your travel timeline
           </p>
           {onAddPlace && (
@@ -142,8 +142,8 @@ export default function TravelTimeline({
       {/* Header */}
       <div className="flex items-center justify-between mb-4 px-1">
         <div>
-          <h3 className="text-sm font-bold text-white">Your Journey</h3>
-          <p className="text-xs text-white/50 mt-0.5">
+          <h3 className="text-sm font-bold text-slate-800">Your Journey</h3>
+          <p className="text-xs text-slate-400 mt-0.5">
             {sortedPlaces.length} {sortedPlaces.length === 1 ? 'stop' : 'stops'} &middot;{' '}
             {new Set(sortedPlaces.map(p => p.address.country)).size}{' '}
             {new Set(sortedPlaces.map(p => p.address.country)).size === 1 ? 'country' : 'countries'}
@@ -192,7 +192,7 @@ export default function TravelTimeline({
                         className={`relative w-8 h-8 rounded-full transition-all duration-300 ${
                           isSelected
                             ? 'ring-2 ring-blue-400 shadow-md shadow-blue-500/40 scale-110'
-                            : 'ring-1 ring-white/20 hover:ring-blue-400/50 hover:scale-105'
+                            : 'ring-1 ring-black/10 hover:ring-blue-400/50 hover:scale-105'
                         }`}
                       >
                         <Image
@@ -211,7 +211,7 @@ export default function TravelTimeline({
                         className={`w-8 h-8 rounded-full flex items-center justify-center text-sm transition-all duration-300 ${
                           isSelected
                             ? 'bg-blue-500/25 ring-2 ring-blue-400 shadow-md shadow-blue-500/30 scale-110'
-                            : 'bg-white/10 ring-1 ring-white/20 hover:ring-blue-400/40 hover:scale-105'
+                            : 'bg-black/5 ring-1 ring-black/10 hover:ring-blue-400/40 hover:scale-105'
                         }`}
                       >
                         {categoryEmoji}
@@ -227,15 +227,15 @@ export default function TravelTimeline({
                     {(onPlaceEdit || onPlaceDelete) && (
                       <button
                         onClick={(e) => toggleMenu(place.id, e)}
-                        className="absolute top-2 right-2 p-1 rounded-full bg-white/8 hover:bg-white/15 transition-all z-20"
+                        className="absolute top-2 right-2 p-1 rounded-full bg-black/5 hover:bg-black/10 transition-all z-20"
                       >
-                        <MoreVertical className="w-3 h-3 text-white/60" />
+                        <MoreVertical className="w-3 h-3 text-slate-400" />
                       </button>
                     )}
 
                     {deletingPlaceId === place.id && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-2xl z-10">
-                        <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-white/70 rounded-2xl z-10">
+                        <div className="w-5 h-5 border-2 border-slate-200 border-t-slate-600 rounded-full animate-spin" />
                       </div>
                     )}
 
@@ -247,7 +247,7 @@ export default function TravelTimeline({
                           ? 'opacity-40 cursor-not-allowed'
                           : isSelected
                             ? 'bg-blue-500/15 ring-1 ring-blue-400/50 shadow-lg shadow-blue-500/20'
-                            : 'hover:bg-white/5'
+                            : 'hover:bg-black/5'
                       }`}
                     >
                       {/* Photo strip */}
@@ -272,10 +272,10 @@ export default function TravelTimeline({
 
                       {/* Text */}
                       <div className="p-3">
-                        <h4 className="text-sm font-semibold text-white leading-tight pr-6 mb-1">
+                        <h4 className="text-sm font-semibold text-slate-800 leading-tight pr-6 mb-1">
                           {place.title}
                         </h4>
-                        <div className="flex items-center gap-1 text-white/50 text-xs mb-2">
+                        <div className="flex items-center gap-1 text-slate-400 text-xs mb-2">
                           <MapPin className="w-3 h-3 shrink-0" />
                           <span className="truncate">
                             {place.address.city && place.address.country
@@ -283,7 +283,7 @@ export default function TravelTimeline({
                               : place.address.city || place.address.country || place.address.formatted || ''}
                           </span>
                         </div>
-                        <div className="flex items-center gap-1 text-white/35 text-[11px]">
+                        <div className="flex items-center gap-1 text-slate-400 text-[11px]">
                           <Calendar className="w-3 h-3 shrink-0" />
                           <span>{formatDate(place.visitDate)}</span>
                         </div>
@@ -308,14 +308,14 @@ export default function TravelTimeline({
                           {transportCfg.icon}
                         </div>
                       ) : (
-                        <div className="w-px h-4 bg-white/10" />
+                        <div className="w-px h-4 bg-black/10" />
                       )}
                     </div>
                     {transportCfg && (
                       <div className="flex items-center gap-1.5 text-[11px]" style={{ color: transportCfg.color }}>
                         <span className="font-medium">{transportCfg.label}</span>
-                        <span className="text-white/20">→</span>
-                        <span className="text-white/40 truncate max-w-[120px]">
+                        <span className="text-slate-400">→</span>
+                        <span className="text-slate-400 truncate max-w-[120px]">
                           {nextPlace.address.city || nextPlace.title}
                         </span>
                       </div>
@@ -332,7 +332,7 @@ export default function TravelTimeline({
       {/* Context menu */}
       {openMenuId && menuPosition && (
         <div
-          className="fixed w-36 bg-[#1e293b] border border-white/10 rounded-xl shadow-[0_8px_16px_rgba(0,0,0,0.5)] overflow-hidden z-[100]"
+          className="fixed w-36 bg-white border border-black/10 rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.12)] overflow-hidden z-[100]"
           style={{ top: menuPosition.y, left: menuPosition.x - 144 }}
         >
           <div className="p-1">
@@ -342,9 +342,9 @@ export default function TravelTimeline({
               return (
                 <button
                   onClick={(e) => handleEdit(place, e)}
-                  className="w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-200 hover:bg-white/5 hover:text-white rounded-lg transition-all"
+                  className="w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all"
                 >
-                  <Edit2 className="w-4 h-4 text-blue-400" />
+                  <Edit2 className="w-4 h-4 text-blue-500" />
                   <span className="font-medium">Edit</span>
                 </button>
               );
@@ -355,9 +355,9 @@ export default function TravelTimeline({
               return (
                 <button
                   onClick={(e) => handleDelete(place, e)}
-                  className="w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-200 hover:bg-red-500/10 hover:text-red-400 rounded-lg transition-all"
+                  className="w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-700 hover:bg-red-50 hover:text-red-500 rounded-lg transition-all"
                 >
-                  <Trash2 className="w-4 h-4 text-red-500/70" />
+                  <Trash2 className="w-4 h-4 text-red-400" />
                   <span className="font-medium">Delete</span>
                 </button>
               );
