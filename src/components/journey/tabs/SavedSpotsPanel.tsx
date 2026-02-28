@@ -33,16 +33,16 @@ export default function SavedSpotsPanel({ onBack, places }: SavedSpotsPanelProps
       className="flex flex-col"
     >
       {/* Header */}
-      <div className="flex items-center gap-3 px-1 py-3 border-b border-white/10 mb-5">
+      <div className="flex items-center gap-3 px-1 py-3 border-b border-black/8 mb-5">
         <button
           onClick={onBack}
-          className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+          className="w-8 h-8 rounded-xl bg-black/6 flex items-center justify-center hover:bg-black/10 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4 text-white" strokeWidth={2} />
+          <ArrowLeft className="w-4 h-4 text-slate-600" strokeWidth={2} />
         </button>
-        <p className="text-white font-semibold text-sm flex-1">Saved Spots & Activities</p>
+        <p className="text-slate-800 font-semibold text-sm flex-1">Saved Spots & Activities</p>
         {places.length > 0 && (
-          <span className="text-xs text-white/30 font-medium">{places.length}</span>
+          <span className="text-xs text-slate-400 font-medium">{places.length}</span>
         )}
       </div>
 
@@ -54,29 +54,29 @@ export default function SavedSpotsPanel({ onBack, places }: SavedSpotsPanelProps
           transition={{ duration: 0.3, delay: 0.1 }}
           className="flex flex-col items-center gap-6 py-8 px-4"
         >
-          <p className="text-white font-semibold text-lg tracking-tight">Nothing saved yet...</p>
+          <p className="text-slate-800 font-semibold text-lg tracking-tight">Nothing saved yet...</p>
 
           {/* Ghost placeholder card */}
-          <div className="w-full rounded-2xl border border-dashed border-white/15 bg-white/3 p-3 flex items-center gap-3 opacity-50">
-            <div className="w-14 h-14 rounded-xl bg-white/10 shrink-0 flex items-center justify-center">
-              <MapPin className="w-6 h-6 text-white/20" strokeWidth={1.5} />
+          <div className="w-full rounded-2xl border border-dashed border-black/12 bg-black/3 p-3 flex items-center gap-3 opacity-60">
+            <div className="w-14 h-14 rounded-xl bg-black/6 shrink-0 flex items-center justify-center">
+              <MapPin className="w-6 h-6 text-slate-300" strokeWidth={1.5} />
             </div>
             <div className="flex-1 space-y-2">
-              <div className="h-3 w-32 bg-white/10 rounded-full" />
-              <div className="h-2.5 w-20 bg-white/10 rounded-full" />
+              <div className="h-3 w-32 bg-black/8 rounded-full" />
+              <div className="h-2.5 w-20 bg-black/8 rounded-full" />
             </div>
-            <div className="w-8 h-8 rounded-full border-2 border-dashed border-white/15 flex items-center justify-center">
-              <Bookmark className="w-3.5 h-3.5 text-white/20" strokeWidth={1.8} />
+            <div className="w-8 h-8 rounded-full border-2 border-dashed border-black/12 flex items-center justify-center">
+              <Bookmark className="w-3.5 h-3.5 text-slate-300" strokeWidth={1.8} />
             </div>
           </div>
 
           {/* Dashed connector line */}
           <div className="flex flex-col items-center gap-1 -mt-2">
-            <div className="w-px h-4 border-l border-dashed border-white/15" />
-            <div className="w-1.5 h-1.5 rounded-full bg-white/15" />
+            <div className="w-px h-4 border-l border-dashed border-black/15" />
+            <div className="w-1.5 h-1.5 rounded-full bg-black/15" />
           </div>
 
-          <p className="text-center text-white/30 text-sm leading-relaxed -mt-2">
+          <p className="text-center text-slate-400 text-sm leading-relaxed -mt-2">
             When you come across an interesting spot or activity,{' '}
             <br />
             you can save it and find it here!
@@ -91,10 +91,10 @@ export default function SavedSpotsPanel({ onBack, places }: SavedSpotsPanelProps
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2, delay: index * 0.04 }}
-              className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/8 transition-colors"
+              className="flex items-center gap-3 p-3 rounded-2xl bg-black/3 border border-black/8 hover:bg-black/6 transition-colors"
             >
               {/* Thumbnail */}
-              <div className="w-14 h-14 rounded-xl overflow-hidden bg-white/10 shrink-0 flex items-center justify-center">
+              <div className="w-14 h-14 rounded-xl overflow-hidden bg-black/6 shrink-0 flex items-center justify-center">
                 {place.photos?.[0]?.url ? (
                   <Image
                     src={place.photos[0].url}
@@ -104,24 +104,24 @@ export default function SavedSpotsPanel({ onBack, places }: SavedSpotsPanelProps
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <MapPin className="w-5 h-5 text-white/30" strokeWidth={1.5} />
+                  <MapPin className="w-5 h-5 text-slate-400" strokeWidth={1.5} />
                 )}
               </div>
 
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-white font-medium truncate">{place.title}</p>
-                <p className="text-xs text-white/40 mt-0.5 uppercase tracking-wider">
+                <p className="text-sm text-slate-800 font-medium truncate">{place.title}</p>
+                <p className="text-xs text-slate-500 mt-0.5 uppercase tracking-wider">
                   {place.category ? categoryLabel[place.category] : 'Spot'}
                 </p>
                 {place.address?.city && (
-                  <p className="text-xs text-white/25 mt-0.5 truncate">{place.address.city}</p>
+                  <p className="text-xs text-slate-400 mt-0.5 truncate">{place.address.city}</p>
                 )}
               </div>
 
               {/* Bookmark icon */}
-              <div className="w-8 h-8 rounded-xl bg-white/8 flex items-center justify-center shrink-0">
-                <Bookmark className="w-3.5 h-3.5 text-white/40" strokeWidth={1.8} />
+              <div className="w-8 h-8 rounded-xl bg-black/6 flex items-center justify-center shrink-0">
+                <Bookmark className="w-3.5 h-3.5 text-slate-400" strokeWidth={1.8} />
               </div>
             </motion.div>
           ))}

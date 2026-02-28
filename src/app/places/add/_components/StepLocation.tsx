@@ -159,7 +159,7 @@ export default function StepLocation({
                 <p className="text-[10px] text-blue-400/70 font-semibold uppercase tracking-widest mb-0.5">
                   Selected Location
                 </p>
-                <p className="text-sm text-white/80 truncate font-medium">
+                <p className="text-sm text-white/90 truncate font-medium">
                   {selectedLocation.address
                     ? selectedLocation.address.split(',').slice(0, 2).join(', ')
                     : `${selectedLocation.lat.toFixed(5)}, ${selectedLocation.lng.toFixed(5)}`}

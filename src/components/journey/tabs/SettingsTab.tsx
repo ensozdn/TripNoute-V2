@@ -127,19 +127,19 @@ export default function SettingsTab({ userName, userEmail, userPhoto, onLogout, 
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.25 }}
-              className="flex items-center gap-4 px-2 py-3 rounded-2xl bg-white/5 border border-white/10"
+              className="flex items-center gap-4 px-2 py-3 rounded-2xl bg-black/4 border border-black/8"
             >
-              <div className="w-14 h-14 rounded-full overflow-hidden bg-white/10 border border-white/20 shrink-0 flex items-center justify-center">
+              <div className="w-14 h-14 rounded-full overflow-hidden bg-black/8 border border-black/10 shrink-0 flex items-center justify-center">
                 {userPhoto ? (
                   <Image src={userPhoto} alt={userName || 'User'} width={56} height={56} className="object-cover w-full h-full" />
                 ) : (
-                  <User className="w-6 h-6 text-white/50" strokeWidth={1.5} />
+                  <User className="w-6 h-6 text-slate-400" strokeWidth={1.5} />
                 )}
               </div>
               <div className="min-w-0">
-                <p className="text-white font-semibold text-base truncate">{userName || 'Traveler'}</p>
+                <p className="text-slate-800 font-semibold text-base truncate">{userName || 'Traveler'}</p>
                 {userEmail && (
-                  <p className="text-white/40 text-xs truncate mt-0.5">{userEmail}</p>
+                  <p className="text-slate-400 text-xs truncate mt-0.5">{userEmail}</p>
                 )}
               </div>
             </motion.div>
@@ -152,24 +152,24 @@ export default function SettingsTab({ userName, userEmail, userPhoto, onLogout, 
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.25, delay: 0.05 * (sectionIndex + 1) }}
               >
-                <p className="text-xs text-white/30 uppercase tracking-widest font-medium mb-2 px-1">
+                <p className="text-xs text-slate-400 uppercase tracking-widest font-medium mb-2 px-1">
                   {section.title}
                 </p>
-                <div className="rounded-2xl overflow-hidden border border-white/10 divide-y divide-white/5">
+                <div className="rounded-2xl overflow-hidden border border-black/8 divide-y divide-black/5">
                   {section.items.map(({ id, icon: Icon, label, description }) => (
                     <button
                       key={label}
                       onClick={() => setActivePanel(id)}
-                      className="w-full flex items-center gap-3 px-4 py-3.5 bg-white/5 hover:bg-white/10 transition-colors duration-150 text-left"
+                      className="w-full flex items-center gap-3 px-4 py-3.5 bg-black/3 hover:bg-black/6 transition-colors duration-150 text-left"
                     >
-                      <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-                        <Icon className="w-4 h-4 text-white/70" strokeWidth={1.8} />
+                      <div className="w-8 h-8 rounded-xl bg-black/6 flex items-center justify-center shrink-0">
+                        <Icon className="w-4 h-4 text-slate-500" strokeWidth={1.8} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white font-medium">{label}</p>
-                        <p className="text-xs text-white/40 mt-0.5">{description}</p>
+                        <p className="text-sm text-slate-800 font-medium">{label}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">{description}</p>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-white/20 shrink-0" strokeWidth={1.8} />
+                      <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" strokeWidth={1.8} />
                     </button>
                   ))}
                 </div>
@@ -183,13 +183,13 @@ export default function SettingsTab({ userName, userEmail, userPhoto, onLogout, 
               transition={{ duration: 0.25, delay: 0.15 }}
             >
               <div className="flex items-center gap-2 mb-2 px-1">
-                <Shield className="w-3.5 h-3.5 text-white/30" strokeWidth={2} />
-                <p className="text-xs text-white/30 uppercase tracking-widest font-medium">Privacy</p>
+                <Shield className="w-3.5 h-3.5 text-slate-400" strokeWidth={2} />
+                <p className="text-xs text-slate-400 uppercase tracking-widest font-medium">Privacy</p>
               </div>
-              <div className="rounded-2xl overflow-hidden border border-white/10 divide-y divide-white/5">
+              <div className="rounded-2xl overflow-hidden border border-black/8 divide-y divide-black/5">
                 {/* Who can follow me */}
-                <div className="px-4 py-3.5 bg-white/5 space-y-3">
-                  <p className="text-sm text-white font-medium">Who can follow me</p>
+                <div className="px-4 py-3.5 bg-black/3 space-y-3">
+                  <p className="text-sm text-slate-800 font-medium">Who can follow me</p>
                   <div className="space-y-2">
                     {([
                       { value: 'anyone', label: 'Anyone' },
@@ -200,13 +200,13 @@ export default function SettingsTab({ userName, userEmail, userPhoto, onLogout, 
                         onClick={() => savePrivacy(value)}
                         className="w-full flex items-center justify-between py-1.5 group"
                       >
-                        <span className={`text-sm transition-colors ${followPrivacy === value ? 'text-white' : 'text-white/50 group-hover:text-white/70'}`}>
+                        <span className={`text-sm transition-colors ${followPrivacy === value ? 'text-slate-800' : 'text-slate-400 group-hover:text-slate-600'}`}>
                           {label}
                         </span>
                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
                           followPrivacy === value
                             ? 'border-blue-500 bg-blue-500'
-                            : 'border-white/20'
+                            : 'border-slate-300'
                         }`}>
                           {followPrivacy === value && (
                             <motion.div
@@ -221,9 +221,9 @@ export default function SettingsTab({ userName, userEmail, userPhoto, onLogout, 
                   </div>
                 </div>
                 {/* Who can see my trips */}
-                <div className="px-4 py-3.5 bg-white/5">
-                  <p className="text-sm text-white font-medium">Who can see my trips</p>
-                  <p className="text-xs text-white/35 mt-1.5 leading-relaxed">
+                <div className="px-4 py-3.5 bg-black/3">
+                  <p className="text-sm text-slate-800 font-medium">Who can see my trips</p>
+                  <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
                     You can manage the privacy level of your individual trips in the trip settings.
                   </p>
                 </div>
@@ -237,20 +237,20 @@ export default function SettingsTab({ userName, userEmail, userPhoto, onLogout, 
               transition={{ duration: 0.25, delay: 0.2 }}
             >
               <div className="flex items-center gap-2 mb-2 px-1">
-                <Sliders className="w-3.5 h-3.5 text-white/30" strokeWidth={2} />
-                <p className="text-xs text-white/30 uppercase tracking-widest font-medium">App Settings</p>
+                <Sliders className="w-3.5 h-3.5 text-slate-400" strokeWidth={2} />
+                <p className="text-xs text-slate-400 uppercase tracking-widest font-medium">App Settings</p>
               </div>
-              <div className="rounded-2xl overflow-hidden border border-white/10 divide-y divide-white/5">
+              <div className="rounded-2xl overflow-hidden border border-black/8 divide-y divide-black/5">
                 {/* Units */}
                 <div className="relative">
                   <button
                     onClick={() => { setShowUnitsMenu(!showUnitsMenu); setShowTempMenu(false); }}
-                    className="w-full flex items-center justify-between px-4 py-3.5 bg-white/5 hover:bg-white/10 transition-colors"
+                    className="w-full flex items-center justify-between px-4 py-3.5 bg-black/3 hover:bg-black/6 transition-colors"
                   >
-                    <p className="text-sm text-white font-medium">Units</p>
+                    <p className="text-sm text-slate-800 font-medium">Units</p>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm text-blue-400">{distanceUnit === 'km' ? 'Kilometres' : 'Miles'}</span>
-                      <ChevronRight className={`w-4 h-4 text-blue-400/60 transition-transform ${showUnitsMenu ? 'rotate-90' : ''}`} strokeWidth={1.8} />
+                      <span className="text-sm text-blue-500">{distanceUnit === 'km' ? 'Kilometres' : 'Miles'}</span>
+                      <ChevronRight className={`w-4 h-4 text-blue-400 transition-transform ${showUnitsMenu ? 'rotate-90' : ''}`} strokeWidth={1.8} />
                     </div>
                   </button>
                   <AnimatePresence>
@@ -259,15 +259,15 @@ export default function SettingsTab({ userName, userEmail, userPhoto, onLogout, 
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden border-t border-white/5"
+                        className="overflow-hidden border-t border-black/5"
                       >
                         {(['km', 'miles'] as DistanceUnit[]).map((u) => (
                           <button
                             key={u}
                             onClick={() => saveDistanceUnit(u)}
-                            className="w-full flex items-center justify-between px-4 py-3 bg-white/3 hover:bg-white/8 transition-colors"
+                            className="w-full flex items-center justify-between px-4 py-3 bg-black/2 hover:bg-black/5 transition-colors"
                           >
-                            <span className={`text-sm ${distanceUnit === u ? 'text-blue-400' : 'text-white/60'}`}>
+                            <span className={`text-sm ${distanceUnit === u ? 'text-blue-500' : 'text-slate-500'}`}>
                               {u === 'km' ? 'Kilometres' : 'Miles'}
                             </span>
                             {distanceUnit === u && (
@@ -286,12 +286,12 @@ export default function SettingsTab({ userName, userEmail, userPhoto, onLogout, 
                 <div className="relative">
                   <button
                     onClick={() => { setShowTempMenu(!showTempMenu); setShowUnitsMenu(false); }}
-                    className="w-full flex items-center justify-between px-4 py-3.5 bg-white/5 hover:bg-white/10 transition-colors"
+                    className="w-full flex items-center justify-between px-4 py-3.5 bg-black/3 hover:bg-black/6 transition-colors"
                   >
-                    <p className="text-sm text-white font-medium">Temperature</p>
+                    <p className="text-sm text-slate-800 font-medium">Temperature</p>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm text-blue-400">{temperatureUnit === 'celsius' ? 'Celsius' : 'Fahrenheit'}</span>
-                      <ChevronRight className={`w-4 h-4 text-blue-400/60 transition-transform ${showTempMenu ? 'rotate-90' : ''}`} strokeWidth={1.8} />
+                      <span className="text-sm text-blue-500">{temperatureUnit === 'celsius' ? 'Celsius' : 'Fahrenheit'}</span>
+                      <ChevronRight className={`w-4 h-4 text-blue-400 transition-transform ${showTempMenu ? 'rotate-90' : ''}`} strokeWidth={1.8} />
                     </div>
                   </button>
                   <AnimatePresence>
@@ -300,15 +300,15 @@ export default function SettingsTab({ userName, userEmail, userPhoto, onLogout, 
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden border-t border-white/5"
+                        className="overflow-hidden border-t border-black/5"
                       >
                         {(['celsius', 'fahrenheit'] as TemperatureUnit[]).map((u) => (
                           <button
                             key={u}
                             onClick={() => saveTempUnit(u)}
-                            className="w-full flex items-center justify-between px-4 py-3 bg-white/3 hover:bg-white/8 transition-colors"
+                            className="w-full flex items-center justify-between px-4 py-3 bg-black/2 hover:bg-black/5 transition-colors"
                           >
-                            <span className={`text-sm ${temperatureUnit === u ? 'text-blue-400' : 'text-white/60'}`}>
+                            <span className={`text-sm ${temperatureUnit === u ? 'text-blue-500' : 'text-slate-500'}`}>
                               {u === 'celsius' ? 'Celsius' : 'Fahrenheit'}
                             </span>
                             {temperatureUnit === u && (

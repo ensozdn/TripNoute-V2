@@ -17,14 +17,14 @@ const STEPS = [
 export default function WizardProgress({ currentStep, onBack, onClose }: WizardProgressProps) {
   return (
     <div className="absolute top-0 left-0 right-0 z-50 pointer-events-none">
-      {/* Glass header */}
-      <div className="bg-black/50 backdrop-blur-2xl border-b border-white/10">
+      {/* Light header */}
+      <div className="bg-white/90 backdrop-blur-2xl border-b border-black/8 shadow-sm">
         <div className="flex items-center gap-3 px-4 pt-4 pb-3">
 
           {/* Back / Close button */}
           <button
             onClick={currentStep === 1 ? onClose : onBack}
-            className="pointer-events-auto w-9 h-9 flex items-center justify-center rounded-2xl bg-white/8 border border-white/12 text-white/70 shrink-0 hover:bg-white/15 hover:text-white active:scale-90 transition-all"
+            className="pointer-events-auto w-9 h-9 flex items-center justify-center rounded-2xl bg-black/6 border border-black/8 text-slate-600 shrink-0 hover:bg-black/10 hover:text-slate-900 active:scale-90 transition-all"
           >
             {currentStep === 1 ? (
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -52,12 +52,12 @@ export default function WizardProgress({ currentStep, onBack, onClose }: WizardP
                           ? '#22c55e'
                           : isActive
                           ? '#3b82f6'
-                          : 'rgba(255,255,255,0.08)',
+                          : 'rgba(0,0,0,0.08)',
                         borderColor: isDone
                           ? '#22c55e'
                           : isActive
                           ? '#3b82f6'
-                          : 'rgba(255,255,255,0.15)',
+                          : 'rgba(0,0,0,0.12)',
                         scale: isActive ? 1.1 : 1,
                       }}
                       transition={{ type: 'spring', stiffness: 400, damping: 28 }}
@@ -76,14 +76,14 @@ export default function WizardProgress({ currentStep, onBack, onClose }: WizardP
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </motion.svg>
                       ) : (
-                        <span className={`text-xs font-bold ${isActive ? 'text-white' : 'text-white/30'}`}>
+                        <span className={`text-xs font-bold ${isActive ? 'text-white' : 'text-slate-300'}`}>
                           {step.n}
                         </span>
                       )}
                     </motion.div>
                     {/* Label */}
                     <span className={`text-[10px] font-medium tracking-wide transition-colors ${
-                      isActive ? 'text-white' : isDone ? 'text-green-400/70' : 'text-white/20'
+                      isActive ? 'text-slate-800' : isDone ? 'text-green-500' : 'text-slate-300'
                     }`}>
                       {step.label}
                     </span>
@@ -92,7 +92,7 @@ export default function WizardProgress({ currentStep, onBack, onClose }: WizardP
                   {/* Connector line between steps */}
                   {i < STEPS.length - 1 && (
                     <motion.div
-                      animate={{ backgroundColor: isDone ? '#22c55e' : 'rgba(255,255,255,0.10)' }}
+                      animate={{ backgroundColor: isDone ? '#22c55e' : 'rgba(0,0,0,0.10)' }}
                       transition={{ duration: 0.4 }}
                       className="w-8 h-px mb-4"
                     />

@@ -309,14 +309,14 @@ export default function DashboardPage() {
 
         {/* Settings overlay */}
         {settingsOpen && (
-          <div className="absolute inset-0 z-50 bg-slate-900/95 backdrop-blur-sm flex flex-col">
-            <div className="flex items-center justify-between px-5 pt-12 pb-4 border-b border-white/10">
-              <span className="text-white font-semibold text-lg">Settings</span>
+          <div className="absolute inset-0 z-50 bg-white flex flex-col">
+            <div className="flex items-center justify-between px-5 pt-12 pb-4 border-b border-black/8">
+              <span className="text-slate-800 font-semibold text-lg">Settings</span>
               <button
                 onClick={() => setSettingsOpen(false)}
-                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-all"
+                className="p-2 rounded-xl bg-black/6 hover:bg-black/10 transition-all"
               >
-                <X className="w-4 h-4 text-white" />
+                <X className="w-4 h-4 text-slate-500" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto">

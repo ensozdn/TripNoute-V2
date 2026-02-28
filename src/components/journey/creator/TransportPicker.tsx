@@ -113,12 +113,12 @@ export default function TransportPicker({ selected, onSelect }: TransportPickerP
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
               isSelected
                 ? 'shadow-sm'
-                : 'bg-white/5 border-white/10 text-white/50 hover:text-white/80 hover:bg-white/10 hover:border-white/20'
+                : 'bg-black/4 border-black/8 text-slate-500 hover:text-slate-700 hover:bg-black/8 hover:border-black/15'
             }`}
           >
             <span
               style={isSelected ? { color } : undefined}
-              className={isSelected ? '' : 'text-white/40'}
+              className={isSelected ? '' : 'text-slate-400'}
             >
               {icon}
             </span>

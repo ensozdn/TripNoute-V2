@@ -129,7 +129,7 @@ export default function AccountEditPanel({ onBack }: AccountEditPanelProps) {
         transition={{ type: 'spring', damping: 28, stiffness: 280 }}
         className="flex items-center justify-center py-16"
       >
-        <Loader2 className="w-6 h-6 text-white/40 animate-spin" />
+        <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
       </motion.div>
     );
   }
@@ -142,47 +142,47 @@ export default function AccountEditPanel({ onBack }: AccountEditPanelProps) {
       transition={{ type: 'spring', damping: 28, stiffness: 280 }}
       className="flex flex-col"
     >
-      <div className="flex items-center gap-3 px-1 py-3 border-b border-white/10 mb-5">
+      <div className="flex items-center gap-3 px-1 py-3 border-b border-black/8 mb-5">
         <button
           onClick={onBack}
-          className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+          className="w-8 h-8 rounded-xl bg-black/6 flex items-center justify-center hover:bg-black/10 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4 text-white" strokeWidth={2} />
+          <ArrowLeft className="w-4 h-4 text-slate-600" strokeWidth={2} />
         </button>
-        <p className="text-white font-semibold text-sm flex-1">Account Settings</p>
+        <p className="text-slate-800 font-semibold text-sm flex-1">Account Settings</p>
       </div>
 
       <div className="space-y-6">
         {/* Email */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
-            <Mail className="w-3.5 h-3.5 text-white/30" strokeWidth={2} />
-            <p className="text-xs text-white/30 uppercase tracking-widest font-medium">Email</p>
+            <Mail className="w-3.5 h-3.5 text-slate-400" strokeWidth={2} />
+            <p className="text-xs text-slate-400 uppercase tracking-widest font-medium">Email</p>
           </div>
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-4 space-y-3">
+          <div className="rounded-2xl bg-black/3 border border-black/8 p-4 space-y-3">
             <div className="space-y-1.5">
-              <label className="text-xs text-white/40 px-1">Email Address</label>
+              <label className="text-xs text-slate-400 px-1">Email Address</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/30 transition-all"
+                className="w-full bg-black/4 border border-black/10 rounded-xl px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-blue-400 transition-all"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs text-white/40 px-1">Current Password</label>
+              <label className="text-xs text-slate-400 px-1">Current Password</label>
               <div className="relative">
                 <input
                   type={showCurrentPw ? 'text' : 'password'}
                   value={emailPassword}
                   onChange={(e) => setEmailPassword(e.target.value)}
                   placeholder="Required to change email"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 pr-10 text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/30 transition-all"
+                  className="w-full bg-black/4 border border-black/10 rounded-xl px-3 py-2.5 pr-10 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-blue-400 transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowCurrentPw(!showCurrentPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                 >
                   {showCurrentPw ? <EyeOff className="w-4 h-4" strokeWidth={1.8} /> : <Eye className="w-4 h-4" strokeWidth={1.8} />}
                 </button>
@@ -190,8 +190,8 @@ export default function AccountEditPanel({ onBack }: AccountEditPanelProps) {
             </div>
             {emailError && (
               <div className="flex items-center gap-2 px-1">
-                <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" strokeWidth={2} />
-                <p className="text-xs text-red-400">{emailError}</p>
+                <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" strokeWidth={2} />
+                <p className="text-xs text-red-500">{emailError}</p>
               </div>
             )}
             <SaveButton state={emailState} onSave={handleEmailSave} />
@@ -201,24 +201,24 @@ export default function AccountEditPanel({ onBack }: AccountEditPanelProps) {
         {/* Secondary Email */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
-            <Mail className="w-3.5 h-3.5 text-white/30" strokeWidth={2} />
-            <p className="text-xs text-white/30 uppercase tracking-widest font-medium">Secondary Email</p>
+            <Mail className="w-3.5 h-3.5 text-slate-400" strokeWidth={2} />
+            <p className="text-xs text-slate-400 uppercase tracking-widest font-medium">Secondary Email</p>
           </div>
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-4 space-y-3">
+          <div className="rounded-2xl bg-black/3 border border-black/8 p-4 space-y-3">
             <div className="space-y-1.5">
-              <label className="text-xs text-white/40 px-1">Secondary Email Address</label>
+              <label className="text-xs text-slate-400 px-1">Secondary Email Address</label>
               <input
                 type="email"
                 value={secondaryEmail}
                 onChange={(e) => setSecondaryEmail(e.target.value)}
                 placeholder="backup@example.com"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/30 transition-all"
+                className="w-full bg-black/4 border border-black/10 rounded-xl px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-blue-400 transition-all"
               />
             </div>
             {secondaryError && (
               <div className="flex items-center gap-2 px-1">
-                <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" strokeWidth={2} />
-                <p className="text-xs text-red-400">{secondaryError}</p>
+                <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" strokeWidth={2} />
+                <p className="text-xs text-red-500">{secondaryError}</p>
               </div>
             )}
             <SaveButton state={secondaryState} onSave={handleSecondaryEmailSave} />
@@ -228,82 +228,82 @@ export default function AccountEditPanel({ onBack }: AccountEditPanelProps) {
         {/* Change Password */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
-            <Lock className="w-3.5 h-3.5 text-white/30" strokeWidth={2} />
-            <p className="text-xs text-white/30 uppercase tracking-widest font-medium">Change Password</p>
+            <Lock className="w-3.5 h-3.5 text-slate-400" strokeWidth={2} />
+            <p className="text-xs text-slate-400 uppercase tracking-widest font-medium">Change Password</p>
           </div>
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-4 space-y-3">
+          <div className="rounded-2xl bg-black/3 border border-black/8 p-4 space-y-3">
             <div className="space-y-1.5">
-              <label className="text-xs text-white/40 px-1">Current Password</label>
+              <label className="text-xs text-slate-400 px-1">Current Password</label>
               <div className="relative">
                 <input
                   type={showCurrentPw ? 'text' : 'password'}
                   value={currentPasswordForPw}
                   onChange={(e) => setCurrentPasswordForPw(e.target.value)}
                   placeholder="Your current password"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 pr-10 text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/30 transition-all"
+                  className="w-full bg-black/4 border border-black/10 rounded-xl px-3 py-2.5 pr-10 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-blue-400 transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowCurrentPw(!showCurrentPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                 >
                   {showCurrentPw ? <EyeOff className="w-4 h-4" strokeWidth={1.8} /> : <Eye className="w-4 h-4" strokeWidth={1.8} />}
                 </button>
               </div>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs text-white/40 px-1">New Password</label>
+              <label className="text-xs text-slate-400 px-1">New Password</label>
               <div className="relative">
                 <input
                   type={showNewPw ? 'text' : 'password'}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Min. 6 characters"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 pr-10 text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/30 transition-all"
+                  className="w-full bg-black/4 border border-black/10 rounded-xl px-3 py-2.5 pr-10 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-blue-400 transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowNewPw(!showNewPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                 >
                   {showNewPw ? <EyeOff className="w-4 h-4" strokeWidth={1.8} /> : <Eye className="w-4 h-4" strokeWidth={1.8} />}
                 </button>
               </div>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs text-white/40 px-1">New Password Again</label>
+              <label className="text-xs text-slate-400 px-1">New Password Again</label>
               <div className="relative">
                 <input
                   type={showConfirmPw ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Repeat new password"
-                  className={`w-full bg-white/5 border rounded-xl px-3 py-2.5 pr-10 text-sm text-white placeholder-white/20 focus:outline-none transition-all ${
+                  className={`w-full bg-black/4 border rounded-xl px-3 py-2.5 pr-10 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none transition-all ${
                     confirmPassword && confirmPassword !== newPassword
-                      ? 'border-red-500/40 focus:border-red-500/60'
+                      ? 'border-red-400 focus:border-red-500'
                       : confirmPassword && confirmPassword === newPassword
-                      ? 'border-green-500/40 focus:border-green-500/60'
-                      : 'border-white/10 focus:border-white/30'
+                      ? 'border-green-400 focus:border-green-500'
+                      : 'border-black/10 focus:border-blue-400'
                   }`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPw(!showConfirmPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                 >
                   {showConfirmPw ? <EyeOff className="w-4 h-4" strokeWidth={1.8} /> : <Eye className="w-4 h-4" strokeWidth={1.8} />}
                 </button>
               </div>
               {confirmPassword && confirmPassword === newPassword && (
-                <p className="text-xs text-green-400/70 px-1 flex items-center gap-1">
+                <p className="text-xs text-green-500 px-1 flex items-center gap-1">
                   <Check className="w-3 h-3" strokeWidth={2.5} /> Passwords match
                 </p>
               )}
             </div>
             {passwordError && (
               <div className="flex items-center gap-2 px-1">
-                <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" strokeWidth={2} />
-                <p className="text-xs text-red-400">{passwordError}</p>
+                <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" strokeWidth={2} />
+                <p className="text-xs text-red-500">{passwordError}</p>
               </div>
             )}
             <SaveButton state={passwordState} onSave={handlePasswordSave} label="Update Password" />
@@ -327,10 +327,10 @@ function SaveButton({ state, onSave, label = 'Save Changes' }: SaveButtonProps) 
       disabled={state === 'saving'}
       className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all disabled:cursor-not-allowed ${
         state === 'saved'
-          ? 'bg-green-500/20 border border-green-500/30 text-green-400'
+          ? 'bg-green-500/10 border border-green-500/20 text-green-600'
           : state === 'error'
-          ? 'bg-red-500/20 border border-red-500/30 text-red-400'
-          : 'bg-white/10 border border-white/15 text-white hover:bg-white/15'
+          ? 'bg-red-500/10 border border-red-500/20 text-red-500'
+          : 'bg-black/6 border border-black/10 text-slate-700 hover:bg-black/10'
       }`}
     >
       {state === 'saving' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}

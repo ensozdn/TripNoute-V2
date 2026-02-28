@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { Trip } from '@/types/trip';
-import { Plus, TrendingUp, UserPlus, MapPin } from 'lucide-react';
+import { Plus, TrendingUp, UserPlus, MapPin, MoreHorizontal } from 'lucide-react';
 
 interface MeTabProps {
   userName?: string | null;
@@ -12,28 +12,31 @@ interface MeTabProps {
   journeys: Trip[];
   onAddTrip: () => void;
   onAddPlace: () => void;
+  onOpenJourneyMenu?: (journey: Trip) => void;
 }
 
-function JourneyCard({ journey, index }: { journey: Trip; index: number }) {
+function JourneyCard({
+  journey,
+  index,
+  onMenuOpen,
+}: {
+  journey: Trip;
+  index: number;
+  onMenuOpen: (j: Trip) => void;
+}) {
   const firstStep = journey.steps?.[0];
-  const startDate = firstStep?.timestamp
-    ? new Date(firstStep.timestamp)
-    : null;
-
+  const startDate = firstStep?.timestamp ? new Date(firstStep.timestamp) : null;
   const month = startDate
     ? startDate.toLocaleDateString('en-US', { month: 'long' }).toUpperCase()
     : null;
   const year = startDate ? startDate.getFullYear() : null;
 
-  // Estimate days span
   const lastStep = journey.steps?.[journey.steps.length - 1];
   let days = 0;
   if (firstStep?.timestamp && lastStep?.timestamp) {
     days = Math.max(
       1,
-      Math.round(
-        (lastStep.timestamp - firstStep.timestamp) / (1000 * 60 * 60 * 24)
-      )
+      Math.round((lastStep.timestamp - firstStep.timestamp) / (1000 * 60 * 60 * 24))
     );
   }
 
@@ -42,10 +45,10 @@ function JourneyCard({ journey, index }: { journey: Trip; index: number }) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.06 }}
-      className="relative w-full rounded-2xl overflow-hidden"
+      className="relative w-full rounded-2xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform"
       style={{ minHeight: 180 }}
+      onClick={() => onMenuOpen(journey)}
     >
-      {/* Background — use journey color as gradient */}
       <div
         className="absolute inset-0"
         style={{
@@ -53,10 +56,8 @@ function JourneyCard({ journey, index }: { journey: Trip; index: number }) {
           backgroundColor: '#1e3a5f',
         }}
       />
-      {/* Dark overlay for readability */}
       <div className="absolute inset-0 bg-black/30" />
 
-      {/* NOW TRAVELING badge */}
       <div className="absolute top-3 left-3">
         <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1">
           <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
@@ -66,7 +67,10 @@ function JourneyCard({ journey, index }: { journey: Trip; index: number }) {
         </div>
       </div>
 
-      {/* Content */}
+      <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+        <MoreHorizontal className="w-4 h-4 text-white" />
+      </div>
+
       <div className="relative z-10 p-4 pt-12 flex flex-col justify-end" style={{ minHeight: 180 }}>
         <h3 className="text-white text-2xl font-bold mb-3 leading-tight">
           {journey.name}
@@ -113,19 +117,15 @@ export default function MeTab({
   journeys,
   onAddTrip,
   onAddPlace,
+  onOpenJourneyMenu,
 }: MeTabProps) {
   const displayName = userName || 'Traveler';
   const firstName = displayName.split(' ')[0];
-
-  // Get country flag emoji from user name heuristic — default TR
   const flagEmoji = '🇹🇷';
 
   return (
     <div className="pt-4 pb-8">
-
-      {/* Profile header */}
       <div className="flex items-center gap-4 mb-5">
-        {/* Avatar */}
         <div className="w-20 h-20 rounded-full overflow-hidden bg-slate-200 shrink-0 ring-2 ring-black/8">
           {userPhoto ? (
             <Image
@@ -144,20 +144,15 @@ export default function MeTab({
             </div>
           )}
         </div>
-
-        {/* Name + role */}
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-slate-900 text-xl font-bold leading-tight">
-              {displayName}
-            </h2>
+            <h2 className="text-slate-900 text-xl font-bold leading-tight">{displayName}</h2>
             <span className="text-lg">{flagEmoji}</span>
           </div>
           <p className="text-slate-400 text-sm mt-0.5">Traveler</p>
         </div>
       </div>
 
-      {/* Stats row */}
       <div className="flex items-center mb-5">
         <div className="flex-1 flex flex-col items-start">
           <span className="text-slate-900 text-xl font-bold">{countriesCount}</span>
@@ -175,18 +170,14 @@ export default function MeTab({
         </div>
       </div>
 
-      {/* Action buttons */}
       <div className="flex items-center gap-2 mb-6">
-        {/* Add trip — primary teal */}
         <button
           onClick={onAddTrip}
-          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-teal-800 hover:bg-teal-900 active:scale-95 transition-all"
+          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-blue-500 hover:bg-blue-600 active:scale-95 transition-all"
         >
           <Plus className="w-4 h-4 text-white" strokeWidth={2.5} />
           <span className="text-white text-sm font-semibold">Add trip</span>
         </button>
-
-        {/* Travel stats — outline */}
         <button
           onClick={onAddPlace}
           className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl border border-black/15 hover:bg-black/5 active:scale-95 transition-all"
@@ -194,28 +185,46 @@ export default function MeTab({
           <TrendingUp className="w-4 h-4 text-slate-700" strokeWidth={2} />
           <span className="text-slate-700 text-sm font-semibold">Add place</span>
         </button>
-
-        {/* Follow — icon only outline */}
         <button className="w-12 h-12 rounded-2xl border border-black/15 flex items-center justify-center hover:bg-black/5 active:scale-95 transition-all shrink-0">
           <UserPlus className="w-4 h-4 text-slate-700" strokeWidth={2} />
         </button>
       </div>
 
-      {/* Journey cards */}
       {journeys.length > 0 ? (
         <div className="space-y-3 mb-4">
           {journeys.map((journey, index) => (
-            <JourneyCard key={journey.id} journey={journey} index={index} />
+            <JourneyCard
+              key={journey.id}
+              journey={journey}
+              index={index}
+              onMenuOpen={(j) => onOpenJourneyMenu?.(j)}
+            />
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center py-8 text-center mb-4">
-          <MapPin className="w-10 h-10 text-slate-200 mb-3" strokeWidth={1.5} />
-          <p className="text-slate-500 text-sm">No trips yet</p>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+          className="flex flex-col items-center py-10 px-4 text-center mb-4"
+        >
+          <div className="w-20 h-20 rounded-3xl bg-blue-50 flex items-center justify-center mb-5">
+            <MapPin className="w-9 h-9 text-blue-400" strokeWidth={1.5} />
+          </div>
+          <h3 className="text-slate-800 text-lg font-bold mb-2">Your journey starts here</h3>
+          <p className="text-slate-400 text-sm leading-relaxed mb-6 max-w-xs">
+            Create your first trip and start tracking your adventures around the world.
+          </p>
+          <button
+            onClick={onAddTrip}
+            className="flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-blue-500 hover:bg-blue-600 active:scale-95 transition-all shadow-lg shadow-blue-500/25"
+          >
+            <Plus className="w-5 h-5 text-white" strokeWidth={2.5} />
+            <span className="text-white text-base font-semibold">Add your first step</span>
+          </button>
+        </motion.div>
       )}
 
-      {/* Add trip CTA button */}
       <button
         onClick={onAddTrip}
         className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-rose-500 hover:bg-rose-600 active:scale-95 transition-all"
@@ -225,7 +234,6 @@ export default function MeTab({
           Add a past, current or future trip
         </span>
       </button>
-
     </div>
   );
 }

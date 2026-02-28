@@ -171,31 +171,30 @@ export default function JourneyCreator({
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
             className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl"
             style={{
-              background: 'linear-gradient(to bottom, rgba(15,20,30,0.98), rgba(10,14,22,0.98))',
-              backdropFilter: 'blur(24px)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              backgroundColor: 'white',
+              border: '1px solid rgba(0,0,0,0.08)',
               borderBottom: 'none',
               maxHeight: '78vh',
             }}
           >
             {/* Handle */}
             <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 rounded-full bg-white/20" />
+              <div className="w-10 h-1 rounded-full bg-black/15" />
             </div>
 
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-white/8 border border-white/10 flex items-center justify-center">
-                  <Route className="w-4 h-4 text-white/70" strokeWidth={1.8} />
+                <div className="w-8 h-8 rounded-xl bg-black/6 border border-black/8 flex items-center justify-center">
+                  <Route className="w-4 h-4 text-slate-500" strokeWidth={1.8} />
                 </div>
                 <div>
-                  <p className="text-white text-sm font-semibold">
+                  <p className="text-slate-800 text-sm font-semibold">
                     {isEditMode
                       ? wizardStep === 'meta' ? 'Edit Journey' : name || 'Edit Waypoints'
                       : wizardStep === 'meta' ? 'New Journey' : name || 'Add Waypoints'}
                   </p>
-                  <p className="text-white/35 text-xs">
+                  <p className="text-slate-400 text-xs">
                     {wizardStep === 'meta'
                       ? 'Step 1 of 2 — Details'
                       : `Step 2 of 2 — ${steps.length} waypoint${steps.length !== 1 ? 's' : ''}`}
@@ -204,15 +203,15 @@ export default function JourneyCreator({
               </div>
               <button
                 onClick={handleClose}
-                className="p-2 rounded-xl hover:bg-white/10 transition-colors"
+                className="p-2 rounded-xl hover:bg-black/6 transition-colors"
               >
-                <X className="w-4 h-4 text-white/50" strokeWidth={2} />
+                <X className="w-4 h-4 text-slate-400" strokeWidth={2} />
               </button>
             </div>
 
             {/* Progress bar */}
             <div className="px-5 pb-3">
-              <div className="h-0.5 bg-white/8 rounded-full overflow-hidden">
+              <div className="h-0.5 bg-black/8 rounded-full overflow-hidden">
                 <motion.div
                   className="h-full bg-blue-500 rounded-full"
                   animate={{ width: wizardStep === 'meta' ? '50%' : '100%' }}

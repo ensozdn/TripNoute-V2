@@ -102,7 +102,7 @@ export default function ProfileEditPanel({ onBack }: ProfileEditPanelProps) {
         transition={{ type: 'spring', damping: 28, stiffness: 280 }}
         className="flex items-center justify-center py-16"
       >
-        <Loader2 className="w-6 h-6 text-white/40 animate-spin" />
+        <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
       </motion.div>
     );
   }
@@ -115,25 +115,25 @@ export default function ProfileEditPanel({ onBack }: ProfileEditPanelProps) {
       transition={{ type: 'spring', damping: 28, stiffness: 280 }}
       className="flex flex-col"
     >
-      <div className="flex items-center gap-3 px-1 py-3 border-b border-white/10 mb-4">
+      <div className="flex items-center gap-3 px-1 py-3 border-b border-black/8 mb-4">
         <button
           onClick={onBack}
-          className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+          className="w-8 h-8 rounded-xl bg-black/6 flex items-center justify-center hover:bg-black/10 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4 text-white" strokeWidth={2} />
+          <ArrowLeft className="w-4 h-4 text-slate-600" strokeWidth={2} />
         </button>
-        <p className="text-white font-semibold text-sm flex-1">Edit Profile</p>
+        <p className="text-slate-800 font-semibold text-sm flex-1">Edit Profile</p>
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/20 border border-blue-500/30 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-500/30 transition-all"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-500/20 transition-all"
         >
           {saving ? (
-            <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin" />
+            <Loader2 className="w-3.5 h-3.5 text-blue-500 animate-spin" />
           ) : (
-            <Check className={`w-3.5 h-3.5 ${saved ? 'text-green-400' : 'text-blue-400'}`} />
+            <Check className={`w-3.5 h-3.5 ${saved ? 'text-green-500' : 'text-blue-500'}`} />
           )}
-          <span className={`text-xs font-medium ${saved ? 'text-green-400' : 'text-blue-400'}`}>
+          <span className={`text-xs font-medium ${saved ? 'text-green-500' : 'text-blue-500'}`}>
             {saving ? 'Saving…' : saved ? 'Saved!' : 'Save'}
           </span>
         </button>
@@ -143,20 +143,20 @@ export default function ProfileEditPanel({ onBack }: ProfileEditPanelProps) {
         <div className="flex flex-col items-center gap-2">
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="relative w-20 h-20 rounded-full overflow-hidden bg-white/10 border-2 border-white/20 hover:border-white/40 transition-all group"
+            className="relative w-20 h-20 rounded-full overflow-hidden bg-black/6 border-2 border-black/10 hover:border-black/20 transition-all group"
           >
             {photoPreview ? (
               <Image src={photoPreview} alt="Profile" fill className="object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <User className="w-8 h-8 text-white/40" strokeWidth={1.5} />
+                <User className="w-8 h-8 text-slate-400" strokeWidth={1.5} />
               </div>
             )}
-            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
               <Camera className="w-6 h-6 text-white" strokeWidth={1.8} />
             </div>
           </button>
-          <p className="text-xs text-white/40">Tap to change your picture</p>
+          <p className="text-xs text-slate-400">Tap to change your picture</p>
           <input
             ref={fileInputRef}
             type="file"
@@ -168,7 +168,7 @@ export default function ProfileEditPanel({ onBack }: ProfileEditPanelProps) {
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-xs text-white/40 uppercase tracking-widest font-medium px-1">
+            <label className="text-xs text-slate-400 uppercase tracking-widest font-medium px-1">
               First Name
             </label>
             <input
@@ -176,11 +176,11 @@ export default function ProfileEditPanel({ onBack }: ProfileEditPanelProps) {
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               placeholder="John"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/30 transition-all"
+              className="w-full bg-black/4 border border-black/10 rounded-xl px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-blue-400 transition-all"
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs text-white/40 uppercase tracking-widest font-medium px-1">
+            <label className="text-xs text-slate-400 uppercase tracking-widest font-medium px-1">
               Last Name
             </label>
             <input
@@ -188,13 +188,13 @@ export default function ProfileEditPanel({ onBack }: ProfileEditPanelProps) {
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               placeholder="Doe"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/30 transition-all"
+              className="w-full bg-black/4 border border-black/10 rounded-xl px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-blue-400 transition-all"
             />
           </div>
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs text-white/40 uppercase tracking-widest font-medium px-1">
+          <label className="text-xs text-slate-400 uppercase tracking-widest font-medium px-1">
             City
           </label>
           <input
@@ -202,12 +202,12 @@ export default function ProfileEditPanel({ onBack }: ProfileEditPanelProps) {
             value={city}
             onChange={(e) => setCity(e.target.value)}
             placeholder="Istanbul, Turkey"
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/30 transition-all"
+            className="w-full bg-black/4 border border-black/10 rounded-xl px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-blue-400 transition-all"
           />
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs text-white/40 uppercase tracking-widest font-medium px-1">
+          <label className="text-xs text-slate-400 uppercase tracking-widest font-medium px-1">
             Bio
           </label>
           <textarea
@@ -216,9 +216,9 @@ export default function ProfileEditPanel({ onBack }: ProfileEditPanelProps) {
             placeholder="Tell the world a little about yourself…"
             rows={3}
             maxLength={160}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/30 transition-all resize-none"
+            className="w-full bg-black/4 border border-black/10 rounded-xl px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-blue-400 transition-all resize-none"
           />
-          <p className="text-right text-xs text-white/20 pr-1">{bio.length}/160</p>
+          <p className="text-right text-xs text-slate-300 pr-1">{bio.length}/160</p>
         </div>
       </div>
     </motion.div>

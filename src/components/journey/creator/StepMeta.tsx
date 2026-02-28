@@ -22,7 +22,7 @@ export default function StepMeta({
       className="flex flex-col gap-6"
     >
       <div>
-        <label className="text-xs text-white/40 uppercase tracking-widest font-medium mb-2 block">
+        <label className="text-xs text-slate-400 uppercase tracking-widest font-medium mb-2 block">
           Journey Name
         </label>
         <input
@@ -31,7 +31,7 @@ export default function StepMeta({
           onChange={(e) => onNameChange(e.target.value)}
           placeholder="e.g. Summer Europe Trip"
           maxLength={60}
-          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-white/30 transition-colors"
+          className="w-full bg-black/4 border border-black/10 rounded-xl px-4 py-3 text-slate-900 text-sm placeholder:text-slate-300 focus:outline-none focus:border-blue-400 transition-colors"
         />
       </div>
 

@@ -31,8 +31,8 @@ function InputField({
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="flex items-center gap-1.5 text-xs font-medium text-white/50 uppercase tracking-wider">
-        <span className="text-white/30">{icon}</span>
+      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-400 uppercase tracking-wider">
+        <span className="text-slate-300">{icon}</span>
         {label}
       </label>
       {children}
@@ -41,7 +41,7 @@ function InputField({
 }
 
 const inputCls =
-  'w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-blue-500/60 focus:bg-white/8 transition-all';
+  'w-full px-4 py-3 rounded-xl bg-black/4 border border-black/10 text-slate-900 text-sm placeholder:text-slate-300 focus:outline-none focus:border-blue-500/60 focus:bg-blue-500/4 transition-all';
 
 export default function StepDetails({
   details,
@@ -63,7 +63,7 @@ export default function StepDetails({
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -40 }}
       transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-      className="absolute inset-0 flex flex-col bg-slate-900 overflow-y-auto"
+      className="absolute inset-0 flex flex-col bg-white overflow-y-auto"
     >
       {/* Spacer for WizardProgress bar (bar is ~72px) */}
       <div className="h-[88px] shrink-0" />
@@ -71,13 +71,13 @@ export default function StepDetails({
       <div className="flex-1 px-5 pb-36 space-y-6 pt-4">
 
         {/* Selected location pill */}
-        <div className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/20">
-          <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
-            <MapPin className="w-4 h-4 text-blue-400" strokeWidth={2} />
+        <div className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-blue-500/8 border border-blue-500/15">
+          <div className="w-8 h-8 rounded-full bg-blue-500/15 flex items-center justify-center shrink-0">
+            <MapPin className="w-4 h-4 text-blue-500" strokeWidth={2} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] text-blue-400/60 font-semibold uppercase tracking-wider mb-0.5">Selected location</p>
-            <p className="text-sm text-white/75 truncate">
+            <p className="text-[11px] text-blue-500/70 font-semibold uppercase tracking-wider mb-0.5">Selected location</p>
+            <p className="text-sm text-slate-700 truncate">
               {selectedLocation.address
                 ? selectedLocation.address.split(',').slice(0, 2).join(', ')
                 : `${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)}`}
@@ -149,20 +149,20 @@ export default function StepDetails({
             maxLength={1000}
             className={`${inputCls} resize-none`}
           />
-          <p className="text-right text-xs text-white/20 mt-1">
+          <p className="text-right text-xs text-slate-300 mt-1">
             {details.notes.length} / 1000
           </p>
         </InputField>
       </div>
 
       {/* Sticky bottom CTA */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 px-5 pb-10 pt-6 bg-gradient-to-t from-slate-900 via-slate-900/95 to-transparent">
+      <div className="fixed bottom-0 left-0 right-0 z-40 px-5 pb-10 pt-6 bg-gradient-to-t from-white via-white/95 to-transparent">
         <motion.button
           onClick={onContinue}
           disabled={!isValid}
           whileTap={{ scale: 0.97 }}
           className="w-full py-4 rounded-2xl font-semibold text-base transition-all
-            disabled:bg-white/8 disabled:text-white/25 disabled:cursor-not-allowed
+            disabled:bg-black/6 disabled:text-slate-300 disabled:cursor-not-allowed
             bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white shadow-xl shadow-blue-500/25"
         >
           Continue →

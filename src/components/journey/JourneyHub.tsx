@@ -6,11 +6,15 @@ import { Place } from '@/types';
 import { Trip } from '@/types/trip';
 import MeTab from './tabs/MeTab';
 import JourneyCreator from './creator/JourneyCreator';
-import { User, Users, Globe, Bell, Search } from 'lucide-react';
+import JourneyActionMenu from './JourneyActionMenu';
+import JourneyCreationModal from './JourneyCreationModal';
+import TripDetailView from './TripDetailView';
+import { User, Users, Globe, Bell } from 'lucide-react';
 import { deduplicateCountries } from '@/utils/dataNormalizer';
 
 type NavTab = 'me' | 'activity' | 'explore' | 'notifications';
 type SheetState = 'closed' | 'middle' | 'full';
+type ActiveMode = 'plan' | 'track';
 
 const SNAP_POINTS: Record<SheetState, number> = {
   closed: 0.08,
@@ -50,6 +54,8 @@ export default function JourneyHub({
   journeys = [],
   onJourneyCreated,
   onJourneyUpdated,
+  onJourneySelect,
+  onJourneyDelete,
   onRequestMapPin,
   mapPinMode = false,
   userName,
@@ -59,7 +65,10 @@ export default function JourneyHub({
   const [activeNav, setActiveNav] = useState<NavTab>('me');
   const [sheetState, setSheetState] = useState<SheetState>('middle');
   const [creatorOpen, setCreatorOpen] = useState(false);
+  const [creationModalOpen, setCreationModalOpen] = useState(false);
+  const [activeMode, setActiveMode] = useState<ActiveMode>('plan');
   const [editingJourney, setEditingJourney] = useState<Trip | null>(null);
+  const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
 
   const countriesCount = useMemo(() => {
@@ -105,8 +114,8 @@ export default function JourneyHub({
           y: 0,
           opacity: mapPinMode ? 0 : 1,
           height: mapPinMode
-            ? `${SNAP_POINTS.closed * 100}vh`
-            : `${sheetHeightPercent * 100}vh`,
+            ? `\${SNAP_POINTS.closed * 100}vh`
+            : `\${sheetHeightPercent * 100}vh`,
           transition: {
             type: 'spring',
             damping: 25,
@@ -152,11 +161,9 @@ export default function JourneyHub({
                   userPhoto={userPhoto}
                   countriesCount={countriesCount}
                   journeys={journeys}
-                  onAddTrip={() => {
-                    setEditingJourney(null);
-                    setCreatorOpen(true);
-                  }}
+                  onAddTrip={() => setCreationModalOpen(true)}
                   onAddPlace={onAddPlace ?? (() => {})}
+                  onOpenJourneyMenu={(j) => setSelectedTrip(j)}
                 />
               )}
               {activeNav === 'activity' && (
@@ -182,46 +189,92 @@ export default function JourneyHub({
         </div>
       </motion.div>
 
-      {/* Floating Bottom Nav Bar */}
-      <div className="fixed bottom-4 left-0 right-0 z-50 flex items-center justify-center gap-3 px-4 pointer-events-none">
-        {/* Nav pill */}
-        <div className="flex items-center bg-white/95 backdrop-blur-xl rounded-full shadow-2xl shadow-black/15 border border-black/6 pointer-events-auto">
-          {NAV_ITEMS.map((item) => {
-            const isActive = activeNav === item.id;
+      {/* Floating bottom UI — mode toggle + nav + FAB */}
+      <div
+        className="fixed bottom-0 left-0 right-0 z-50 flex flex-col items-center gap-2 pb-5 pt-2 pointer-events-none"
+        style={{ background: 'linear-gradient(to top, rgba(255,255,255,0.08) 0%, transparent 100%)' }}
+      >
+        {/* Mode Switcher */}
+        <div className="flex items-center bg-white/95 backdrop-blur-xl rounded-full shadow-lg shadow-black/10 border border-black/6 p-1 pointer-events-auto">
+          {(['plan', 'track'] as ActiveMode[]).map((mode) => {
+            const isActive = activeMode === mode;
             return (
               <button
-                key={item.id}
-                onClick={() => {
-                  setActiveNav(item.id);
-                  if (sheetState === 'closed') setSheetState('middle');
-                }}
-                className="relative flex flex-col items-center gap-0.5 px-5 py-3 transition-all duration-200"
+                key={mode}
+                onClick={() => setActiveMode(mode)}
+                className="relative px-5 py-1.5 rounded-full text-xs font-bold capitalize transition-colors"
               >
                 {isActive && (
                   <motion.div
-                    layoutId="nav-active-bg"
-                    className="absolute inset-1 rounded-full bg-slate-100"
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    layoutId="mode-pill"
+                    className="absolute inset-0 rounded-full bg-blue-500"
+                    transition={{ type: 'spring', stiffness: 420, damping: 30 }}
                   />
                 )}
-                <span className={`relative z-10 transition-colors duration-200 ${isActive ? 'text-slate-900' : 'text-slate-400'}`}>
-                  {item.icon}
-                </span>
-                <span className={`relative z-10 text-[10px] font-semibold transition-colors duration-200 ${isActive ? 'text-slate-900' : 'text-slate-400'}`}>
-                  {item.label}
+                <span className={`relative z-10 transition-colors \${isActive ? 'text-white' : 'text-slate-400'}`}>
+                  {mode}
                 </span>
               </button>
             );
           })}
         </div>
 
-        {/* Search button */}
-        <button className="w-14 h-14 rounded-full bg-white/95 backdrop-blur-xl border border-black/6 shadow-2xl shadow-black/15 flex items-center justify-center text-slate-700 hover:bg-white transition-all pointer-events-auto active:scale-95">
-          <Search className="w-5 h-5" strokeWidth={2} />
-        </button>
+        {/* Nav pill + FAB row */}
+        <div className="flex items-center justify-center gap-3 w-full px-4">
+          <div className="flex items-center bg-white/95 backdrop-blur-xl rounded-full shadow-2xl shadow-black/15 border border-black/6 pointer-events-auto">
+            {NAV_ITEMS.map((item) => {
+              const isActive = activeNav === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveNav(item.id);
+                    if (sheetState === 'closed') setSheetState('middle');
+                  }}
+                  className="relative flex flex-col items-center gap-0.5 px-5 py-3 transition-all duration-200"
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="nav-active-bg"
+                      className="absolute inset-1 rounded-full bg-slate-100"
+                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                  <span className={`relative z-10 transition-colors duration-200 \${isActive ? 'text-slate-900' : 'text-slate-400'}`}>
+                    {item.icon}
+                  </span>
+                  <span className={`relative z-10 text-[10px] font-semibold transition-colors duration-200 \${isActive ? 'text-slate-900' : 'text-slate-400'}`}>
+                    {item.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="pointer-events-auto">
+            <JourneyActionMenu
+              activeMode={activeMode}
+              onCreateItinerary={() => setCreationModalOpen(true)}
+              onAddSpot={onAddPlace}
+              onAddStay={() => setCreationModalOpen(true)}
+              onAddDestination={() => setCreationModalOpen(true)}
+              onAddFirstStep={() => setCreationModalOpen(true)}
+            />
+          </div>
+        </div>
       </div>
 
-      {/* Journey Creator */}
+      {/* Journey Creation Modal (4-step) */}
+      <JourneyCreationModal
+        isOpen={creationModalOpen}
+        onClose={() => setCreationModalOpen(false)}
+        onCreated={(trip) => {
+          setCreationModalOpen(false);
+          onJourneyCreated?.(trip);
+        }}
+      />
+
+      {/* Journey Creator — waypoint editor (editing existing trips) */}
       {onRequestMapPin && (
         <JourneyCreator
           isOpen={creatorOpen}
@@ -244,6 +297,27 @@ export default function JourneyHub({
           onRequestMapPin={onRequestMapPin}
         />
       )}
+
+      {/* Trip Detail View — full screen, slide-in from right */}
+      <AnimatePresence>
+        {selectedTrip && (
+          <TripDetailView
+            trip={selectedTrip}
+            userName={userName}
+            userPhoto={userPhoto}
+            onBack={() => setSelectedTrip(null)}
+            onEdit={(trip) => {
+              setSelectedTrip(null);
+              setEditingJourney(trip);
+              setCreatorOpen(true);
+            }}
+            onDelete={(tripId) => {
+              setSelectedTrip(null);
+              onJourneyDelete?.(tripId);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }

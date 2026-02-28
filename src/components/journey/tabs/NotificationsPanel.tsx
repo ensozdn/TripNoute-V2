@@ -135,7 +135,7 @@ export default function NotificationsPanel({ onBack }: NotificationsPanelProps) 
         transition={{ type: 'spring', damping: 28, stiffness: 280 }}
         className="flex items-center justify-center py-16"
       >
-        <Loader2 className="w-6 h-6 text-white/40 animate-spin" />
+        <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
       </motion.div>
     );
   }
@@ -149,14 +149,14 @@ export default function NotificationsPanel({ onBack }: NotificationsPanelProps) 
       className="flex flex-col"
     >
       {/* Header */}
-      <div className="flex items-center gap-3 px-1 py-3 border-b border-white/10 mb-5">
+      <div className="flex items-center gap-3 px-1 py-3 border-b border-black/8 mb-5">
         <button
           onClick={onBack}
-          className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+          className="w-8 h-8 rounded-xl bg-black/6 flex items-center justify-center hover:bg-black/10 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4 text-white" strokeWidth={2} />
+          <ArrowLeft className="w-4 h-4 text-slate-600" strokeWidth={2} />
         </button>
-        <p className="text-white font-semibold text-sm flex-1">Notifications</p>
+        <p className="text-slate-800 font-semibold text-sm flex-1">Notifications</p>
       </div>
 
       <div className="space-y-6">
@@ -167,25 +167,25 @@ export default function NotificationsPanel({ onBack }: NotificationsPanelProps) 
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2, delay: sectionIndex * 0.05 }}
           >
-            <p className="text-xs text-white/30 uppercase tracking-widest font-medium mb-2 px-1">
+            <p className="text-xs text-slate-400 uppercase tracking-widest font-medium mb-2 px-1">
               {section.title}
             </p>
-            <div className="rounded-2xl overflow-hidden border border-white/10 divide-y divide-white/5">
+            <div className="rounded-2xl overflow-hidden border border-black/8 divide-y divide-black/5">
               {section.items.map(({ key, label, description }) => (
                 <div
                   key={key}
-                  className="flex items-start gap-3 px-4 py-3.5 bg-white/5"
+                  className="flex items-start gap-3 px-4 py-3.5 bg-black/3"
                 >
                   <div className="flex-1 min-w-0 pr-2">
-                    <p className="text-sm text-white font-medium leading-snug">{label}</p>
-                    <p className="text-xs text-white/35 mt-1 leading-relaxed">{description}</p>
+                    <p className="text-sm text-slate-800 font-medium leading-snug">{label}</p>
+                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">{description}</p>
                   </div>
                   <button
                     onClick={() => handleToggle(key as keyof NotificationSettings)}
                     className={`relative shrink-0 w-11 h-6 rounded-full transition-colors duration-200 mt-0.5 ${
                       settings[key as keyof NotificationSettings]
                         ? 'bg-blue-500'
-                        : 'bg-white/15'
+                        : 'bg-black/12'
                     }`}
                   >
                     <motion.div
