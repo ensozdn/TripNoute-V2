@@ -25,11 +25,9 @@ export default function MapboxLocationPicker({
 }: MapboxLocationPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedLocation, setSelectedLocation] = useState(initialLocation || null);
-  const [isGeocodingAddress, setIsGeocodingAddress] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const googlePlaces = useRef(getGooglePlacesService());
-  const [showHint, setShowHint] = useState(!initialLocation);
 
   const accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
 
@@ -46,17 +44,13 @@ export default function MapboxLocationPicker({
 
   const handleMapClick = async (lat: number, lng: number) => {
     setSelectedLocation({ lat, lng });
-    setShowHint(false);
 
-    setIsGeocodingAddress(true);
     try {
       const address = await googlePlaces.current.reverseGeocode(lat, lng);
       onLocationSelect({ lat, lng, address });
     } catch (error) {
       console.error('Reverse geocoding failed:', error);
       onLocationSelect({ lat, lng });
-    } finally {
-      setIsGeocodingAddress(false);
     }
   };
 
@@ -66,7 +60,6 @@ export default function MapboxLocationPicker({
       lng: place.location.lng,
     };
     setSelectedLocation(location);
-    setShowHint(false);
     onLocationSelect({
       ...location,
       address: place.formattedAddress,
@@ -76,7 +69,6 @@ export default function MapboxLocationPicker({
   const handleLocateMe = async () => {
     setIsLocating(true);
     setLocationError(null);
-    setShowHint(false);
 
     try {
 
@@ -118,7 +110,6 @@ export default function MapboxLocationPicker({
   useEffect(() => {
     if (!isLoaded || !flyToLocation) return;
     flyTo(flyToLocation.lat, flyToLocation.lng, 14);
-    setShowHint(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flyToLocation?.lat, flyToLocation?.lng, isLoaded]);
 
@@ -130,6 +121,50 @@ export default function MapboxLocationPicker({
 
       {}
       <div ref={containerRef} className="absolute inset-0 w-full h-full" />
+
+      {/* ── Animated center pin (always visible, tracks map center) ── */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+        <div className="relative flex flex-col items-center" style={{ marginBottom: 36 }}>
+          {/* Pulse ring — shown when no location selected yet */}
+          {!selectedLocation && (
+            <>
+              <div className="absolute w-12 h-12 rounded-full border-2 border-blue-400/40 animate-ping" />
+              <div className="absolute w-8 h-8 rounded-full border border-blue-400/30 animate-pulse" />
+            </>
+          )}
+
+          {/* Pin body */}
+          <div
+            className={`relative w-10 h-10 rounded-full border-3 flex items-center justify-center shadow-2xl transition-all duration-300 ${
+              selectedLocation
+                ? 'bg-blue-500 border-white scale-110 shadow-blue-500/60'
+                : 'bg-white/10 border-white/40 backdrop-blur-sm'
+            }`}
+            style={{ border: selectedLocation ? '3px solid white' : '2px solid rgba(255,255,255,0.4)' }}
+          >
+            <svg
+              className={`w-5 h-5 transition-colors duration-300 ${selectedLocation ? 'text-white' : 'text-white/60'}`}
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+            </svg>
+          </div>
+
+          {/* Pin shadow / stem */}
+          <div
+            className={`w-1 h-3 rounded-full transition-all duration-300 ${
+              selectedLocation ? 'bg-blue-400/80' : 'bg-white/20'
+            }`}
+          />
+          {/* Ground dot */}
+          <div
+            className={`w-3 h-1 rounded-full blur-[1px] transition-all duration-300 ${
+              selectedLocation ? 'bg-blue-400/50' : 'bg-white/10'
+            }`}
+          />
+        </div>
+      </div>
 
       {/* Search bar */}
       {!hideSearch && (
@@ -160,40 +195,6 @@ export default function MapboxLocationPicker({
               </svg>
             )}
           </button>
-        )}
-      </div>
-
-      {}
-      <div className="absolute bottom-6 left-0 right-0 flex justify-center pointer-events-none z-10">
-
-        {}
-        {showHint && !selectedLocation && (
-          <div className="bg-black/60 backdrop-blur-md text-white px-4 py-2 rounded-full text-sm font-medium border border-white/10 shadow-lg animate-fade-in">
-            Haritaya tıkla veya ara
-          </div>
-        )}
-
-        {}
-        {selectedLocation && (
-          <div className="pointer-events-auto bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-2xl mx-4 max-w-sm w-full border border-white/50 animate-slide-up">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center shrink-0">
-                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-900 truncate">
-                  {isGeocodingAddress ? 'Adres alınıyor...' : 'Konum Seçildi'}
-                </p>
-                <p className="text-xs text-slate-500 truncate font-mono">
-                  {selectedLocation.lat.toFixed(5)}, {selectedLocation.lng.toFixed(5)}
-                </p>
-              </div>
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            </div>
-          </div>
         )}
       </div>
 

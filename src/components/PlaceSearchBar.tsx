@@ -22,19 +22,11 @@ export default function PlaceSearchBar({
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [dropdownRect, setDropdownRect] = useState<DOMRect | null>(null);
 
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const googlePlacesService = useRef(getGooglePlacesService());
   const justSelected = useRef(false);
-
-  // Recompute input position whenever dropdown opens
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
-      setDropdownRect(inputRef.current.getBoundingClientRect());
-    }
-  }, [isOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -150,18 +142,13 @@ export default function PlaceSearchBar({
         </div>
       </div>
 
-      {/* Results dropdown — fixed positioned to escape any overflow:hidden parent */}
-      {isOpen && results.length > 0 && dropdownRect && (
+      {/* Results dropdown */}
+      {isOpen && results.length > 0 && (
         <div
-          className="fixed bg-slate-800/98 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl overflow-y-auto z-[9999]"
-          style={{
-            left: dropdownRect.left,
-            width: dropdownRect.width,
-            maxHeight: '260px',
-            ...(dropdownDirection === 'up'
-              ? { bottom: window.innerHeight - dropdownRect.top + 8 }
-              : { top: dropdownRect.bottom + 8 }),
-          }}
+          className={`absolute left-0 right-0 bg-slate-800/98 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl overflow-y-auto z-[9999] ${
+            dropdownDirection === 'up' ? 'bottom-full mb-2' : 'top-full mt-2'
+          }`}
+          style={{ maxHeight: '260px' }}
         >
           {results.map((place, index) => (
             <button
@@ -191,16 +178,11 @@ export default function PlaceSearchBar({
       )}
 
       {/* No results */}
-      {isOpen && !isLoading && query.length >= 3 && results.length === 0 && dropdownRect && (
+      {isOpen && !isLoading && query.length >= 3 && results.length === 0 && (
         <div
-          className="fixed bg-slate-800/98 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl p-4 z-[9999]"
-          style={{
-            left: dropdownRect.left,
-            width: dropdownRect.width,
-            ...(dropdownDirection === 'up'
-              ? { bottom: window.innerHeight - dropdownRect.top + 8 }
-              : { top: dropdownRect.bottom + 8 }),
-          }}
+          className={`absolute left-0 right-0 bg-slate-800/98 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl p-4 z-[9999] ${
+            dropdownDirection === 'up' ? 'bottom-full mb-2' : 'top-full mt-2'
+          }`}
         >
           <p className="text-slate-400 text-center text-sm">Sonuç bulunamadı</p>
         </div>

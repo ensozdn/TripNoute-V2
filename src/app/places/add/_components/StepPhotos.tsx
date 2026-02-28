@@ -35,7 +35,7 @@ export default function StepPhotos({
       className="absolute inset-0 flex flex-col bg-slate-900 overflow-y-auto"
     >
       {/* Spacer for WizardProgress bar (bar is ~72px) */}
-      <div className="h-[72px] shrink-0" />
+      <div className="h-[88px] shrink-0" />
 
       <div className="flex-1 px-5 pb-36 pt-6 space-y-6">
 

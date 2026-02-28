@@ -1,9 +1,13 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { motion } from 'framer-motion';
 import { Place } from '@/types';
-import { Calendar, ChevronLeft, ChevronRight, Camera, MoreVertical, Edit2, Trash2 } from 'lucide-react';
+import {
+  Calendar, Camera, MoreVertical, Edit2, Trash2,
+  Plane, Car, Bus, Train, Ship, Footprints, MapPin,
+} from 'lucide-react';
 
 interface TravelTimelineProps {
   places: Place[];
@@ -14,6 +18,22 @@ interface TravelTimelineProps {
   className?: string;
 }
 
+const TRANSPORT_CONFIG: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
+  flight:  { icon: <Plane      className="w-3 h-3" />, label: 'Flight', color: '#a78bfa' },
+  car:     { icon: <Car        className="w-3 h-3" />, label: 'Car',    color: '#34d399' },
+  bus:     { icon: <Bus        className="w-3 h-3" />, label: 'Bus',    color: '#fbbf24' },
+  train:   { icon: <Train      className="w-3 h-3" />, label: 'Train',  color: '#fbbf24' },
+  ship:    { icon: <Ship       className="w-3 h-3" />, label: 'Ship',   color: '#38bdf8' },
+  walking: { icon: <Footprints className="w-3 h-3" />, label: 'Walk',   color: '#fb923c' },
+  walk:    { icon: <Footprints className="w-3 h-3" />, label: 'Walk',   color: '#fb923c' },
+};
+
+const CATEGORY_EMOJI: Record<string, string> = {
+  restaurant: '🍽️', hotel: '🏨', attraction: '🎡', museum: '🏛️',
+  park: '🌿', beach: '🏖️', mountain: '⛰️', city: '🏙️',
+  landmark: '🗺️', other: '📍',
+};
+
 export default function TravelTimeline({
   places,
   selectedPlaceId,
@@ -22,9 +42,6 @@ export default function TravelTimeline({
   onPlaceEdit,
   className = '',
 }: TravelTimelineProps) {
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
   const [deletingPlaceId, setDeletingPlaceId] = useState<string | null>(null);
@@ -35,84 +52,34 @@ export default function TravelTimeline({
     return dateA - dateB;
   });
 
-  const updateScrollButtons = () => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    setCanScrollLeft(container.scrollLeft > 0);
-    setCanScrollRight(
-      container.scrollLeft < container.scrollWidth - container.clientWidth - 10
-    );
-  };
-
   useEffect(() => {
-    updateScrollButtons();
-    const container = scrollContainerRef.current;
-    if (container) {
-      const handleScroll = () => {
-        updateScrollButtons();
-        setOpenMenuId(null);
-      };
-      container.addEventListener('scroll', handleScroll);
-      return () => container.removeEventListener('scroll', handleScroll);
-    }
-    return undefined;
-  }, [sortedPlaces]);
-
-  useEffect(() => {
-    if (selectedPlaceId && scrollContainerRef.current) {
-      const selectedElement = document.getElementById(`timeline-place-${selectedPlaceId}`);
-      if (selectedElement) {
-        selectedElement.scrollIntoView({
-          behavior: 'smooth',
-          block: 'nearest',
-          inline: 'center',
-        });
-      }
+    if (selectedPlaceId) {
+      const el = document.getElementById(`timeline-place-${selectedPlaceId}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, [selectedPlaceId]);
 
-  const scroll = (direction: 'left' | 'right') => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    const scrollAmount = 300;
-    const newScrollLeft = container.scrollLeft + (direction === 'left' ? -scrollAmount : scrollAmount);
-
-    container.scrollTo({
-      left: newScrollLeft,
-      behavior: 'smooth',
-    });
-  };
+  useEffect(() => {
+    const handleClickOutside = () => { if (openMenuId) setOpenMenuId(null); };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [openMenuId]);
 
   const formatDate = (timestamp: { seconds: number }) => {
     const date = new Date(timestamp.seconds * 1000);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const handleDelete = async (place: Place, e: React.MouseEvent) => {
     e.stopPropagation();
     setOpenMenuId(null);
-
     if (!onPlaceDelete) return;
-
-    const confirmed = window.confirm(
-      `Delete "${place.title}"?\n\nThis action cannot be undone.`
-    );
-
+    const confirmed = window.confirm(`Delete "${place.title}"?\n\nThis action cannot be undone.`);
     if (!confirmed) return;
-
     setDeletingPlaceId(place.id);
-
     try {
       await onPlaceDelete(place.id);
-
-    } catch (error) {
-      console.error('Failed to delete place:', error);
+    } catch {
       alert('Failed to delete place. Please try again.');
     } finally {
       setDeletingPlaceId(null);
@@ -122,10 +89,7 @@ export default function TravelTimeline({
   const handleEdit = (place: Place, e: React.MouseEvent) => {
     e.stopPropagation();
     setOpenMenuId(null);
-
-    if (onPlaceEdit) {
-      onPlaceEdit(place);
-    }
+    if (onPlaceEdit) onPlaceEdit(place);
   };
 
   const toggleMenu = (placeId: string, e: React.MouseEvent) => {
@@ -135,201 +99,202 @@ export default function TravelTimeline({
       setMenuPosition(null);
     } else {
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      setMenuPosition({
-        x: rect.right,
-        y: rect.bottom + 8
-      });
+      setMenuPosition({ x: rect.right, y: rect.bottom + 8 });
       setOpenMenuId(placeId);
     }
   };
 
-  useEffect(() => {
-    const handleClickOutside = () => {
-      if (openMenuId) {
-        setOpenMenuId(null);
-      }
-    };
-
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [openMenuId]);
-
-  if (sortedPlaces.length === 0) {
-    return null;
-  }
+  if (sortedPlaces.length === 0) return null;
 
   return (
     <div className={`relative ${className}`}>
-      {}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-base font-bold text-white flex items-center gap-2">
-            ️ Your Journey
-          </h3>
-          <p className="text-xs text-white/60">
-            {sortedPlaces.length} {sortedPlaces.length === 1 ? 'place' : 'places'} • {new Set(sortedPlaces.map(p => p.address.country)).size} {new Set(sortedPlaces.map(p => p.address.country)).size === 1 ? 'country' : 'countries'}
-          </p>
-        </div>
 
-        {}
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => scroll('left')}
-            disabled={!canScrollLeft}
-            className={`p-2 rounded-full transition-all ${canScrollLeft
-              ? 'bg-white/10 hover:bg-white/20 text-white hover:scale-110'
-              : 'bg-white/5 text-white/30 cursor-not-allowed'
-              }`}
-            aria-label="Scroll left"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => scroll('right')}
-            disabled={!canScrollRight}
-            className={`p-2 rounded-full transition-all ${canScrollRight
-              ? 'bg-white/10 hover:bg-white/20 text-white hover:scale-110'
-              : 'bg-white/5 text-white/30 cursor-not-allowed'
-              }`}
-            aria-label="Scroll right"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4 px-1">
+        <div>
+          <h3 className="text-sm font-bold text-white">Your Journey</h3>
+          <p className="text-xs text-white/50 mt-0.5">
+            {sortedPlaces.length} {sortedPlaces.length === 1 ? 'stop' : 'stops'} &middot;{' '}
+            {new Set(sortedPlaces.map(p => p.address.country)).size}{' '}
+            {new Set(sortedPlaces.map(p => p.address.country)).size === 1 ? 'country' : 'countries'}
+          </p>
         </div>
       </div>
 
-      {}
+      {/* Vertical timeline */}
       <div className="relative">
-        {}
-        <div className="absolute top-6 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-400/20 via-purple-400/30 to-blue-400/20 z-0" />
 
-        {}
-        <div
-          ref={scrollContainerRef}
-          className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide scroll-smooth"
-          style={{
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-          }}
-        >
-          {sortedPlaces.map((place) => {
+        {/* Central vertical line */}
+        <div className="absolute left-[15px] top-2 bottom-2 w-px bg-gradient-to-b from-blue-500/80 via-purple-500/50 to-blue-500/10" style={{ zIndex: 0 }} />
+
+        <div className="space-y-1 relative">
+          {sortedPlaces.map((place, index) => {
             const isSelected = place.id === selectedPlaceId;
+            const isLast = index === sortedPlaces.length - 1;
+            const nextPlace = !isLast ? sortedPlaces[index + 1] : null;
+            const transportCfg = place.transportType ? TRANSPORT_CONFIG[place.transportType] : null;
+            const hasPhoto = place.photos && place.photos.length > 0 && place.photos[0]?.url;
+            const categoryEmoji = place.category ? (CATEGORY_EMOJI[place.category] ?? '📍') : '📍';
 
             return (
-              <div
-                key={place.id}
-                id={`timeline-place-${place.id}`}
-                className="flex-shrink-0 w-48 relative"
-              >
-                {}
-                <div className="flex justify-center mb-3">
-                  {}
-                  {place.photos && place.photos.length > 0 && place.photos[0]?.url ? (
-                    <div
-                      className={`relative w-12 h-12 rounded-full transition-all duration-300 z-10 ${isSelected
-                        ? 'ring-4 ring-blue-400/50 scale-110 shadow-xl shadow-blue-500/30'
-                        : 'ring-2 ring-white/20 hover:ring-blue-400/30 hover:scale-105'
+              <div key={place.id} id={`timeline-place-${place.id}`}>
+
+                {/* Place row */}
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.04, duration: 0.22 }}
+                  className="flex items-start gap-4 relative z-10"
+                >
+                  {/* Node */}
+                  <div className="relative shrink-0 mt-2 z-10">
+                    {hasPhoto ? (
+                      <div
+                        className={`relative w-8 h-8 rounded-full transition-all duration-300 ${
+                          isSelected
+                            ? 'ring-2 ring-blue-400 shadow-md shadow-blue-500/40 scale-110'
+                            : 'ring-1 ring-white/20 hover:ring-blue-400/50 hover:scale-105'
                         }`}
-                    >
-                      <Image
-                        src={place.photos[0].url}
-                        alt={place.title}
-                        fill
-                        className="rounded-full object-cover"
-                        unoptimized
-                      />
-                      {}
-                      {isSelected && (
-                        <span className="absolute inset-0 rounded-full bg-blue-400/30 animate-ping" />
-                      )}
-                    </div>
-                  ) : (
-                    <div
-                      className={`w-3 h-3 rounded-full transition-all duration-300 relative z-10 ${isSelected
-                        ? 'bg-blue-400 scale-150 shadow-lg shadow-blue-500/50'
-                        : 'bg-gradient-to-br from-blue-400 to-purple-400 hover:scale-125'
-                        }`}
-                    >
-                      {}
-                      {isSelected && (
-                        <span className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-75" />
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {}
-                <div className="relative">
-                  {}
-                  {(onPlaceEdit || onPlaceDelete) && (
-                    <button
-                      onClick={(e) => toggleMenu(place.id, e)}
-                      className="absolute top-2 right-2 p-1 rounded-full bg-white/10 hover:bg-white/20 transition-all z-20"
-                      aria-label="More options"
-                    >
-                      <MoreVertical className="w-3 h-3 text-white" />
-                    </button>
-                  )}
-
-                  {}
-                  {deletingPlaceId === place.id && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-xl z-10">
-                      <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                    </div>
-                  )}
-
-                  {}
-                  <button
-                    onClick={() => onPlaceSelect(place)}
-                    disabled={deletingPlaceId === place.id}
-                    className={`w-full text-left p-3 rounded-xl border transition-all duration-300 ${deletingPlaceId === place.id
-                      ? 'opacity-50 cursor-not-allowed bg-white/5 border-red-400/30'
-                      : isSelected
-                        ? 'bg-white/10 border-blue-400/50 shadow-xl shadow-blue-500/20 scale-105'
-                        : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 hover:shadow-lg'
-                      }`}
-                  >
-
-                    {}
-                    <div className="mb-2">
-                      <h4 className="text-sm font-bold text-white mb-1 line-clamp-2 leading-tight">
-                        {place.title}
-                      </h4>
-                      <p className="text-xs text-white/70 line-clamp-1 flex items-center gap-1">
-                         {place.address.city}
-                      </p>
-                    </div>
-
-                    {}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1 text-white/50 text-[10px]">
-                        <Calendar className="w-3 h-3" />
-                        <span>{formatDate(place.visitDate)}</span>
+                      >
+                        <Image
+                          src={place.photos[0].url}
+                          alt={place.title}
+                          fill
+                          className="rounded-full object-cover"
+                          unoptimized
+                        />
+                        {isSelected && (
+                          <span className="absolute inset-0 rounded-full bg-blue-400/20 animate-ping" />
+                        )}
                       </div>
+                    ) : (
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-sm transition-all duration-300 ${
+                          isSelected
+                            ? 'bg-blue-500/25 ring-2 ring-blue-400 shadow-md shadow-blue-500/30 scale-110'
+                            : 'bg-white/10 ring-1 ring-white/20 hover:ring-blue-400/40 hover:scale-105'
+                        }`}
+                      >
+                        {categoryEmoji}
+                        {isSelected && (
+                          <span className="absolute inset-0 rounded-full bg-blue-400/10 animate-ping" />
+                        )}
+                      </div>
+                    )}
+                  </div>
 
-                      {place.photos.length > 0 && (
-                        <div className="flex items-center gap-1 text-white/50 text-[10px]">
-                          <Camera className="w-3 h-3" />
-                          <span>{place.photos.length}</span>
+                  {/* Card */}
+                  <div className="flex-1 min-w-0 relative z-10">
+                    {(onPlaceEdit || onPlaceDelete) && (
+                      <button
+                        onClick={(e) => toggleMenu(place.id, e)}
+                        className="absolute top-2 right-2 p-1 rounded-full bg-white/8 hover:bg-white/15 transition-all z-20"
+                      >
+                        <MoreVertical className="w-3 h-3 text-white/60" />
+                      </button>
+                    )}
+
+                    {deletingPlaceId === place.id && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-2xl z-10">
+                        <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                      </div>
+                    )}
+
+                    <button
+                      onClick={() => onPlaceSelect(place)}
+                      disabled={deletingPlaceId === place.id}
+                      className={`w-full text-left rounded-2xl transition-all duration-300 overflow-hidden ${
+                        deletingPlaceId === place.id
+                          ? 'opacity-40 cursor-not-allowed'
+                          : isSelected
+                            ? 'bg-blue-500/15 ring-1 ring-blue-400/50 shadow-lg shadow-blue-500/20'
+                            : 'hover:bg-white/5'
+                      }`}
+                    >
+                      {/* Photo strip */}
+                      {hasPhoto && (
+                        <div className="relative w-full h-24 overflow-hidden">
+                          <Image
+                            src={place.photos[0].url}
+                            alt={place.title}
+                            fill
+                            className="object-cover"
+                            unoptimized
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/60" />
+                          {place.photos.length > 1 && (
+                            <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/50 backdrop-blur-sm rounded-full px-2 py-0.5">
+                              <Camera className="w-3 h-3 text-white/80" />
+                              <span className="text-[10px] text-white/80 font-medium">{place.photos.length}</span>
+                            </div>
+                          )}
                         </div>
                       )}
+
+                      {/* Text */}
+                      <div className="p-3">
+                        <h4 className="text-sm font-semibold text-white leading-tight pr-6 mb-1">
+                          {place.title}
+                        </h4>
+                        <div className="flex items-center gap-1 text-white/50 text-xs mb-2">
+                          <MapPin className="w-3 h-3 shrink-0" />
+                          <span className="truncate">
+                            {place.address.city && place.address.country
+                              ? `${place.address.city}, ${place.address.country}`
+                              : place.address.city || place.address.country || place.address.formatted || ''}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 text-white/35 text-[11px]">
+                          <Calendar className="w-3 h-3 shrink-0" />
+                          <span>{formatDate(place.visitDate)}</span>
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                </motion.div>
+
+                {/* Transport connector */}
+                {nextPlace && (
+                  <div className="flex items-center gap-3 my-1">
+                    <div className="w-8 shrink-0 flex justify-center z-10">
+                      {transportCfg ? (
+                        <div
+                          className="w-5 h-5 rounded-full flex items-center justify-center"
+                          style={{
+                            backgroundColor: `${transportCfg.color}22`,
+                            color: transportCfg.color,
+                            border: `1px solid ${transportCfg.color}44`,
+                          }}
+                        >
+                          {transportCfg.icon}
+                        </div>
+                      ) : (
+                        <div className="w-px h-4 bg-white/10" />
+                      )}
                     </div>
-                  </button>
-                </div>
+                    {transportCfg && (
+                      <div className="flex items-center gap-1.5 text-[11px]" style={{ color: transportCfg.color }}>
+                        <span className="font-medium">{transportCfg.label}</span>
+                        <span className="text-white/20">→</span>
+                        <span className="text-white/40 truncate max-w-[120px]">
+                          {nextPlace.address.city || nextPlace.title}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
               </div>
             );
           })}
         </div>
       </div>
 
-      {}
+      {/* Context menu */}
       {openMenuId && menuPosition && (
         <div
-          className="fixed w-36 bg-[#1e293b] border border-white/10 rounded-xl shadow-[0_8px_16px_rgba(0,0,0,0.5)] overflow-hidden z-[100] animate-in fade-in zoom-in-95 duration-200"
-          style={{
-            top: menuPosition.y,
-            left: menuPosition.x - 144,
-          }}
+          className="fixed w-36 bg-[#1e293b] border border-white/10 rounded-xl shadow-[0_8px_16px_rgba(0,0,0,0.5)] overflow-hidden z-[100]"
+          style={{ top: menuPosition.y, left: menuPosition.x - 144 }}
         >
           <div className="p-1">
             {onPlaceEdit && (() => {
@@ -361,13 +326,6 @@ export default function TravelTimeline({
           </div>
         </div>
       )}
-
-      {}
-      <style jsx>{`
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
     </div>
   );
 }

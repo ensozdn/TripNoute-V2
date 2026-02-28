@@ -223,6 +223,7 @@ export default function DashboardPage() {
       if (!result) {
         alert('Konumunuz alinamadi. GPS acik mi kontrol edin.');
       } else {
+        setSelectedPlace(null);
         mapboxService.showUserLocationMarker(result.lat, result.lng);
         mapboxService.stopRotation();
         mapboxService.flyTo(result.lat, result.lng, 14);

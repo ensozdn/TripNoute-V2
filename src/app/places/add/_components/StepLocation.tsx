@@ -1,8 +1,8 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Locate } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Locate, MapPin, Search } from 'lucide-react';
 import MapboxLocationPicker from '@/components/MapboxLocationPicker';
 import PlaceSearchBar from '@/components/PlaceSearchBar';
 import { getGooglePlacesService } from '@/services/maps';
@@ -27,6 +27,7 @@ export default function StepLocation({
 }: StepLocationProps) {
   const [isLocating, setIsLocating] = useState(false);
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number } | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
   const googlePlaces = useRef(getGooglePlacesService());
 
   const handlePlaceSelect = (place: GooglePlaceResult) => {
@@ -37,6 +38,7 @@ export default function StepLocation({
     };
     onLocationSelect(loc);
     setFlyTarget({ lat: loc.lat, lng: loc.lng });
+    setSearchOpen(false);
   };
 
   const handleLocateMe = async () => {
@@ -61,39 +63,23 @@ export default function StepLocation({
     }
   };
 
+  // Header height is ~88px (new premium header)
+  const HEADER_H = 88;
+
   return (
     <motion.div
       key="step-location"
-      initial={{ opacity: 0, x: 40 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -40 }}
-      transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.25 }}
       className="absolute inset-0 flex flex-col"
     >
-      {/* Search bar row — sits directly below WizardProgress (~57px) */}
-      <div className="absolute top-[57px] left-0 right-0 z-40 flex items-center gap-2 px-3 py-2 bg-slate-900/95 backdrop-blur-xl border-b border-white/8">
-        <div className="flex-1">
-          <PlaceSearchBar
-            onPlaceSelect={handlePlaceSelect}
-            placeholder="Search location..."
-            className="w-full"
-          />
-        </div>
-        <button
-          onClick={handleLocateMe}
-          disabled={isLocating}
-          className="w-10 h-10 shrink-0 flex items-center justify-center rounded-xl bg-white/8 border border-white/12 text-white hover:bg-white/15 active:scale-95 transition-all disabled:opacity-40"
-        >
-          {isLocating ? (
-            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          ) : (
-            <Locate className="w-4 h-4" />
-          )}
-        </button>
-      </div>
-
-      {/* Map — starts below header + search bar (~57+50 = 107px) */}
-      <div className="absolute top-[107px] left-0 right-0 bottom-0">
+      {/* ── Full-screen map ── */}
+      <div
+        className="absolute left-0 right-0 bottom-0"
+        style={{ top: HEADER_H }}
+      >
         <MapboxLocationPicker
           initialLocation={selectedLocation ?? undefined}
           onLocationSelect={onLocationSelect}
@@ -104,34 +90,107 @@ export default function StepLocation({
         />
       </div>
 
-      {/* Bottom CTA */}
-      <div className="absolute bottom-0 left-0 right-0 z-40 px-4 pb-8 pt-16 bg-gradient-to-t from-black/85 via-black/40 to-transparent pointer-events-none">
-        {selectedLocation && (
+      {/* ── Top-right floating action buttons ── */}
+      <div
+        className="absolute right-4 z-50 flex flex-col gap-2"
+        style={{ top: HEADER_H + 12 }}
+      >
+        {/* Search toggle */}
+        <motion.button
+          onClick={() => setSearchOpen(v => !v)}
+          whileTap={{ scale: 0.90 }}
+          className="w-11 h-11 flex items-center justify-center rounded-2xl bg-black/50 backdrop-blur-xl border border-white/15 text-white shadow-xl hover:bg-black/70 transition-all"
+        >
+          <Search className="w-4.5 h-4.5 w-[18px] h-[18px]" />
+        </motion.button>
+
+        {/* Locate me */}
+        <motion.button
+          onClick={handleLocateMe}
+          disabled={isLocating}
+          whileTap={{ scale: 0.90 }}
+          className="w-11 h-11 flex items-center justify-center rounded-2xl bg-black/50 backdrop-blur-xl border border-white/15 text-white shadow-xl hover:bg-black/70 transition-all disabled:opacity-40"
+        >
+          {isLocating ? (
+            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            <Locate className="w-[18px] h-[18px]" />
+          )}
+        </motion.button>
+      </div>
+
+      {/* ── Search dropdown (slides down from top-right) ── */}
+      <AnimatePresence>
+        {searchOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-2.5 mx-auto max-w-xs flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/15"
+            initial={{ opacity: 0, y: -8, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.97 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            className="absolute right-4 left-4 z-50 shadow-2xl shadow-black/40"
+            style={{ top: HEADER_H + 12 }}
           >
-            <div className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
-            <span className="text-xs text-white/65 truncate">
-              {selectedLocation.address
-                ? selectedLocation.address.split(',').slice(0, 2).join(', ')
-                : `${selectedLocation.lat.toFixed(5)}, ${selectedLocation.lng.toFixed(5)}`}
-            </span>
+            <div className="bg-black/70 backdrop-blur-2xl border border-white/15 rounded-2xl">
+              <PlaceSearchBar
+                onPlaceSelect={handlePlaceSelect}
+                placeholder="Search for a place..."
+                className="w-full"
+              />
+            </div>
           </motion.div>
         )}
+      </AnimatePresence>
 
+      {/* ── Bottom floating sheet ── */}
+      <div className="absolute bottom-0 left-0 right-0 z-50 px-4 pb-8">
+        {/* Selected location pill — appears when location chosen */}
+        <AnimatePresence>
+          {selectedLocation && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              className="mb-3 flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-black/60 backdrop-blur-xl border border-white/12"
+            >
+              <div className="w-8 h-8 rounded-xl bg-blue-500/20 flex items-center justify-center shrink-0">
+                <MapPin className="w-4 h-4 text-blue-400" strokeWidth={2} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] text-blue-400/70 font-semibold uppercase tracking-widest mb-0.5">
+                  Selected Location
+                </p>
+                <p className="text-sm text-white/80 truncate font-medium">
+                  {selectedLocation.address
+                    ? selectedLocation.address.split(',').slice(0, 2).join(', ')
+                    : `${selectedLocation.lat.toFixed(5)}, ${selectedLocation.lng.toFixed(5)}`}
+                </p>
+              </div>
+              {/* Live pulse dot */}
+              <div className="relative shrink-0">
+                <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
+                <div className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-60" />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* CTA Button */}
         <motion.button
           onClick={onContinue}
           disabled={!selectedLocation}
           whileTap={{ scale: 0.97 }}
-          className="pointer-events-auto w-full py-3.5 rounded-2xl font-semibold text-base transition-all
-            disabled:bg-white/10 disabled:text-white/30 disabled:cursor-not-allowed
-            bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white shadow-2xl shadow-blue-500/40"
+          animate={{
+            backgroundColor: selectedLocation ? '#3b82f6' : 'rgba(255,255,255,0.06)',
+          }}
+          transition={{ duration: 0.3 }}
+          className="w-full py-4 rounded-2xl font-semibold text-base transition-colors
+            disabled:text-white/25 disabled:cursor-not-allowed
+            text-white shadow-2xl shadow-blue-500/30"
         >
-          {selectedLocation ? 'Continue →' : 'Tap the map to select a location'}
+          {selectedLocation ? 'Continue →' : 'Tap the map to pin a location'}
         </motion.button>
       </div>
     </motion.div>
   );
 }
+

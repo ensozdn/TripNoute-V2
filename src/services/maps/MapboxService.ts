@@ -340,9 +340,11 @@ class MapboxService implements IMapboxService {
     wrapper.onmouseenter = () => inner.style.transform = 'scale(1.2)';
     wrapper.onmouseleave = () => inner.style.transform = 'scale(1)';
 
-    const offset: [number, number] = marker.icon?.startsWith('http') ? [0, 0] : [0, -20];
+    // Photo marker: anchor at center; pin marker: anchor at bottom-left (tip of rotated square)
+    const anchor: mapboxgl.Anchor = marker.icon?.startsWith('http') || marker.icon?.startsWith('/') ? 'center' : 'bottom-left';
+    const offset: [number, number] = [0, 0];
 
-    const mapboxMarker = new mapboxgl.Marker({ element: wrapper, offset })
+    const mapboxMarker = new mapboxgl.Marker({ element: wrapper, anchor, offset })
       .setLngLat([marker.position.lng, marker.position.lat]);
 
     if (marker.title) {
@@ -1062,93 +1064,83 @@ class MapboxService implements IMapboxService {
   private addJourneyStopMarkers(journey: Journey | Trip): void {
     if (!this.map) return;
 
+    const journeyColor = (journey as Trip).color || '#ffffff';
+
     journey.steps.forEach((step, index) => {
       const isFirst = index === 0;
       const isLast = index === journey.steps.length - 1;
 
       const el = document.createElement('div');
       el.className = 'journey-stop-marker';
+      el.style.cursor = 'pointer';
 
       if (isFirst || isLast) {
-        // Start / end — slightly larger, with a subtle inner dot
-        el.style.width = '22px';
-        el.style.height = '22px';
+        // Start / end: solid filled circle using journey color
+        el.style.width = '18px';
+        el.style.height = '18px';
         el.style.borderRadius = '50%';
-        el.style.backgroundColor = 'rgba(255, 255, 255, 0.45)';
-        el.style.border = '2px solid rgba(255, 255, 255, 0.85)';
-        el.style.boxShadow = '0 2px 10px rgba(0,0,0,0.35), inset 0 0 0 4px rgba(255,255,255,0.15)';
-        el.style.backdropFilter = 'blur(6px)';
-        el.style.cursor = 'pointer';
+        el.style.backgroundColor = journeyColor;
+        el.style.border = '3px solid #ffffff';
+        el.style.boxShadow = `0 0 0 3px ${journeyColor}55, 0 4px 12px rgba(0,0,0,0.5)`;
       } else {
-        // Waypoint — small, very subtle
-        el.style.width = '13px';
-        el.style.height = '13px';
+        // Waypoint: smaller hollow circle with journey color border
+        el.style.width = '11px';
+        el.style.height = '11px';
         el.style.borderRadius = '50%';
-        el.style.backgroundColor = 'rgba(255, 255, 255, 0.30)';
-        el.style.border = '2px solid rgba(255, 255, 255, 0.65)';
-        el.style.boxShadow = '0 1px 6px rgba(0,0,0,0.28)';
-        el.style.backdropFilter = 'blur(4px)';
-        el.style.cursor = 'pointer';
+        el.style.backgroundColor = '#0f172a';
+        el.style.border = `2.5px solid ${journeyColor}`;
+        el.style.boxShadow = `0 2px 8px rgba(0,0,0,0.4)`;
       }
 
-      const marker = new mapboxgl.Marker({ element: el })
+      const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
         .setLngLat(step.coordinates)
         .addTo(this.map!);
 
-      const markerHeight = isFirst || isLast ? 22 : 13;
-      const popupOffsetValue = markerHeight / 2 + 8;
+      const popupOffset = isFirst || isLast ? 16 : 12;
 
-      const popup = new mapboxgl.Popup({ 
-        offset: { 'bottom': [0, -popupOffsetValue] as [number, number] },
+      const popup = new mapboxgl.Popup({
+        offset: popupOffset,
         closeButton: false,
         className: 'custom-popup',
-        maxWidth: '260px',
-        anchor: 'bottom', // Always anchor to bottom
-        closeOnClick: false, // Prevent position jumping
-      }).setHTML(`
+        maxWidth: '240px',
+        anchor: 'bottom',
+        closeOnClick: false,
+      }).setLngLat(step.coordinates).setHTML(`
         <div style="
-          padding: 12px 14px;
-          background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%);
-          backdrop-filter: blur(12px);
-          border-radius: 12px;
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
-          border: 1px solid rgba(255, 255, 255, 0.8);
-          font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          padding: 10px 13px;
+          background: rgba(15, 23, 42, 0.92);
+          backdrop-filter: blur(16px);
+          border-radius: 10px;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+          border: 1px solid rgba(255,255,255,0.1);
+          font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
         ">
-          <div style="
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: ${step.address?.city ? '6px' : '0'};
-          ">
-            <div style="
-              width: 8px;
-              height: 8px;
-              border-radius: 50%;
-              background: rgba(255, 255, 255, 0.7);
-              box-shadow: 0 0 6px rgba(255,255,255,0.3);
-            "></div>
-            <h3 style="
-              margin: 0;
-              font-size: 15px;
-              font-weight: 700;
-              color: #1e293b;
-              letter-spacing: -0.01em;
-            ">${step.name}</h3>
+          <div style="display:flex; align-items:center; gap:7px; margin-bottom:${step.address?.city ? '4px' : '0'};">
+            <div style="width:7px; height:7px; border-radius:50%; background:${journeyColor}; flex-shrink:0;"></div>
+            <span style="font-size:13px; font-weight:600; color:#f1f5f9;">${step.name}</span>
           </div>
           ${step.address?.city ? `
-            <p style="
-              margin: 0;
-              font-size: 12px;
-              color: #64748b;
-              padding-left: 16px;
-              font-weight: 500;
-            ">${step.address.city}</p>
+            <p style="margin:0; font-size:11px; color:#94a3b8; padding-left:14px;">
+              ${step.address.city}${step.address.country ? `, ${step.address.country}` : ''}
+            </p>
           ` : ''}
         </div>
       `);
 
-      marker.setPopup(popup);
+      let autoCloseTimer: ReturnType<typeof setTimeout> | null = null;
+
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (popup.isOpen()) {
+          popup.remove();
+          if (autoCloseTimer) clearTimeout(autoCloseTimer);
+          return;
+        }
+        popup.addTo(this.map!);
+        autoCloseTimer = setTimeout(() => {
+          popup.remove();
+        }, 3500);
+      });
 
       if (!this.medallionMarkers.has(journey.id)) {
         this.medallionMarkers.set(journey.id, []);
