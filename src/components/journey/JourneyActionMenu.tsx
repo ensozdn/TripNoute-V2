@@ -112,8 +112,8 @@ export default function JourneyActionMenu({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
             transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
-            className="absolute bottom-[68px] left-1/2 -translate-x-1/2 flex flex-col gap-2 z-[49]"
-            style={{ width: 240 }}
+            className="absolute bottom-[68px] right-0 flex flex-col gap-2 z-[49]"
+            style={{ width: 'min(260px, calc(100vw - 32px))' }}
           >
             {items.map((item, i) => (
               <motion.button
@@ -151,15 +151,15 @@ export default function JourneyActionMenu({
                   {item.icon}
                 </span>
                 {/* Text */}
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p
-                    className="font-semibold text-sm leading-tight"
+                    className="font-semibold text-sm leading-tight truncate"
                     style={{ color: item.primary ? '#fff' : '#1e293b' }}
                   >
                     {item.label}
                   </p>
                   <p
-                    className="text-xs mt-0.5 leading-tight"
+                    className="text-xs mt-0.5 leading-tight truncate"
                     style={{ color: item.primary ? 'rgba(255,255,255,0.7)' : '#94a3b8' }}
                   >
                     {item.sublabel}

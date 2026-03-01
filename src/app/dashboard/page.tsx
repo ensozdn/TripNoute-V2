@@ -288,21 +288,21 @@ export default function DashboardPage() {
         <div className="absolute top-4 right-4 z-30 flex flex-col gap-2">
           <button
             onClick={() => setSettingsOpen(true)}
-            className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-2 shadow-2xl shadow-black/20 hover:bg-white/20 transition-all"
+            className="bg-white backdrop-blur-xl border border-black/8 rounded-xl p-2.5 shadow-lg shadow-black/15 hover:bg-slate-50 active:scale-95 transition-all"
             title="Settings"
           >
-            <Settings className="w-4 h-4 text-white" />
+            <Settings className="w-4 h-4 text-slate-700" />
           </button>
           <button
             onClick={handleGoToMyLocation}
             disabled={isLocating}
-            className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-2 shadow-2xl shadow-black/20 hover:bg-white/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-white backdrop-blur-xl border border-black/8 rounded-xl p-2.5 shadow-lg shadow-black/15 hover:bg-slate-50 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             title="Konumuma Git"
           >
             {isLocating ? (
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
             ) : (
-              <Locate className="w-4 h-4 text-white" />
+              <Locate className="w-4 h-4 text-slate-700" />
             )}
           </button>
         </div>

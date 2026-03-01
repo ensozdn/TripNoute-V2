@@ -237,7 +237,7 @@ export default function JourneyHub({
         </div>
 
         {/* ── Nav pill + FAB row ── */}
-        <div className="flex items-center justify-center gap-3 w-full px-4">
+        <div className="flex items-center justify-center gap-3 w-full px-4 pr-4">
           {/* Nav pill */}
           <div className="flex items-center bg-white/95 backdrop-blur-xl rounded-full shadow-2xl shadow-black/15 border border-black/6 pointer-events-auto">
             {NAV_ITEMS.map((item) => {

@@ -495,7 +495,7 @@ export default function TripDetailView({
       {/* ── Bottom bar: mode toggle + FAB ── */}
       <div className="absolute bottom-0 left-0 right-0 z-20 flex items-center justify-between px-6 pb-8 pt-4 pointer-events-none">
         {/* Mode toggle */}
-        <div className="flex items-center bg-white/10 backdrop-blur-xl rounded-full p-1 pointer-events-auto border border-white/15">
+        <div className="flex items-center bg-white/95 backdrop-blur-xl rounded-full p-1 pointer-events-auto border border-black/8 shadow-lg shadow-black/15">
           {(['plan', 'track'] as ActiveMode[]).map((mode) => {
             const isActive = activeMode === mode;
             return (
@@ -507,16 +507,15 @@ export default function TripDetailView({
                 {isActive && (
                   <motion.div
                     layoutId="detail-mode-pill"
-                    className="absolute inset-0 rounded-full bg-white"
+                    className="absolute inset-0 rounded-full bg-blue-500"
                     transition={{ type: 'spring', stiffness: 400, damping: 28 }}
                   />
                 )}
                 <span
-                  className={`relative z-10 flex items-center gap-1.5 ${
-                    isActive ? 'text-slate-900' : 'text-white/70'
+                  className={`relative z-10 flex items-center gap-1.5 transition-colors ${
+                    isActive ? 'text-white' : 'text-slate-400'
                   }`}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 opacity-75" />
                   {mode}
                 </span>
               </button>

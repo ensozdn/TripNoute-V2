@@ -227,7 +227,7 @@ export default function MeTab({
 
       <button
         onClick={onAddTrip}
-        className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-rose-500 hover:bg-rose-600 active:scale-95 transition-all"
+        className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-blue-500 hover:bg-blue-600 active:scale-95 transition-all shadow-lg shadow-blue-500/25"
       >
         <Plus className="w-5 h-5 text-white" strokeWidth={2.5} />
         <span className="text-white text-base font-semibold">
