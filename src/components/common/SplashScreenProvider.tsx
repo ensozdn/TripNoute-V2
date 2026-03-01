@@ -36,7 +36,7 @@ export default function SplashScreenProvider({ children }: SplashScreenProviderP
   return (
     <>
       {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
-      <div style={{ opacity: showSplash ? 0 : 1, transition: 'opacity 0.3s' }}>
+      <div style={{ opacity: showSplash ? 0 : 1, transition: 'opacity 0.3s', pointerEvents: showSplash ? 'none' : 'auto' }}>
         {children}
       </div>
     </>
