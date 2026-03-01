@@ -74,7 +74,7 @@ function FloatingDot({ style, delay }: { style: React.CSSProperties; delay: numb
 // ── Shared background ─────────────────────────────────────────────────────────
 function Background() {
   return (
-    <>
+    <div className="absolute inset-0 pointer-events-none">
       <div className="absolute inset-0 opacity-[0.04]"
         style={{
           backgroundImage: `linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px)`,
@@ -93,7 +93,7 @@ function Background() {
       <FloatingDot style={{ top: '70%', left: '88%' }} delay={0.4} />
       <FloatingDot style={{ top: '40%', left: '92%' }} delay={2} />
       <FloatingDot style={{ top: '80%', left: '20%' }} delay={1.2} />
-    </>
+    </div>
   );
 }
 
@@ -528,6 +528,7 @@ export default function Page() {
       </svg>
 
       {/* Views */}
+      <div className="relative z-10 flex-1 flex flex-col">
       <AnimatePresence mode="wait">
         {view === 'splash' && (
           <SplashView
@@ -551,6 +552,7 @@ export default function Page() {
           />
         )}
       </AnimatePresence>
+      </div>
 
       {/* Footer */}
       {view === 'splash' && (
