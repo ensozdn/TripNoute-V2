@@ -39,6 +39,9 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (request.method !== 'GET') return;
 
+  // Skip non-http(s) requests (chrome-extension, etc.)
+  if (!url.protocol.startsWith('http')) return;
+
   // Skip Firebase, Mapbox, external APIs — always network
   const isExternal =
     url.hostname.includes('firebase') ||
