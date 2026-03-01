@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -12,6 +12,12 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
   const [isVisible, setIsVisible] = useState(true);
   type Phase = 'entry' | 'idle' | 'fly-out' | 'fly-in' | 'settle';
   const [phase, setPhase] = useState<Phase>('entry');
+  const onCompleteRef = useRef(onComplete);
+
+  const finish = useCallback(() => {
+    setIsVisible(false);
+    setTimeout(() => onCompleteRef.current(), 500);
+  }, []);
 
   useEffect(() => {
     // 0.7s → yerinde dur (idle)
@@ -23,15 +29,12 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
     // 2.05s → yumuşak yerine gel
     const t3 = setTimeout(() => setPhase('settle'), 2050);
     // 4.0s → splash kapan
-    const t4 = setTimeout(() => {
-      setIsVisible(false);
-      setTimeout(onComplete, 500);
-    }, 4000);
+    const t4 = setTimeout(finish, 2500);
     return () => {
       clearTimeout(t0); clearTimeout(t1);
       clearTimeout(t2); clearTimeout(t3); clearTimeout(t4);
     };
-  }, [onComplete]);
+  }, [finish]);
 
   // Uçak animasyonu — logodaki açı -45° (sol-altta kuyruk, sağ-üste burun)
   // rotate sabit -45° kalıyor, sadece x/y/opacity/scale değişiyor
