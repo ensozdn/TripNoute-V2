@@ -18,6 +18,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { journeyDatabaseService } from '@/services/firebase/JourneyDatabaseService';
 import { Trip } from '@/types/trip';
+import { useTrippo } from '@/hooks/useTrippo';
 
 type Privacy = 'public' | 'friends' | 'only_me';
 
@@ -75,6 +76,7 @@ export default function JourneyCreationModal({
   onCreated,
 }: JourneyCreationModalProps) {
   const { user } = useAuth();
+  const { chat: trippoChat } = useTrippo();
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState<1 | -1>(1);
   const [saving, setSaving] = useState(false);
@@ -132,22 +134,32 @@ export default function JourneyCreationModal({
     if (!user) return;
     setSaving(true);
     try {
+      // Trippo ile itinerary oluşturulacaksa önce AI'dan al
+      let trippoDescription: string | undefined;
+      if (trippoEnabled) {
+        const dateContext = startDate && endDate
+          ? ` Tarihler: ${startDate} - ${endDate}.`
+          : '';
+        const result = await trippoChat(
+          `${destination} için${dateContext} kısa, ilham verici bir seyahat özeti yaz. Sadece 2-3 cümle.`,
+        );
+        if (result?.text) {
+          trippoDescription = result.text;
+        }
+      }
+
       const created = await journeyDatabaseService.createJourney(
         {
           name: destination.trim(),
           color: ACCENT,
           isPublic: privacy === 'public',
           steps: [],
+          ...(trippoDescription ? { description: trippoDescription } : {}),
           ...(startDate ? { startDate: new Date(startDate) } : {}),
           ...(endDate ? { endDate: new Date(endDate) } : {}),
         },
         user.uid,
       );
-
-      if (trippoEnabled) {
-        // Trippo AI stub — will be wired to AI service
-        console.log('[Trippo] Generating itinerary for:', destination, startDate, endDate);
-      }
 
       onCreated(created);
       handleClose();

@@ -18,6 +18,7 @@ import {
   Pencil,
   X,
 } from 'lucide-react';
+import TrippoPlaceInsight from '@/components/common/TrippoPlaceInsight';
 
 type ActiveMode = 'plan' | 'track';
 type SheetState = 'peek' | 'mid' | 'full';
@@ -483,10 +484,18 @@ export default function TripDetailView({
                 <MapPin className="w-7 h-7 text-slate-400" strokeWidth={1.5} />
               </div>
               <p className="text-slate-800 font-bold text-base mb-2">PLAN YOUR ADVENTURE NOW!</p>
-              <p className="text-slate-400 text-sm leading-relaxed">
+              <p className="text-slate-400 text-sm leading-relaxed mb-6">
                 Tap the <span className="font-bold text-slate-600">+</span> button to start
                 building your itinerary.
               </p>
+              {/* Trippo insight for the destination */}
+              <div className="w-full">
+                <TrippoPlaceInsight
+                  placeName={trip.name}
+                  lat={trip.steps[0]?.coordinates?.[1] ?? 0}
+                  lng={trip.steps[0]?.coordinates?.[0] ?? 0}
+                />
+              </div>
             </motion.div>
           )}
         </div>
