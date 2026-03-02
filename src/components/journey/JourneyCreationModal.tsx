@@ -176,7 +176,7 @@ export default function JourneyCreationModal({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={handleClose}
-            className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm"
+            className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-sm"
           />
 
           {/* Sheet */}
@@ -186,7 +186,7 @@ export default function JourneyCreationModal({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 40 }}
             transition={{ type: 'spring', stiffness: 340, damping: 28 }}
-            className="fixed inset-x-0 bottom-0 z-[61] bg-white rounded-t-3xl shadow-2xl shadow-black/25 overflow-hidden"
+            className="fixed inset-x-0 bottom-0 z-[201] bg-white rounded-t-3xl shadow-2xl shadow-black/25 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Top accent bar */}
