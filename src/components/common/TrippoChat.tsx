@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Send, ChevronDown } from 'lucide-react';
+import { Bot, Send, ChevronDown } from 'lucide-react';
 import { useTrippo } from '@/hooks/useTrippo';
 
 interface Message {
@@ -11,7 +11,7 @@ interface Message {
 }
 
 interface TrippoChatProps {
-  context?: string; // örn. aktif journey adı
+  context?: string;
 }
 
 export default function TrippoChat({ context }: TrippoChatProps) {
@@ -19,7 +19,7 @@ export default function TrippoChat({ context }: TrippoChatProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'trippo',
-      text: '✈️ Merhaba! Ben Trippo. Seyahat planın hakkında her şeyi sorabilirsin!',
+      text: 'Merhaba! Ben Trippo. Seyahat planin hakkinda her seyi sorabilirsin!',
     },
   ]);
   const [input, setInput] = useState('');
@@ -43,47 +43,35 @@ export default function TrippoChat({ context }: TrippoChatProps) {
   const handleSend = async () => {
     const text = input.trim();
     if (!text || loading) return;
-
     setInput('');
     setMessages((prev) => [...prev, { role: 'user', text }]);
-
     const result = await chat(text, context);
     if (result) {
       setMessages((prev) => [...prev, { role: 'trippo', text: result.text }]);
     } else {
       setMessages((prev) => [
         ...prev,
-        { role: 'trippo', text: '😅 Şu an biraz meşgulüm, tekrar dener misin?' },
+        { role: 'trippo', text: 'Su an biraz mesgulum, tekrar dener misin?' },
       ]);
     }
   };
 
   return (
     <>
-      {/* Trippo Button — fits inside the right button column */}
-      <AnimatePresence>
-        {!open && (
-          <motion.button
-            key="trippo-fab"
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-            onClick={() => setOpen(true)}
-            className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30"
-            style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)' }}
-            aria-label="Trippo AI Asistan"
-          >
-            <Sparkles className="w-4 h-4 text-white" />
-          </motion.button>
-        )}
-      </AnimatePresence>
+      {/* Trippo trigger button — always visible inside the right column */}
+      <button
+        onClick={() => setOpen(true)}
+        className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg"
+        style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)' }}
+        aria-label="Trippo AI"
+      >
+        <Bot className="w-4 h-4 text-white" />
+      </button>
 
-      {/* Chat Sheet */}
+      {/* Chat sheet */}
       <AnimatePresence>
         {open && (
           <>
-            {/* Backdrop */}
             <motion.div
               key="trippo-backdrop"
               initial={{ opacity: 0 }}
@@ -93,7 +81,6 @@ export default function TrippoChat({ context }: TrippoChatProps) {
               className="fixed inset-0 z-[210] bg-black/30 backdrop-blur-[2px]"
             />
 
-            {/* Sheet */}
             <motion.div
               key="trippo-sheet"
               initial={{ y: '100%' }}
@@ -114,11 +101,11 @@ export default function TrippoChat({ context }: TrippoChatProps) {
                     className="w-9 h-9 rounded-xl flex items-center justify-center"
                     style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)' }}
                   >
-                    <Sparkles className="w-4.5 h-4.5 text-white w-5 h-5" />
+                    <Bot className="w-5 h-5 text-white" />
                   </div>
                   <div>
                     <p className="font-bold text-slate-900 text-sm leading-none">Trippo</p>
-                    <p className="text-xs text-slate-400 mt-0.5">AI Seyahat Asistanın</p>
+                    <p className="text-xs text-slate-400 mt-0.5">AI Seyahat Asistanin</p>
                   </div>
                 </div>
                 <button
@@ -151,7 +138,6 @@ export default function TrippoChat({ context }: TrippoChatProps) {
                   </motion.div>
                 ))}
 
-                {/* Loading dots */}
                 {loading && (
                   <motion.div
                     initial={{ opacity: 0, y: 8 }}
@@ -183,7 +169,7 @@ export default function TrippoChat({ context }: TrippoChatProps) {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                    placeholder="Trippo'ya sor…"
+                    placeholder="Trippo'ya sor..."
                     className="flex-1 bg-transparent text-slate-900 placeholder:text-slate-300 text-sm outline-none py-1"
                   />
                   <button
