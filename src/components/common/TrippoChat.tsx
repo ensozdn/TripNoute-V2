@@ -70,13 +70,11 @@ export default function TrippoChat({ context }: TrippoChatProps) {
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 400, damping: 25 }}
             onClick={() => setOpen(true)}
-            className="fixed bottom-28 right-4 z-[150] w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/30"
+            className="fixed top-14 right-4 z-[150] w-12 h-12 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/30"
             style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)' }}
             aria-label="Trippo AI Asistan"
           >
-            <Sparkles className="w-6 h-6 text-white" />
-            {/* Pulse ring */}
-            <span className="absolute inset-0 rounded-2xl animate-ping opacity-20 bg-blue-400" />
+            <Sparkles className="w-5 h-5 text-white" />
           </motion.button>
         )}
       </AnimatePresence>
