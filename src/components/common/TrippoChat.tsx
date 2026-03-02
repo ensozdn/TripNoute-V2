@@ -60,7 +60,7 @@ export default function TrippoChat({ context }: TrippoChatProps) {
 
   return (
     <>
-      {/* Floating Button */}
+      {/* Trippo Button — fits inside the right button column */}
       <AnimatePresence>
         {!open && (
           <motion.button
@@ -70,11 +70,11 @@ export default function TrippoChat({ context }: TrippoChatProps) {
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 400, damping: 25 }}
             onClick={() => setOpen(true)}
-            className="fixed top-14 right-4 z-[150] w-12 h-12 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/30"
+            className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30"
             style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)' }}
             aria-label="Trippo AI Asistan"
           >
-            <Sparkles className="w-5 h-5 text-white" />
+            <Sparkles className="w-4 h-4 text-white" />
           </motion.button>
         )}
       </AnimatePresence>
