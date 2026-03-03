@@ -9,6 +9,11 @@ interface ChatResult {
   text: string;
 }
 
+interface HistoryMessage {
+  role: 'user' | 'trippo';
+  text: string;
+}
+
 export function useTrippo() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,8 +42,8 @@ export function useTrippo() {
   const getPlaceInfo = (placeName: string, lat: number, lng: number): Promise<PlaceInfoResult | null> =>
     ask('place_info', { placeName, lat, lng });
 
-  const chat = (message: string, context?: string): Promise<ChatResult | null> =>
-    ask('chat', { message, context });
+  const chat = (message: string, context?: string, history?: HistoryMessage[]): Promise<ChatResult | null> =>
+    ask('chat', { message, context, history });
 
   return { getPlaceInfo, chat, loading, error };
 }

@@ -3,44 +3,44 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
+const TRIPPO_SYSTEM = `Sen TripNoute'un yapay zeka seyahat asistanı Trippo'sun.
+
+KİŞİLİĞİN:
+- Deneyimli bir gezgin gibi konuşursun — samimi, net, gereksiz yere şakacı değil
+- Turistik klişelerden kaçınırsın, gerçekten işe yarar bilgiler verirsin
+- Türkçe konuşursun, emoji kullanmazsın
+- Cevapların kısa ve özlüdür — maksimum 3-4 cümle
+- Seyahat planlaması, destinasyon önerileri, bütçe, lojistik konularında uzmansın
+
+KURALLARIN:
+- "Tabii ki!", "Harika!", "Kesinlikle!" gibi dolgu ifadeler kullanma
+- Her cevabı listeyle başlatma, bazen düz paragraf yaz
+- Bilmediğin bir şeyi biliyormuş gibi uydurma, dürüst ol
+- Kullanıcının sorduğu şeye direkt cevap ver`;
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { type, payload } = body;
 
-    let prompt = '';
-
     if (type === 'place_info') {
       const { placeName, lat, lng } = payload;
-      prompt = `Sen TripNoute uygulamasının yapay zeka rehberi Trippo'sun. Samimi, enerjik ve seyahat tutkunu birisin.
-      
-"${placeName}" (koordinatlar: ${lat}, ${lng}) hakkında gezginlere özel 3 kısa ve vurucu bilgi ver.
-- Turistik rehberlerde yazılmayan, gizli kalmış detaylar olsun
-- Her madde max 1-2 cümle
+      const prompt = `"${placeName}" hakkında gezginlere özel 3 kısa bilgi ver.
+Koordinatlar: ${lat}, ${lng}
+
+Kurallar:
+- Turistik rehberlerde yazılmayan, pratik detaylar olsun
+- Her madde max 1-2 cümle, emoji yok
 - Türkçe yaz
-- Emoji kullan
-- JSON formatında döndür: { "tips": ["tip1", "tip2", "tip3"], "vibe": "Bu yerin genel atmosferini 5 kelimeyle özetle" }`;
+- JSON formatında döndür: { "tips": ["tip1", "tip2", "tip3"], "vibe": "Bu yerin atmosferini 4-5 kelimeyle özetle" }`;
 
-    } else if (type === 'chat') {
-      const { message, context } = payload;
-      prompt = `Sen TripNoute uygulamasının yapay zeka seyahat rehberi Trippo'sun. Samimi, enerjik ve seyahat tutkunu birisin. Kısa ve net cevaplar ver, maksimum 3-4 cümle. Türkçe konuş.
-      
-${context ? `Kullanıcının mevcut rotası: ${context}\n` : ''}
-Kullanıcı: ${message}
-Trippo:`;
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.0-flash',
+        contents: prompt,
+        config: { systemInstruction: TRIPPO_SYSTEM },
+      });
 
-    } else {
-      return NextResponse.json({ error: 'Unknown type' }, { status: 400 });
-    }
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-    });
-
-    const text = response.text;
-
-    if (type === 'place_info') {
+      const text = response.text;
       try {
         const jsonMatch = text?.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
@@ -48,11 +48,43 @@ Trippo:`;
           return NextResponse.json({ success: true, data: parsed });
         }
       } catch {
-        // JSON parse başarısız, raw text döndür
+        // JSON parse başarısız
       }
-    }
+      return NextResponse.json({ success: true, data: { text } });
 
-    return NextResponse.json({ success: true, data: { text } });
+    } else if (type === 'chat') {
+      const { message, context, history } = payload;
+
+      // Önceki mesajları Gemini'nin beklediği formata çevir
+      const contents: { role: string; parts: { text: string }[] }[] = [];
+
+      if (history && Array.isArray(history)) {
+        for (const msg of history) {
+          contents.push({
+            role: msg.role === 'user' ? 'user' : 'model',
+            parts: [{ text: msg.text }],
+          });
+        }
+      }
+
+      // Mevcut mesajı ekle
+      const fullMessage = context
+        ? `[Kullanıcı bağlamı: ${context}]\n\n${message}`
+        : message;
+
+      contents.push({ role: 'user', parts: [{ text: fullMessage }] });
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.0-flash',
+        contents,
+        config: { systemInstruction: TRIPPO_SYSTEM },
+      });
+
+      return NextResponse.json({ success: true, data: { text: response.text } });
+
+    } else {
+      return NextResponse.json({ error: 'Unknown type' }, { status: 400 });
+    }
 
   } catch (error) {
     console.error('[Trippo API Error]', error);

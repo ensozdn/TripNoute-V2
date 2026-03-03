@@ -45,8 +45,11 @@ export default function TrippoChat({ context }: TrippoChatProps) {
     const text = input.trim();
     if (!text || loading) return;
     setInput('');
-    setMessages((prev) => [...prev, { role: 'user', text }]);
-    const result = await chat(text, context);
+    const newMessages = [...messages, { role: 'user' as const, text }];
+    setMessages(newMessages);
+    // İlk Trippo mesajı (karşılama) hariç history'yi gönder
+    const history = newMessages.slice(1, -1); // son user mesajı hariç
+    const result = await chat(text, context, history);
     if (result) {
       setMessages((prev) => [...prev, { role: 'trippo', text: result.text }]);
     } else {
