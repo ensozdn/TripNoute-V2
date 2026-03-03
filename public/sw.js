@@ -1,13 +1,105 @@
-const CACHE_NAME = 'tripnoute-v1';
+const CACHE_NAME = 'tripnoute-v3';
 
-// Assets to cache on install
+// Assets to cache on install (sadece ikonlar ve manifest)
 const PRECACHE_ASSETS = [
-  '/',
   '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
   '/tripnoute-logo.png',
 ];
+
+// Install: pre-cache static assets
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_ASSETS))
+  );
+  self.skipWaiting();
+});
+
+// Activate: clean up old caches
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter((key) => key !== CACHE_NAME)
+          .map((key) => caches.delete(key))
+      )
+    )
+  );
+  self.clients.claim();
+});
+
+// Fetch: network-first for everything except images
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Skip non-GET requests
+  if (request.method !== 'GET') return;
+
+  // Skip non-http(s) requests (chrome-extension, etc.)
+  if (!url.protocol.startsWith('http')) return;
+
+  // Next.js JS/CSS chunks — ASLA cache'leme, her zaman network
+  if (url.pathname.startsWith('/_next/')) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  // Skip Firebase, Mapbox, external APIs — always network
+  const isExternal =
+    url.hostname.includes('firebase') ||
+    url.hostname.includes('googleapis') ||
+    url.hostname.includes('mapbox') ||
+    url.hostname.includes('google') ||
+    url.hostname.includes('firebaseio');
+
+  if (isExternal) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  // Skip Next.js API routes — always network
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  // For navigation requests (HTML pages): network-first
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          return response;
+        })
+        .catch(() => caches.match(request).then((cached) => cached || caches.match('/')))
+    );
+    return;
+  }
+
+  // Sadece ikonlar ve manifest için cache-first
+  event.respondWith(
+    caches.match(request).then((cached) => {
+      if (cached) return cached;
+      return fetch(request).then((response) => {
+        if (response.ok && (
+          url.pathname.startsWith('/icons/') ||
+          url.pathname === '/manifest.json' ||
+          url.pathname.endsWith('.png') ||
+          url.pathname.endsWith('.jpg')
+        )) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        }
+        return response;
+      });
+    })
+  );
+});
+
 
 // Install: pre-cache static assets
 self.addEventListener('install', (event) => {
