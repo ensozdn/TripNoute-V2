@@ -19,7 +19,7 @@ export default function TrippoChat({ context }: TrippoChatProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'trippo', text: 'Merhaba! Ben Trippo. Seyahat planin hakkinda her seyi sorabilirsin!' },
+    { role: 'trippo', text: 'Merhaba! Ben Trippo. Seyahat planın hakkında her şeyi sorabilirsin!' },
   ]);
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -63,8 +63,8 @@ export default function TrippoChat({ context }: TrippoChatProps) {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-24 right-4 z-[9999] w-11 h-11 rounded-2xl flex items-center justify-center shadow-xl active:scale-95 transition-transform"
-          style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)' }}
+          className="fixed top-28 right-3 z-[9999] w-11 h-11 rounded-2xl flex items-center justify-center shadow-xl active:scale-95 transition-transform"
+          style={{ background: 'linear-gradient(135deg, #3d87ffff, #2b2effff)' }}
           aria-label="Trippo AI"
         >
           <Bot className="w-5 h-5 text-white" />
