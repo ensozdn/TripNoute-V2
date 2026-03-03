@@ -15,18 +15,43 @@ interface TrippoChatProps {
   context?: string;
 }
 
+const STORAGE_KEY = 'trippo_messages';
+const DEFAULT_MESSAGE: Message = {
+  role: 'trippo',
+  text: 'Merhaba! Ben Trippo. Seyahat planın hakkında her şeyi sorabilirsin!',
+};
+
+function loadMessages(): Message[] {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return [DEFAULT_MESSAGE];
+}
+
 export default function TrippoChat({ context }: TrippoChatProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    { role: 'trippo', text: 'Merhaba! Ben Trippo. Seyahat planın hakkında her şeyi sorabilirsin!' },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([DEFAULT_MESSAGE]);
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { chat, loading } = useTrippo();
 
-  useEffect(() => { setMounted(true); }, []);
+  // Mount olunca localStorage'dan yükle
+  useEffect(() => {
+    setMounted(true);
+    setMessages(loadMessages());
+  }, []);
+
+  // Mesajlar değişince localStorage'a kaydet
+  useEffect(() => {
+    if (mounted) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+      } catch {}
+    }
+  }, [messages, mounted]);
 
   useEffect(() => {
     if (open) {
@@ -121,6 +146,16 @@ export default function TrippoChat({ context }: TrippoChatProps) {
                   </div>
                   <button onClick={() => setOpen(false)} className="w-8 h-8 rounded-full bg-black/6 flex items-center justify-center">
                     <ChevronDown className="w-4 h-4 text-slate-500" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      const reset = [DEFAULT_MESSAGE];
+                      setMessages(reset);
+                      localStorage.setItem(STORAGE_KEY, JSON.stringify(reset));
+                    }}
+                    className="text-[10px] text-slate-400 px-2 py-1 rounded-full hover:bg-black/6 transition-colors"
+                  >
+                    Temizle
                   </button>
                 </div>
 
