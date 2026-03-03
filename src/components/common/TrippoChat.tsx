@@ -12,12 +12,10 @@ interface Message {
 
 interface TrippoChatProps {
   context?: string;
-  isOpen: boolean;
-  onOpen: () => void;
-  onClose: () => void;
 }
 
-export default function TrippoChat({ context, isOpen, onOpen, onClose }: TrippoChatProps) {
+export default function TrippoChat({ context }: TrippoChatProps) {
+  const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'trippo',
@@ -30,13 +28,13 @@ export default function TrippoChat({ context, isOpen, onOpen, onClose }: TrippoC
   const { chat, loading } = useTrippo();
 
   useEffect(() => {
-    if (isOpen) {
+    if (open) {
       setTimeout(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
         inputRef.current?.focus();
       }, 300);
     }
-  }, [isOpen]);
+  }, [open]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -61,9 +59,9 @@ export default function TrippoChat({ context, isOpen, onOpen, onClose }: TrippoC
   return (
     <>
       {/* Trippo FAB — fixed, above nav bar, hidden when sheet is open */}
-      {!isOpen && (
+      {!open && (
         <button
-          onClick={onOpen}
+          onClick={() => setOpen(true)}
           className="fixed bottom-24 right-4 z-[60] w-11 h-11 rounded-2xl flex items-center justify-center shadow-xl active:scale-95 transition-transform"
           style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)' }}
           aria-label="Trippo AI"
@@ -74,14 +72,14 @@ export default function TrippoChat({ context, isOpen, onOpen, onClose }: TrippoC
 
       {/* Chat sheet */}
       <AnimatePresence>
-        {isOpen && (
+        {open && (
           <>
             <motion.div
               key="trippo-backdrop"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={onClose}
+              onClick={() => setOpen(false)}
               className="fixed inset-0 z-[210] bg-black/30 backdrop-blur-[2px]"
             />
 
@@ -113,7 +111,7 @@ export default function TrippoChat({ context, isOpen, onOpen, onClose }: TrippoC
                   </div>
                 </div>
                 <button
-                  onClick={onClose}
+                  onClick={() => setOpen(false)}
                   className="w-8 h-8 rounded-full bg-black/6 flex items-center justify-center"
                 >
                   <ChevronDown className="w-4 h-4 text-slate-500" />

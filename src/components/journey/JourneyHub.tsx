@@ -69,8 +69,6 @@ export default function JourneyHub({
   const [activeMode, setActiveMode] = useState<ActiveMode>('plan');
   const [editingJourney, setEditingJourney] = useState<Trip | null>(null);
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
-  const [trippoOpen, setTrippoOpen] = useState(false);
-  const prevSheetState = useRef<SheetState>('middle');
   const sheetRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef<number>(0);
   const isDraggingRef = useRef<boolean>(false);
@@ -209,11 +207,9 @@ export default function JourneyHub({
 
       {/* Floating bottom UI — mode toggle + nav + FAB */}
       <div
-        className="fixed bottom-0 left-0 right-0 z-50 flex flex-col items-center gap-2 pb-5 pt-2 pointer-events-none transition-opacity duration-200"
+        className="fixed bottom-0 left-0 right-0 z-50 flex flex-col items-center gap-2 pb-5 pt-2 pointer-events-none"
         style={{
           background: 'linear-gradient(to top, rgba(255,255,255,0.08) 0%, transparent 100%)',
-          opacity: trippoOpen ? 0 : 1,
-          pointerEvents: trippoOpen ? 'none' : undefined,
         }}
       >
         {/* ── Mode Switcher ── */}
@@ -328,18 +324,8 @@ export default function JourneyHub({
         />
       )}
 
-      {/* Trippo Chat — sheet indirilip chat açılır */}
+      {/* Trippo Chat — standalone FAB, kendi state'ini yönetir */}
       <TrippoChat
-        isOpen={trippoOpen}
-        onOpen={() => {
-          prevSheetState.current = sheetState;
-          setSheetState('closed');
-          setTrippoOpen(true);
-        }}
-        onClose={() => {
-          setTrippoOpen(false);
-          setSheetState(prevSheetState.current);
-        }}
         context={
           journeys.length > 0
             ? `Kullanıcının ${journeys.length} journey'si var. En son: ${journeys[journeys.length - 1]?.name ?? ''}`
