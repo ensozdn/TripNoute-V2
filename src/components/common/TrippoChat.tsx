@@ -12,10 +12,12 @@ interface Message {
 
 interface TrippoChatProps {
   context?: string;
+  isOpen: boolean;
+  onOpen: () => void;
+  onClose: () => void;
 }
 
-export default function TrippoChat({ context }: TrippoChatProps) {
-  const [open, setOpen] = useState(false);
+export default function TrippoChat({ context, isOpen, onOpen, onClose }: TrippoChatProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'trippo',
@@ -28,13 +30,13 @@ export default function TrippoChat({ context }: TrippoChatProps) {
   const { chat, loading } = useTrippo();
 
   useEffect(() => {
-    if (open) {
+    if (isOpen) {
       setTimeout(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
         inputRef.current?.focus();
       }, 300);
     }
-  }, [open]);
+  }, [isOpen]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -60,7 +62,7 @@ export default function TrippoChat({ context }: TrippoChatProps) {
     <>
       {/* Trippo trigger button — always visible inside the right column */}
       <button
-        onClick={() => setOpen(true)}
+        onClick={onOpen}
         className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg"
         style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)' }}
         aria-label="Trippo AI"
@@ -70,14 +72,14 @@ export default function TrippoChat({ context }: TrippoChatProps) {
 
       {/* Chat sheet */}
       <AnimatePresence>
-        {open && (
+        {isOpen && (
           <>
             <motion.div
               key="trippo-backdrop"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setOpen(false)}
+              onClick={onClose}
               className="fixed inset-0 z-[210] bg-black/30 backdrop-blur-[2px]"
             />
 
@@ -109,7 +111,7 @@ export default function TrippoChat({ context }: TrippoChatProps) {
                   </div>
                 </div>
                 <button
-                  onClick={() => setOpen(false)}
+                  onClick={onClose}
                   className="w-8 h-8 rounded-full bg-black/6 flex items-center justify-center"
                 >
                   <ChevronDown className="w-4 h-4 text-slate-500" />

@@ -9,6 +9,7 @@ import JourneyCreator from './creator/JourneyCreator';
 import JourneyActionMenu from './JourneyActionMenu';
 import JourneyCreationModal from './JourneyCreationModal';
 import TripDetailView from './TripDetailView';
+import TrippoChat from '@/components/common/TrippoChat';
 import { User, Users, Globe, Bell } from 'lucide-react';
 import { deduplicateCountries } from '@/utils/dataNormalizer';
 
@@ -68,6 +69,8 @@ export default function JourneyHub({
   const [activeMode, setActiveMode] = useState<ActiveMode>('plan');
   const [editingJourney, setEditingJourney] = useState<Trip | null>(null);
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
+  const [trippoOpen, setTrippoOpen] = useState(false);
+  const prevSheetState = useRef<SheetState>('middle');
   const sheetRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef<number>(0);
   const isDraggingRef = useRef<boolean>(false);
@@ -320,6 +323,25 @@ export default function JourneyHub({
           onRequestMapPin={onRequestMapPin}
         />
       )}
+
+      {/* Trippo Chat — sheet indirilip chat açılır */}
+      <TrippoChat
+        isOpen={trippoOpen}
+        onOpen={() => {
+          prevSheetState.current = sheetState;
+          setSheetState('closed');
+          setTrippoOpen(true);
+        }}
+        onClose={() => {
+          setTrippoOpen(false);
+          setSheetState(prevSheetState.current);
+        }}
+        context={
+          journeys.length > 0
+            ? `Kullanıcının ${journeys.length} journey'si var. En son: ${journeys[journeys.length - 1]?.name ?? ''}`
+            : undefined
+        }
+      />
 
       {/* Trip Detail View — full screen */}
       <AnimatePresence>

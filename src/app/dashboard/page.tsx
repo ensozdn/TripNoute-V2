@@ -14,7 +14,6 @@ import { Trip } from '@/types/trip';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { JourneyHub } from '@/components/journey';
 import SettingsTab from '@/components/journey/tabs/SettingsTab';
-import TrippoChat from '@/components/common/TrippoChat';
 import { Locate, MapPin, Settings, X } from 'lucide-react';
 
 const MapboxMap = dynamic(() => import('@/components/MapboxMap'), {
@@ -306,14 +305,7 @@ export default function DashboardPage() {
               <Locate className="w-4 h-4 text-slate-700" />
             )}
           </button>
-          {/* Trippo AI */}
-          <TrippoChat
-            context={
-              journeys.length > 0
-                ? `Kullanıcının ${journeys.length} journey'si var. En son: ${journeys[journeys.length - 1]?.name ?? ''}`
-                : undefined
-            }
-          />
+          {/* Trippo butonu JourneyHub içinde yönetiliyor */}
         </div>
 
         {/* Settings overlay */}
