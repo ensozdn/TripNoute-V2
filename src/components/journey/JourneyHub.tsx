@@ -209,8 +209,12 @@ export default function JourneyHub({
 
       {/* Floating bottom UI — mode toggle + nav + FAB */}
       <div
-        className="fixed bottom-0 left-0 right-0 z-50 flex flex-col items-center gap-2 pb-5 pt-2 pointer-events-none"
-        style={{ background: 'linear-gradient(to top, rgba(255,255,255,0.08) 0%, transparent 100%)' }}
+        className="fixed bottom-0 left-0 right-0 z-50 flex flex-col items-center gap-2 pb-5 pt-2 pointer-events-none transition-opacity duration-200"
+        style={{
+          background: 'linear-gradient(to top, rgba(255,255,255,0.08) 0%, transparent 100%)',
+          opacity: trippoOpen ? 0 : 1,
+          pointerEvents: trippoOpen ? 'none' : undefined,
+        }}
       >
         {/* ── Mode Switcher ── */}
         <div className="flex items-center bg-white/95 backdrop-blur-xl rounded-full shadow-lg shadow-black/10 border border-black/6 p-1 pointer-events-auto">

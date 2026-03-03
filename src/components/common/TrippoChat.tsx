@@ -60,15 +60,17 @@ export default function TrippoChat({ context, isOpen, onOpen, onClose }: TrippoC
 
   return (
     <>
-      {/* Trippo trigger button — always visible inside the right column */}
-      <button
-        onClick={onOpen}
-        className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg"
-        style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)' }}
-        aria-label="Trippo AI"
-      >
-        <Bot className="w-4 h-4 text-white" />
-      </button>
+      {/* Trippo FAB — fixed, above nav bar, hidden when sheet is open */}
+      {!isOpen && (
+        <button
+          onClick={onOpen}
+          className="fixed bottom-24 right-4 z-[60] w-11 h-11 rounded-2xl flex items-center justify-center shadow-xl active:scale-95 transition-transform"
+          style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)' }}
+          aria-label="Trippo AI"
+        >
+          <Bot className="w-5 h-5 text-white" />
+        </button>
+      )}
 
       {/* Chat sheet */}
       <AnimatePresence>
