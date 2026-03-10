@@ -71,11 +71,8 @@ export class JourneyDatabaseService {
         order: index,
       }));
 
-      const normalizedSteps = validateStepChain(steps);
-
-      if (normalizedSteps.length === 0) {
-        throw new Error('Journey must have at least one step');
-      }
+      // Steps are optional at creation time — journeys can start empty
+      const normalizedSteps = steps.length > 0 ? validateStepChain(steps) : [];
 
       let totalDistance = 0;
       let totalDuration = 0;
@@ -93,13 +90,19 @@ export class JourneyDatabaseService {
         }
       }
 
+      const now = Date.now();
+
       const startDate = input.startDate
         ? FirestoreTimestamp.fromDate(input.startDate)
-        : FirestoreTimestamp.fromMillis(normalizedSteps[0].timestamp);
+        : normalizedSteps.length > 0
+          ? FirestoreTimestamp.fromMillis(normalizedSteps[0].timestamp)
+          : FirestoreTimestamp.fromMillis(now);
 
       const endDate = input.endDate
         ? FirestoreTimestamp.fromDate(input.endDate)
-        : FirestoreTimestamp.fromMillis(normalizedSteps[normalizedSteps.length - 1].timestamp);
+        : normalizedSteps.length > 0
+          ? FirestoreTimestamp.fromMillis(normalizedSteps[normalizedSteps.length - 1].timestamp)
+          : FirestoreTimestamp.fromMillis(now);
 
       const journeyData: Omit<Journey, 'id'> = {
         userId,
