@@ -72,53 +72,86 @@ export default function JourneyHub({
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef<number>(0);
+  const dragStartH = useRef<number>(0);
   const isDraggingRef = useRef<boolean>(false);
+  const velocityRef = useRef<number>(0);
+  const lastYRef = useRef<number>(0);
+  const lastTimeRef = useRef<number>(0);
 
   const handlePointerDown = (e: React.PointerEvent) => {
     if (mapPinMode) return;
+    const vh = window.innerHeight;
     dragStartY.current = e.clientY;
+    dragStartH.current = SNAP_POINTS[sheetState === 'closed' ? 'middle' : sheetState] * vh;
+    lastYRef.current = e.clientY;
+    lastTimeRef.current = Date.now();
+    velocityRef.current = 0;
     isDraggingRef.current = true;
     if (sheetRef.current) {
-      // transition'ı kapat, anlık drag başlasın
       sheetRef.current.style.transition = 'none';
+      sheetRef.current.style.height = dragStartH.current + 'px';
     }
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!isDraggingRef.current || !sheetRef.current || sheetState === 'closed') return;
-    const delta = e.clientY - dragStartY.current;
+    const now = Date.now();
+    const dt = now - lastTimeRef.current;
+    if (dt > 0) {
+      velocityRef.current = (lastYRef.current - e.clientY) / dt; // px/ms, pozitif = yukarı
+    }
+    lastYRef.current = e.clientY;
+    lastTimeRef.current = now;
+
+    const delta = dragStartY.current - e.clientY; // yukarı = pozitif
     const vh = window.innerHeight;
-    const currentH = SNAP_POINTS[sheetState] * vh;
-    const newH = Math.max(60, Math.min(vh * 0.97, currentH - delta));
+    const newH = Math.max(60, Math.min(vh * 0.97, dragStartH.current + delta));
     sheetRef.current.style.height = newH + 'px';
   };
 
-  const handlePointerUp = (e: React.PointerEvent) => {
+  const handlePointerUp = () => {
     if (!isDraggingRef.current || !sheetRef.current) return;
     isDraggingRef.current = false;
-    const delta = e.clientY - dragStartY.current;
-
-    // hedef state hesapla
-    let next: SheetState = sheetState;
-    if (delta < -60) {
-      if (sheetState === 'closed') next = 'middle';
-      else if (sheetState === 'middle') next = 'full';
-    } else if (delta > 60) {
-      if (sheetState === 'full') next = 'middle';
-      else if (sheetState === 'middle') next = 'closed';
-    }
 
     const vh = window.innerHeight;
-    const targetH = SNAP_POINTS[next === 'closed' ? 'middle' : next] * vh;
+    const currentH = parseFloat(sheetRef.current.style.height) || dragStartH.current;
+    const currentRatio = currentH / vh;
+    const velocity = velocityRef.current; // px/ms
+
+    // Snap noktaları
+    const snapValues = [
+      { state: 'closed' as SheetState,  ratio: SNAP_POINTS.middle }, // kapalıyken de middle yüksekliğinde
+      { state: 'middle' as SheetState,  ratio: SNAP_POINTS.middle },
+      { state: 'full' as SheetState,    ratio: SNAP_POINTS.full   },
+    ];
+
+    let next: SheetState;
+
+    // Hız bazlı snap (swipe)
+    if (velocity > 0.5) {
+      // Hızlı yukarı swipe
+      next = sheetState === 'middle' ? 'full' : 'full';
+    } else if (velocity < -0.5) {
+      // Hızlı aşağı swipe
+      next = sheetState === 'full' ? 'middle' : 'closed';
+    } else {
+      // Pozisyon bazlı snap — en yakın noktaya git
+      const midToFull = (SNAP_POINTS.middle + SNAP_POINTS.full) / 2;
+      const closedToMid = SNAP_POINTS.middle * 0.5;
+      if (currentRatio >= midToFull) next = 'full';
+      else if (currentRatio >= closedToMid) next = 'middle';
+      else next = 'closed';
+    }
+
+    // Hedef yükseklik ve transform
+    const targetH = snapValues.find(s => s.state === (next === 'closed' ? 'middle' : next))!.ratio * vh;
     const targetTransform = next === 'closed' ? 'translateY(100%)' : 'translateY(0%)';
 
-    // önce hedef px'e transition ile git
-    sheetRef.current.style.transition = 'transform 0.42s cubic-bezier(0.32,0.72,0,1), height 0.42s cubic-bezier(0.32,0.72,0,1)';
+    sheetRef.current.style.transition = 'transform 0.38s cubic-bezier(0.32,0.72,0,1), height 0.38s cubic-bezier(0.32,0.72,0,1)';
     sheetRef.current.style.height = targetH + 'px';
     sheetRef.current.style.transform = targetTransform;
 
-    // animasyon bitince inline style'ları temizle, React state'e bırak
     setTimeout(() => {
       if (sheetRef.current) {
         sheetRef.current.style.height = '';
@@ -126,7 +159,7 @@ export default function JourneyHub({
         sheetRef.current.style.transition = '';
       }
       setSheetState(next);
-    }, 440);
+    }, 400);
   };
 
   const countriesCount = useMemo(() => {
