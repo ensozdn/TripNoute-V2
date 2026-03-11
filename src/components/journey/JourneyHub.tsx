@@ -18,7 +18,7 @@ type ActiveMode = 'plan' | 'track';
 
 // Snap noktaları: ekranın ne kadarı görünür (0–1)
 const SNAP_VISIBLE: Record<SheetState, number> = {
-  peek:   0.12,  // sadece handle çubuğu + nav bar
+  peek:   0.20,  // handle + nav bar + biraz boşluk — kolayca yakalanabilir
   middle: 0.46,  // yarı açık
   full:   0.82,  // neredeyse tam ekran
 };
@@ -146,6 +146,14 @@ export default function JourneyHub({
     const currentPx = matrix.m42;
     const vel       = velY.current;
 
+    // Neredeyse hareket yoksa (tap) ve peek'teyse → middle'a çık
+    const totalMove = Math.abs(currentPx - dragStartTop.current);
+    if (totalMove < 8 && stateRef.current === 'peek') {
+      setTY(snapPx('middle'), true);
+      setTimeout(() => setSheetState('middle'), 50);
+      return;
+    }
+
     let next: SheetState;
     if (vel > 0.5) {
       next = stateRef.current === 'full' ? 'middle' : 'peek';
@@ -159,7 +167,6 @@ export default function JourneyHub({
     }
 
     setTY(snapPx(next), true);
-    // kısa gecikmeli state update — useEffect tekrar snapPx set etmeden önce
     setTimeout(() => setSheetState(next), 50);
   };
 
