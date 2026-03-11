@@ -121,7 +121,7 @@ export default function AddPlacePage() {
 
   return (
     <ProtectedRoute>
-      <div className="relative w-full h-screen overflow-hidden bg-slate-900">
+      <div className="relative w-full h-screen overflow-hidden bg-white">
         <WizardProgress
           currentStep={step}
           onBack={() => setStep(s => (s > 1 ? (s - 1) as WizardStep : s))}

@@ -2,497 +2,286 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import Link from 'next/link';
-import Image from 'next/image';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { databaseService } from '@/lib/database';
 import { addPlaceSchema } from '@/utils/validators';
 import { usePhotoManagement } from '@/hooks/usePhotoManagement';
 import { Photo } from '@/types/models/Photo';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import MapboxLocationPicker from '@/components/MapboxLocationPicker';
+import StepLocation, { SelectedLocation } from '../../add/_components/StepLocation';
+import StepDetails, { PlaceDetails } from '../../add/_components/StepDetails';
+import WizardProgress from '../../add/_components/WizardProgress';
 import { ImageUploader, PhotoGallery } from '@/components/place';
 
+type WizardStep = 1 | 2 | 3;
+
 export default function EditPlacePage() {
-  const router = useRouter();
-  const params = useParams();
+  const router  = useRouter();
+  const params  = useParams();
   const placeId = params.id as string;
   const { user } = useAuth();
 
-  const [loadingPlace, setLoadingPlace] = useState(true);
-  const [loadingForm, setLoadingForm] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState('');
-  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number; address?: string } | null>(null);
-  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [loading,       setLoading]       = useState(true);
+  const [step,          setStep]          = useState<WizardStep>(2);
+  const [error,         setError]         = useState('');
+  const [saving,        setSaving]        = useState(false);
+  const [success,       setSuccess]       = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [photos,        setPhotos]        = useState<Photo[]>([]);
 
-  const [formData, setFormData] = useState({
-    name: '',
-    country: '',
-    city: '',
-    visitDate: '',
-    notes: '',
+  const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
+  const [details, setDetails] = useState<PlaceDetails>({
+    name: '', country: '', city: '', visitDate: '', notes: '',
   });
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const {
-    uploading,
-    uploadProgress,
-    uploadPhotos,
-    deletePhoto,
-    updatePhotoDescription,
-  } = usePhotoManagement({
-    placeId,
-    userId: user?.uid || '',
-    onError: (err) => {
-      setError(err.message);
-    },
-  });
-
-  const handleLocationSelect = (location: { lat: number; lng: number; address?: string }) => {
-    setSelectedLocation(location);
-
-    if (location.address) {
-      const addressParts = location.address.split(',').map(part => part.trim());
-      if (addressParts.length >= 2) {
-        const country = addressParts[addressParts.length - 1];
-        const city = addressParts[addressParts.length - 2];
-
-        setFormData(prev => ({
-          ...prev,
-          country: country || prev.country,
-          city: city || prev.city,
-        }));
-      }
-    }
-  };
+  const { uploading, uploadProgress, uploadPhotos, deletePhoto, updatePhotoDescription } =
+    usePhotoManagement({
+      placeId,
+      userId: user?.uid ?? '',
+      onError: (err) => setError(err.message),
+    });
 
   useEffect(() => {
-    const loadPlace = async () => {
+    const load = async () => {
       if (!user || !placeId) return;
-
       try {
         const place = await databaseService.getPlaceById(placeId);
-
-        if (!place) {
-          setError('Place not found');
-          return;
-        }
-
-        if (place.userId !== user.uid) {
-          setError('You do not have permission to edit this place');
-          return;
-        }
+        if (!place)                    { setError('Place not found'); return; }
+        if (place.userId !== user.uid) { setError('Permission denied'); return; }
 
         const visitDate = new Date(place.visitDate.seconds * 1000)
-          .toISOString()
-          .split('T')[0];
+          .toISOString().split('T')[0];
 
-        setFormData({
-          name: place.title,
-          country: place.address.country || '',
-          city: place.address.city || '',
+        setDetails({
+          name:      place.title,
+          country:   place.address.country ?? '',
+          city:      place.address.city    ?? '',
           visitDate,
-          notes: place.description || '',
+          notes:     place.description    ?? '',
         });
-
         if (place.location?.lat && place.location?.lng) {
           setSelectedLocation(place.location);
         }
-
-        setPhotos(place.photos || []);
-      } catch (err) {
-        console.error('Error loading place:', err);
+        setPhotos(place.photos ?? []);
+      } catch {
         setError('Failed to load place');
       } finally {
-        setLoadingPlace(false);
+        setLoading(false);
       }
     };
-
-    loadPlace();
+    load();
   }, [user, placeId]);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  const handleSave = async () => {
+    if (!user || !selectedLocation) return;
+    setError('');
 
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
-    }
-  };
+    const result = addPlaceSchema.safeParse(details);
+    if (!result.success) { setError(result.error.issues[0].message); return; }
 
-  const handleUploadPhotos = async () => {
-    if (selectedFiles.length === 0) return;
-
+    setSaving(true);
     try {
-      const uploadedPhotos = await uploadPhotos(selectedFiles);
-      setPhotos(prev => [...prev, ...uploadedPhotos]);
-      setSelectedFiles([]);
-    } catch (err) {
-      console.error('Failed to upload photos:', err);
+      await databaseService.updatePlace({
+        id: placeId,
+        title:       details.name.trim(),
+        description: details.notes || undefined,
+        location:    selectedLocation,
+        address: {
+          country:   details.country,
+          city:      details.city,
+          formatted: `${details.city}, ${details.country}`,
+        },
+        visitDate: new Date(details.visitDate),
+      });
+
+      if (selectedFiles.length > 0) {
+        const uploaded = await uploadPhotos(selectedFiles);
+        setPhotos(prev => [...prev, ...uploaded]);
+        setSelectedFiles([]);
+      }
+
+      setSuccess(true);
+      setTimeout(() => router.push('/dashboard'), 1200);
+    } catch {
+      setError('Failed to update place. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleDeletePhoto = async (photo: Photo) => {
-    try {
-      await deletePhoto(photo);
-      setPhotos(prev => prev.filter(p => p.id !== photo.id));
-    } catch (err) {
-      console.error('Failed to delete photo:', err);
-    }
+    try { await deletePhoto(photo); setPhotos(prev => prev.filter(p => p.id !== photo.id)); }
+    catch { /* ignore */ }
   };
 
   const handleUpdateDescription = async (photoId: string, description: string) => {
     try {
       await updatePhotoDescription(photoId, description);
-      setPhotos(prev => prev.map(p =>
-        p.id === photoId ? { ...p, description } : p
-      ));
-    } catch (err) {
-      console.error('Failed to update description:', err);
-    }
+      setPhotos(prev => prev.map(p => p.id === photoId ? { ...p, description } : p));
+    } catch { /* ignore */ }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrors({});
-    setError('');
-
-    const result = addPlaceSchema.safeParse(formData);
-    if (!result.success) {
-      const fieldErrors: Record<string, string> = {};
-      result.error.issues.forEach((err) => {
-        if (err.path[0]) {
-          fieldErrors[err.path[0] as string] = err.message;
-        }
-      });
-      setErrors(fieldErrors);
-      return;
-    }
-
-    if (!user) return;
-
-    setLoadingForm(true);
-
-    try {
-
-      if (!selectedLocation) {
-        setError('Please select a location on the map');
-        setLoadingForm(false);
-        return;
-      }
-
-      await databaseService.updatePlace({
-        id: placeId,
-        title: formData.name,
-        description: formData.notes || undefined,
-        location: selectedLocation,
-        address: {
-          country: formData.country,
-          city: formData.city,
-          formatted: `${formData.city}, ${formData.country}`,
-        },
-        visitDate: new Date(formData.visitDate),
-      });
-
-      setSuccess(true);
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 1500);
-    } catch (err) {
-      console.error('Error updating place:', err);
-      setError('Failed to update place. Please try again.');
-      setLoadingForm(false);
-    }
-  };
-
-  if (loadingPlace) {
+  if (loading) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen flex items-center justify-center bg-slate-900">
-          <div className="text-xl text-white">Loading place...</div>
+        <div className="min-h-screen flex items-center justify-center bg-white">
+          <div className="w-8 h-8 border-2 border-slate-200 border-t-blue-500 rounded-full animate-spin" />
         </div>
       </ProtectedRoute>
     );
   }
 
-  if (error && !loadingPlace) {
+  if (error && !details.name) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen relative bg-slate-900">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-transparent to-transparent"></div>
-        <div className="absolute inset-0 bg-gradient-to-tl from-blue-600/20 via-transparent to-transparent"></div>
-
-        <div className="relative z-10">
-          <header className="border-b border-white/10 bg-black/10 backdrop-blur-sm">
-            <div className="container mx-auto px-6 py-5">
-              <nav className="flex items-center justify-between">
-                <Link href="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                  <Image 
-                    src="/tripnoute-logo.png" 
-                    alt="TripNoute Logo" 
-                    width={40} 
-                    height={40}
-                    className="rounded-xl"
-                  />
-                  <span className="text-xl font-semibold text-white">TripNoute</span>
-                </Link>
-              </nav>
-            </div>
-          </header>
-
-          <main className="container mx-auto px-6 py-16">
-            <div className="max-w-2xl mx-auto">
-              <div className="p-10 rounded-2xl bg-white/10 border border-white/20 text-center">
-                <span className="text-6xl mb-4 block"></span>
-                <h1 className="text-3xl font-bold text-white mb-4">Error</h1>
-                <p className="text-slate-300 mb-8">{error}</p>
-                <Link
-                  href="/dashboard"
-                  className="inline-block py-3 px-8 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-medium transition-all"
-                >
-                  Back to Dashboard
-                </Link>
-              </div>
-            </div>
-          </main>
+        <div className="min-h-screen flex flex-col items-center justify-center bg-white gap-4 px-6">
+          <p className="text-slate-500 text-center">{error}</p>
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="px-6 py-3 rounded-2xl bg-blue-500 text-white font-semibold text-sm"
+          >
+            Back to Dashboard
+          </button>
         </div>
-      </div>
       </ProtectedRoute>
     );
   }
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen relative bg-slate-900">
-      {}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-transparent to-transparent"></div>
-      <div className="absolute inset-0 bg-gradient-to-tl from-blue-600/20 via-transparent to-transparent"></div>
+      <div className="relative w-full h-screen overflow-hidden bg-white">
+        <WizardProgress
+          currentStep={step}
+          onBack={() => setStep(s => (s > 1 ? (s - 1) as WizardStep : s))}
+          onClose={() => router.push('/dashboard')}
+        />
 
-      {}
-      <div className="relative z-10">
-        {}
-        <header className="border-b border-white/10 bg-black/10 backdrop-blur-sm">
-          <div className="container mx-auto px-6 py-5">
-            <nav className="flex items-center justify-between">
-              <Link href="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                <Image 
-                  src="/tripnoute-logo.png" 
-                  alt="TripNoute Logo" 
-                  width={40} 
-                  height={40}
-                  className="rounded-xl"
-                />
-                <span className="text-xl font-semibold text-white">TripNoute</span>
-              </Link>
-              <div className="flex items-center gap-6">
-                <Link href="/map" className="text-slate-400 hover:text-white text-sm transition-colors">
-                  Map
-                </Link>
-                <Link href="/dashboard" className="text-slate-400 hover:text-white text-sm transition-colors">
-                  Dashboard
-                </Link>
-              </div>
-            </nav>
-          </div>
-        </header>
+        <AnimatePresence mode="wait">
+          {step === 1 && (
+            <StepLocation
+              key="step-1"
+              selectedLocation={selectedLocation}
+              onLocationSelect={setSelectedLocation}
+              onContinue={() => setStep(2)}
+            />
+          )}
 
-        {}
-        <main className="container mx-auto px-6 py-16">
-          <div className="max-w-2xl mx-auto">
-            {}
-            <div className="mb-12 text-center">
-              <h1 className="text-4xl font-bold text-white mb-3">Edit Place</h1>
-              <p className="text-slate-300">Update your travel memory</p>
-            </div>
+          {step === 2 && selectedLocation && (
+            <StepDetails
+              key="step-2"
+              details={details}
+              selectedLocation={selectedLocation}
+              onChange={setDetails}
+              onContinue={() => { setError(''); setStep(3); }}
+              error={error}
+            />
+          )}
 
-            {}
-            {success && (
-              <div className="mb-8 p-6 rounded-xl bg-green-500/20 border border-green-500/50 text-center">
-                <p className="text-green-400 font-medium"> Place updated successfully! Redirecting...</p>
-              </div>
-            )}
+          {step === 2 && !selectedLocation && (
+            <motion.div
+              key="no-loc"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 pt-24"
+            >
+              <p className="text-slate-400 text-sm text-center">No location set — pick one first.</p>
+              <button
+                onClick={() => setStep(1)}
+                className="px-6 py-3 rounded-2xl bg-blue-500 text-white font-semibold text-sm"
+              >
+                Pick Location
+              </button>
+            </motion.div>
+          )}
 
-            {}
-            <form onSubmit={handleSubmit} className="p-8 rounded-2xl bg-white/10 border border-white/20">
-              {}
-              <div className="mb-6">
-                <label htmlFor="name" className="block text-white font-medium mb-2">
-                  Place Name *
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder="e.g., Eiffel Tower"
-                  disabled={loadingForm}
-                />
-                {errors.name && (
-                  <p className="mt-2 text-sm text-red-400">{errors.name}</p>
-                )}
-              </div>
+          {step === 3 && (
+            <motion.div
+              key="step-3"
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -40 }}
+              transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+              className="absolute inset-0 flex flex-col bg-white overflow-y-auto"
+            >
+              <div className="h-[88px] shrink-0" />
 
-              {}
-              <div className="mb-6">
-                <label htmlFor="country" className="block text-white font-medium mb-2">
-                  Country *
-                </label>
-                <input
-                  type="text"
-                  id="country"
-                  name="country"
-                  value={formData.country}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder="e.g., France"
-                  disabled={loadingForm}
-                />
-                {errors.country && (
-                  <p className="mt-2 text-sm text-red-400">{errors.country}</p>
-                )}
-              </div>
-
-              {}
-              <div className="mb-6">
-                <label htmlFor="city" className="block text-white font-medium mb-2">
-                  City *
-                </label>
-                <input
-                  type="text"
-                  id="city"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder="e.g., Paris"
-                  disabled={loadingForm}
-                />
-                {errors.city && (
-                  <p className="mt-2 text-sm text-red-400">{errors.city}</p>
-                )}
-              </div>
-
-              {}
-              <div className="mb-6">
-                <label htmlFor="visitDate" className="block text-white font-medium mb-2">
-                  Visit Date *
-                </label>
-                <input
-                  type="date"
-                  id="visitDate"
-                  name="visitDate"
-                  value={formData.visitDate}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  disabled={loadingForm}
-                />
-                {errors.visitDate && (
-                  <p className="mt-2 text-sm text-red-400">{errors.visitDate}</p>
-                )}
-              </div>
-
-              {}
-              <div className="mb-8">
-                <label htmlFor="notes" className="block text-white font-medium mb-2">
-                  Notes
-                </label>
-                <textarea
-                  id="notes"
-                  name="notes"
-                  value={formData.notes}
-                  onChange={handleChange}
-                  rows={4}
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
-                  placeholder="Share your memories and experiences..."
-                  disabled={loadingForm}
-                />
-                {errors.notes && (
-                  <p className="mt-2 text-sm text-red-400">{errors.notes}</p>
-                )}
-              </div>
-
-              {}
-              {photos.length > 0 && (
-                <div className="mb-8">
-                  <label className="block text-white font-medium mb-4">
-                    Photos ({photos.length})
-                  </label>
-                  <PhotoGallery
-                    photos={photos}
-                    onDelete={handleDeletePhoto}
-                    onUpdateDescription={handleUpdateDescription}
-                    disabled={loadingForm || uploading}
-                    columns={3}
-                  />
-                </div>
-              )}
-
-              {}
-              <div className="mb-8">
-                <label className="block text-white font-medium mb-4">
-                  Add Photos
-                </label>
-                <ImageUploader
-                  onFilesSelected={setSelectedFiles}
-                  maxFiles={10}
-                  maxSizeInMB={10}
-                  disabled={loadingForm}
-                  uploading={uploading}
-                  uploadProgress={uploadProgress}
-                />
-                {selectedFiles.length > 0 && (
-                  <div className="mt-4 flex items-center justify-between">
-                    <p className="text-sm text-slate-400">
-                      {selectedFiles.length} photo{selectedFiles.length > 1 ? 's' : ''} selected
-                    </p>
-                    <button
-                      type="button"
-                      onClick={handleUploadPhotos}
-                      disabled={uploading || loadingForm}
-                      className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 disabled:bg-blue-500/50 text-white text-sm font-medium transition-all"
+              <div className="flex-1 px-5 pb-36 pt-6 space-y-6">
+                <AnimatePresence>
+                  {success && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="px-4 py-3 rounded-2xl bg-green-50 border border-green-200 text-green-700 text-sm font-medium"
                     >
-                      {uploading ? 'Uploading...' : 'Upload Photos'}
-                    </button>
+                      ✓ Place updated! Redirecting…
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {error && (
+                  <div className="px-4 py-3 rounded-2xl bg-red-50 border border-red-200 text-red-600 text-sm">
+                    {error}
                   </div>
                 )}
+
+                {photos.length > 0 && (
+                  <div className="space-y-3">
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                      Current Photos ({photos.length})
+                    </p>
+                    <PhotoGallery
+                      photos={photos}
+                      onDelete={handleDeletePhoto}
+                      onUpdateDescription={handleUpdateDescription}
+                      disabled={saving || uploading}
+                      columns={3}
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Add Photos</p>
+                  <ImageUploader
+                    onFilesSelected={setSelectedFiles}
+                    maxFiles={10}
+                    maxSizeInMB={10}
+                    disabled={saving}
+                    uploading={uploading}
+                    uploadProgress={uploadProgress}
+                  />
+                  {selectedFiles.length > 0 && (
+                    <p className="text-xs text-slate-400 text-center">
+                      {selectedFiles.length} photo{selectedFiles.length > 1 ? 's' : ''} selected
+                    </p>
+                  )}
+                </div>
               </div>
 
-              {}
-              <div className="mb-8">
-                <label className="block text-white font-medium mb-2">
-                  Location * (Search or click to update)
-                </label>
-                <MapboxLocationPicker
-                  initialLocation={selectedLocation ? { lat: selectedLocation.lat, lng: selectedLocation.lng } : undefined}
-                  onLocationSelect={handleLocationSelect}
-                />
-                {selectedLocation && (
-                  <p className="text-xs text-slate-400 mt-2">
-                    Location: {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
-                  </p>
+              <div className="fixed bottom-0 left-0 right-0 z-40 px-5 pb-10 pt-6 bg-gradient-to-t from-white via-white/95 to-transparent space-y-3">
+                <motion.button
+                  onClick={handleSave}
+                  disabled={saving || uploading || success}
+                  whileTap={{ scale: 0.97 }}
+                  className="w-full py-4 rounded-2xl font-semibold text-base text-white transition-all
+                    disabled:bg-black/6 disabled:text-slate-300 disabled:cursor-not-allowed
+                    bg-blue-500 active:bg-blue-700 shadow-xl shadow-blue-500/25"
+                >
+                  {uploading ? `Uploading… ${Math.round(uploadProgress)}%` : saving ? 'Saving…' : 'Save Changes ✓'}
+                </motion.button>
+                {!saving && !uploading && !success && selectedFiles.length === 0 && (
+                  <button
+                    onClick={handleSave}
+                    className="w-full py-3 text-sm text-slate-400"
+                  >
+                    Save without changing photos
+                  </button>
                 )}
               </div>
-
-              {}
-              <button
-                type="submit"
-                disabled={loadingForm}
-                className="w-full py-4 px-6 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loadingForm ? 'Updating...' : 'Update Place'}
-              </button>
-            </form>
-          </div>
-        </main>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-    </div>
     </ProtectedRoute>
   );
 }
