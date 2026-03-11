@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Place } from '@/types';
 import { Trip } from '@/types/trip';
@@ -16,12 +16,11 @@ type NavTab = 'me' | 'activity' | 'explore' | 'notifications';
 type SheetState = 'peek' | 'middle' | 'full';
 type ActiveMode = 'plan' | 'track';
 
-// translateY yüzdesi: sheet yüksekliği sabit 100vh, sadece aşağı kayma miktarı değişir
-// 0 = tamamen açık (full), 90 = sadece handle görünür (peek)
-const SNAP_Y: Record<SheetState, number> = {
-  peek:   90,   // %90 aşağı kaymış → sadece handle + nav görünür
-  middle: 56,   // %56 aşağı kaymış → yarı açık
-  full:   18,   // %18 aşağı kaymış → neredeyse tam ekran
+// Snap noktaları: ekranın ne kadarı görünür (0–1)
+const SNAP_VISIBLE: Record<SheetState, number> = {
+  peek:   0.12,  // sadece handle çubuğu + nav bar
+  middle: 0.46,  // yarı açık
+  full:   0.82,  // neredeyse tam ekran
 };
 
 interface JourneyHubProps {
@@ -72,90 +71,96 @@ export default function JourneyHub({
   const [activeMode, setActiveMode] = useState<ActiveMode>('plan');
   const [editingJourney, setEditingJourney] = useState<Trip | null>(null);
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
-  const sheetRef = useRef<HTMLDivElement>(null);
-  const dragStartY = useRef<number>(0);
-  const dragStartTranslateY = useRef<number>(0); // drag başındaki translateY px değeri
-  const isDraggingRef = useRef<boolean>(false);
-  const velocityRef = useRef<number>(0);
-  const lastYRef = useRef<number>(0);
-  const lastTimeRef = useRef<number>(0);
+  const sheetRef     = useRef<HTMLDivElement>(null);
+  const dragStartY   = useRef(0);
+  const dragStartTop = useRef(0);
+  const isDragging   = useRef(false);
+  const velY         = useRef(0);
+  const lastY        = useRef(0);
+  const lastT        = useRef(0);
+  const stateRef     = useRef<SheetState>('middle'); // stale closure olmadan son state
 
-  // sheet yüksekliği sabit 100vh; sadece translateY değişir
-  // snapYpct → ekranın yüzde kaçı aşağı kaymış
-  const getSnapPx = (state: SheetState) => (SNAP_Y[state] / 100) * window.innerHeight;
+  // translateY px: sheet height = 100dvh, visible kısmı = SNAP_VISIBLE oranı
+  // translateY = (1 - ratio) * innerHeight → alt kısmı gizler
+  const snapPx = (s: SheetState) => window.innerHeight * (1 - SNAP_VISIBLE[s]);
+
+  const setTY = (px: number, animate: boolean) => {
+    const el = sheetRef.current;
+    if (!el) return;
+    el.style.transition = animate ? 'transform 0.42s cubic-bezier(0.32,0.72,0,1)' : 'none';
+    el.style.transform  = `translateY(${Math.round(px)}px)`;
+  };
+
+  // State değişince sheet'i doğru px konumuna götür (CSS %'sini bypass et)
+  useEffect(() => {
+    stateRef.current = sheetState;
+    if (!isDragging.current) setTY(snapPx(sheetState), true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sheetState]);
+
+  // mapPinMode veya hidden değişince sheet'i gizle/göster
+  useEffect(() => {
+    if (mapPinMode || hidden) {
+      setTY(window.innerHeight, true); // tamamen aşağı kaydir
+    } else {
+      setTY(snapPx(stateRef.current), true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapPinMode, hidden]);
 
   const handlePointerDown = (e: React.PointerEvent) => {
     if (mapPinMode) return;
-    // mevcut translateY'yi px cinsinden oku
-    const vh = window.innerHeight;
-    dragStartY.current = e.clientY;
-    dragStartTranslateY.current = (SNAP_Y[sheetState] / 100) * vh;
-    lastYRef.current = e.clientY;
-    lastTimeRef.current = Date.now();
-    velocityRef.current = 0;
-    isDraggingRef.current = true;
-    if (sheetRef.current) {
-      sheetRef.current.style.transition = 'none';
-      sheetRef.current.style.transform = `translateY(${dragStartTranslateY.current}px)`;
-    }
+    isDragging.current   = true;
+    dragStartY.current   = e.clientY;
+    dragStartTop.current = snapPx(stateRef.current);
+    velY.current  = 0;
+    lastY.current = e.clientY;
+    lastT.current = Date.now();
+    setTY(dragStartTop.current, false);
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDraggingRef.current || !sheetRef.current) return;
+    if (!isDragging.current) return;
     const now = Date.now();
-    const dt = now - lastTimeRef.current;
-    if (dt > 0) {
-      velocityRef.current = (e.clientY - lastYRef.current) / dt; // px/ms, pozitif = aşağı
-    }
-    lastYRef.current = e.clientY;
-    lastTimeRef.current = now;
+    const dt  = now - lastT.current;
+    if (dt > 0) velY.current = (e.clientY - lastY.current) / dt;
+    lastY.current = e.clientY;
+    lastT.current = now;
 
-    const delta = e.clientY - dragStartY.current; // aşağı = pozitif
-    const vh = window.innerHeight;
-    const newTY = Math.max(0, Math.min(vh * 0.93, dragStartTranslateY.current + delta));
-    sheetRef.current.style.transform = `translateY(${newTY}px)`;
+    const delta  = e.clientY - dragStartY.current;
+    const minPx  = snapPx('full');
+    const maxPx  = window.innerHeight * 0.93;
+    const newPx  = Math.max(minPx, Math.min(maxPx, dragStartTop.current + delta));
+    setTY(newPx, false);
   };
 
   const handlePointerUp = () => {
-    if (!isDraggingRef.current || !sheetRef.current) return;
-    isDraggingRef.current = false;
+    if (!isDragging.current) return;
+    isDragging.current = false;
 
-    const vh = window.innerHeight;
-    // mevcut translateY'yi matrix'ten oku
-    const matrix = new DOMMatrix(getComputedStyle(sheetRef.current).transform);
-    const currentTY = matrix.m42; // translateY px
-    const currentPct = (currentTY / vh) * 100;
-    const velocity = velocityRef.current; // px/ms, pozitif = aşağı
+    const el = sheetRef.current;
+    if (!el) return;
+
+    const matrix    = new DOMMatrix(getComputedStyle(el).transform);
+    const currentPx = matrix.m42;
+    const vel       = velY.current;
 
     let next: SheetState;
-
-    if (velocity > 0.6) {
-      // Hızlı aşağı swipe → bir basamak aşağı
-      next = sheetState === 'full' ? 'middle' : 'peek';
-    } else if (velocity < -0.6) {
-      // Hızlı yukarı swipe → bir basamak yukarı
-      next = sheetState === 'middle' ? 'full' : 'full';
+    if (vel > 0.5) {
+      next = stateRef.current === 'full' ? 'middle' : 'peek';
+    } else if (vel < -0.5) {
+      next = stateRef.current === 'peek' ? 'middle' : 'full';
     } else {
-      // Pozisyon bazlı → en yakın snap noktasına git
-      const distances = (Object.keys(SNAP_Y) as SheetState[]).map((s) => ({
-        state: s,
-        dist: Math.abs(SNAP_Y[s] - currentPct),
-      }));
-      next = distances.sort((a, b) => a.dist - b.dist)[0].state;
+      const states: SheetState[] = ['peek', 'middle', 'full'];
+      next = states.reduce((best, s) =>
+        Math.abs(snapPx(s) - currentPx) < Math.abs(snapPx(best) - currentPx) ? s : best
+      , states[0]);
     }
 
-    const targetTY = getSnapPx(next);
-    sheetRef.current.style.transition = 'transform 0.38s cubic-bezier(0.32,0.72,0,1)';
-    sheetRef.current.style.transform = `translateY(${targetTY}px)`;
-
-    setTimeout(() => {
-      if (sheetRef.current) {
-        sheetRef.current.style.transition = '';
-        sheetRef.current.style.transform = '';
-      }
-      setSheetState(next);
-    }, 400);
+    setTY(snapPx(next), true);
+    // kısa gecikmeli state update — useEffect tekrar snapPx set etmeden önce
+    setTimeout(() => setSheetState(next), 50);
   };
 
   const countriesCount = useMemo(() => {
@@ -165,20 +170,17 @@ export default function JourneyHub({
 
   return (
     <>
-      {/* Bottom Sheet */}
+      {/* Bottom Sheet — sabit 100dvh, translateY px olarak useEffect ile yönetilir */}
       <div
         ref={sheetRef}
         className="fixed bottom-0 left-0 right-0 z-40 flex flex-col rounded-t-3xl bg-white border-t border-black/8 shadow-2xl shadow-black/20"
         style={{
-          height: '100vh',
-          transform: (mapPinMode || hidden)
-            ? 'translateY(100%)'
-            : `translateY(${SNAP_Y[sheetState]}%)`,
-          transition: 'transform 0.42s cubic-bezier(0.32,0.72,0,1)',
+          height: '100dvh',
+          willChange: 'transform',
           pointerEvents: (mapPinMode || hidden) ? 'none' : undefined,
         }}
       >
-        {/* Handle — drag sadece buradan */}
+        {/* Handle — tüm sheet'ten sürüklenebilir, sadece scroll alanı hariç */}
         <div
           className="flex justify-center pt-2.5 pb-3 shrink-0 cursor-grab active:cursor-grabbing select-none"
           style={{ touchAction: 'none' }}
