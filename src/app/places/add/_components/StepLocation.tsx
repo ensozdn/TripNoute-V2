@@ -28,8 +28,10 @@ export default function StepLocation({
   onContinue,
 }: StepLocationProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef          = useRef<mapboxgl.Map | null>(null);
-  const markerRef       = useRef<mapboxgl.Marker | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mapRef          = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const markerRef       = useRef<any>(null);
 
   const [isLoaded,    setIsLoaded]    = useState(false);
   const [isLocating,  setIsLocating]  = useState(false);
@@ -45,7 +47,7 @@ export default function StepLocation({
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    let map: mapboxgl.Map;
+    let map: any;
 
     const init = async () => {
       const mapboxgl = (await import('mapbox-gl')).default;
@@ -67,7 +69,7 @@ export default function StepLocation({
         map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-left');
       });
 
-      map.on('click', async (e) => {
+      map.on('click', async (e: any) => {
         const { lat, lng } = e.lngLat;
         const address = await reverseGeocode(lat, lng);
         onLocationSelect({ lat, lng, address });
