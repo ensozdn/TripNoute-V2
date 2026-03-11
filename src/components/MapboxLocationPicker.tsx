@@ -2,9 +2,6 @@
 
 import { useRef, useEffect, useState } from 'react';
 import { useMapbox } from '@/hooks/useMapbox';
-import { getGooglePlacesService } from '@/services/maps';
-import PlaceSearchBar from './PlaceSearchBar';
-import type { GooglePlaceResult } from '@/types/maps';
 
 interface MapboxLocationPickerProps {
   initialLocation?: { lat: number; lng: number };
@@ -27,9 +24,20 @@ export default function MapboxLocationPicker({
   const [selectedLocation, setSelectedLocation] = useState(initialLocation || null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
-  const googlePlaces = useRef(getGooglePlacesService());
 
   const accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
+
+  const reverseGeocode = async (lat: number, lng: number): Promise<string | undefined> => {
+    try {
+      const res = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${accessToken}&limit=1&language=en`
+      );
+      const data = await res.json();
+      return data.features?.[0]?.place_name as string | undefined;
+    } catch {
+      return undefined;
+    }
+  };
 
   const markers = selectedLocation
     ? [
@@ -44,26 +52,12 @@ export default function MapboxLocationPicker({
 
   const handleMapClick = async (lat: number, lng: number) => {
     setSelectedLocation({ lat, lng });
-
     try {
-      const address = await googlePlaces.current.reverseGeocode(lat, lng);
+      const address = await reverseGeocode(lat, lng);
       onLocationSelect({ lat, lng, address });
-    } catch (error) {
-      console.error('Reverse geocoding failed:', error);
+    } catch {
       onLocationSelect({ lat, lng });
     }
-  };
-
-  const handlePlaceSelect = async (place: GooglePlaceResult) => {
-    const location = {
-      lat: place.location.lat,
-      lng: place.location.lng,
-    };
-    setSelectedLocation(location);
-    onLocationSelect({
-      ...location,
-      address: place.formattedAddress,
-    });
   };
 
   const handleLocateMe = async () => {
@@ -166,15 +160,14 @@ export default function MapboxLocationPicker({
         </div>
       </div>
 
-      {/* Search bar */}
+      {/* Search bar — hidden when hideSearch=true (parent manages its own search) */}
       {!hideSearch && (
         <div className="absolute top-0 left-0 right-0 p-4 space-y-4 z-10 pointer-events-none">
-          <div className="pointer-events-auto shadow-2xl shadow-black/20">
-            <PlaceSearchBar
-              onPlaceSelect={handlePlaceSelect}
-              placeholder="Konum ara..."
-              className="w-full"
-            />
+          <div className="pointer-events-auto shadow-2xl shadow-black/20 bg-black/60 backdrop-blur-xl border border-white/15 rounded-2xl px-3 py-3 flex items-center gap-2">
+            <svg className="w-4 h-4 text-white/50 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+            </svg>
+            <span className="text-white/40 text-sm">Search location…</span>
           </div>
         </div>
       )}
