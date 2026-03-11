@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -176,7 +177,7 @@ export default function JourneyCreationModal({
     exit: (dir: number) => ({ opacity: 0, x: dir > 0 ? -36 : 36 }),
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <>
@@ -526,6 +527,7 @@ export default function JourneyCreationModal({
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    typeof document !== 'undefined' ? document.body : (null as unknown as Element),
   );
 }
