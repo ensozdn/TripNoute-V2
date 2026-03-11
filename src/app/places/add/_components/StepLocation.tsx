@@ -63,8 +63,8 @@ export default function StepLocation({
         style: 'mapbox://styles/mapbox/satellite-streets-v12',
         center: selectedLocation
           ? [selectedLocation.lng, selectedLocation.lat]
-          : [28.9784, 41.0082],
-        zoom: selectedLocation ? 13 : 3,
+          : [0, 20],
+        zoom: selectedLocation ? 13 : 1.5,
         attributionControl: false,
       });
 
