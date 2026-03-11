@@ -47,10 +47,14 @@ export default function StepLocation({
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
+    let mounted = true;
     let map: any;
 
     const init = async () => {
       const mapboxgl = (await import('mapbox-gl')).default;
+
+      // Component may have unmounted while awaiting the import
+      if (!mounted || !mapContainerRef.current) return;
 
       mapboxgl.accessToken = TOKEN;
 
@@ -90,6 +94,7 @@ export default function StepLocation({
     init();
 
     return () => {
+      mounted = false;
       markerRef.current?.remove();
       markerRef.current = null;
       mapRef.current?.remove();
@@ -201,15 +206,13 @@ export default function StepLocation({
       {/* Full-bleed map canvas */}
       <div
         ref={mapContainerRef}
-        className="absolute left-0 right-0 bottom-0"
-        style={{ top: HEADER_H }}
+        style={{ position: 'absolute', top: HEADER_H, left: 0, right: 0, bottom: 0 }}
       />
 
       {/* Loading overlay */}
       {!isLoaded && (
         <div
-          className="absolute left-0 right-0 bottom-0 bg-slate-900 flex items-center justify-center z-10"
-          style={{ top: HEADER_H }}
+          style={{ position: 'absolute', top: HEADER_H, left: 0, right: 0, bottom: 0, background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}
         >
           <div className="w-10 h-10 border-4 border-white/20 border-t-white/70 rounded-full animate-spin" />
         </div>
