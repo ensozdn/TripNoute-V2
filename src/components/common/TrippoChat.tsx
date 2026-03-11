@@ -13,6 +13,7 @@ interface Message {
 
 interface TrippoChatProps {
   context?: string;
+  fabVisible?: boolean;
 }
 
 const STORAGE_KEY = 'trippo_messages';
@@ -29,7 +30,7 @@ function loadMessages(): Message[] {
   return [DEFAULT_MESSAGE];
 }
 
-export default function TrippoChat({ context }: TrippoChatProps) {
+export default function TrippoChat({ context, fabVisible = true }: TrippoChatProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [messages, setMessages] = useState<Message[]>([DEFAULT_MESSAGE]);
@@ -84,8 +85,8 @@ export default function TrippoChat({ context }: TrippoChatProps) {
 
   return (
     <>
-      {/* FAB — her zaman görünür, portal değil */}
-      {!open && (
+      {/* FAB — sheet kapalıyken ve fabVisible=true iken görünür */}
+      {!open && fabVisible && (
         <button
           onClick={() => setOpen(true)}
           className="fixed top-28 right-3 z-[9999] w-11 h-11 rounded-2xl flex items-center justify-center shadow-xl active:scale-95 transition-transform"
