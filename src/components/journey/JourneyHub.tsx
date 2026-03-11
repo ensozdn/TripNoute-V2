@@ -16,10 +16,12 @@ type NavTab = 'me' | 'activity' | 'explore' | 'notifications';
 type SheetState = 'peek' | 'middle' | 'full';
 type ActiveMode = 'plan' | 'track';
 
-const SNAP_POINTS: Record<SheetState, number> = {
-  peek:   0.10,  // sadece handle + tab bar görünür
-  middle: 0.44,  // yarı açık
-  full:   0.82,  // neredeyse tam ekran, status bar görünür
+// translateY yüzdesi: sheet yüksekliği sabit 100vh, sadece aşağı kayma miktarı değişir
+// 0 = tamamen açık (full), 90 = sadece handle görünür (peek)
+const SNAP_Y: Record<SheetState, number> = {
+  peek:   90,   // %90 aşağı kaymış → sadece handle + nav görünür
+  middle: 56,   // %56 aşağı kaymış → yarı açık
+  full:   18,   // %18 aşağı kaymış → neredeyse tam ekran
 };
 
 interface JourneyHubProps {
@@ -72,24 +74,29 @@ export default function JourneyHub({
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef<number>(0);
-  const dragStartH = useRef<number>(0);
+  const dragStartTranslateY = useRef<number>(0); // drag başındaki translateY px değeri
   const isDraggingRef = useRef<boolean>(false);
   const velocityRef = useRef<number>(0);
   const lastYRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
 
+  // sheet yüksekliği sabit 100vh; sadece translateY değişir
+  // snapYpct → ekranın yüzde kaçı aşağı kaymış
+  const getSnapPx = (state: SheetState) => (SNAP_Y[state] / 100) * window.innerHeight;
+
   const handlePointerDown = (e: React.PointerEvent) => {
     if (mapPinMode) return;
+    // mevcut translateY'yi px cinsinden oku
     const vh = window.innerHeight;
     dragStartY.current = e.clientY;
-    dragStartH.current = SNAP_POINTS[sheetState] * vh;
+    dragStartTranslateY.current = (SNAP_Y[sheetState] / 100) * vh;
     lastYRef.current = e.clientY;
     lastTimeRef.current = Date.now();
     velocityRef.current = 0;
     isDraggingRef.current = true;
     if (sheetRef.current) {
       sheetRef.current.style.transition = 'none';
-      sheetRef.current.style.height = dragStartH.current + 'px';
+      sheetRef.current.style.transform = `translateY(${dragStartTranslateY.current}px)`;
     }
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
@@ -99,15 +106,15 @@ export default function JourneyHub({
     const now = Date.now();
     const dt = now - lastTimeRef.current;
     if (dt > 0) {
-      velocityRef.current = (lastYRef.current - e.clientY) / dt; // px/ms, pozitif = yukarı
+      velocityRef.current = (e.clientY - lastYRef.current) / dt; // px/ms, pozitif = aşağı
     }
     lastYRef.current = e.clientY;
     lastTimeRef.current = now;
 
-    const delta = dragStartY.current - e.clientY; // yukarı = pozitif
+    const delta = e.clientY - dragStartY.current; // aşağı = pozitif
     const vh = window.innerHeight;
-    const newH = Math.max(60, Math.min(vh * 0.97, dragStartH.current + delta));
-    sheetRef.current.style.height = newH + 'px';
+    const newTY = Math.max(0, Math.min(vh * 0.93, dragStartTranslateY.current + delta));
+    sheetRef.current.style.transform = `translateY(${newTY}px)`;
   };
 
   const handlePointerUp = () => {
@@ -115,48 +122,37 @@ export default function JourneyHub({
     isDraggingRef.current = false;
 
     const vh = window.innerHeight;
-    const currentH = parseFloat(sheetRef.current.style.height) || dragStartH.current;
-    const currentRatio = currentH / vh;
-    const velocity = velocityRef.current; // px/ms
-
-    // Snap noktaları
-    const snapValues = [
-      { state: 'peek'   as SheetState, ratio: SNAP_POINTS.peek   },
-      { state: 'middle' as SheetState, ratio: SNAP_POINTS.middle },
-      { state: 'full'   as SheetState, ratio: SNAP_POINTS.full   },
-    ];
+    // mevcut translateY'yi matrix'ten oku
+    const matrix = new DOMMatrix(getComputedStyle(sheetRef.current).transform);
+    const currentTY = matrix.m42; // translateY px
+    const currentPct = (currentTY / vh) * 100;
+    const velocity = velocityRef.current; // px/ms, pozitif = aşağı
 
     let next: SheetState;
 
-    // Hız bazlı snap (swipe)
-    if (velocity > 0.5) {
-      // Hızlı yukarı swipe
-      next = sheetState === 'middle' ? 'full' : 'full';
-    } else if (velocity < -0.5) {
-      // Hızlı aşağı swipe
+    if (velocity > 0.6) {
+      // Hızlı aşağı swipe → bir basamak aşağı
       next = sheetState === 'full' ? 'middle' : 'peek';
+    } else if (velocity < -0.6) {
+      // Hızlı yukarı swipe → bir basamak yukarı
+      next = sheetState === 'middle' ? 'full' : 'full';
     } else {
-      // Pozisyon bazlı snap — en yakın noktaya git
-      const midToFull = (SNAP_POINTS.middle + SNAP_POINTS.full) / 2;
-      const peekToMid = (SNAP_POINTS.peek + SNAP_POINTS.middle) / 2;
-      if (currentRatio >= midToFull) next = 'full';
-      else if (currentRatio >= peekToMid) next = 'middle';
-      else next = 'peek';
+      // Pozisyon bazlı → en yakın snap noktasına git
+      const distances = (Object.keys(SNAP_Y) as SheetState[]).map((s) => ({
+        state: s,
+        dist: Math.abs(SNAP_Y[s] - currentPct),
+      }));
+      next = distances.sort((a, b) => a.dist - b.dist)[0].state;
     }
 
-    // Hedef yükseklik ve transform
-    const targetH = snapValues.find(s => s.state === next)!.ratio * vh;
-    const targetTransform = 'translateY(0%)';
-
-    sheetRef.current.style.transition = 'transform 0.38s cubic-bezier(0.32,0.72,0,1), height 0.38s cubic-bezier(0.32,0.72,0,1)';
-    sheetRef.current.style.height = targetH + 'px';
-    sheetRef.current.style.transform = targetTransform;
+    const targetTY = getSnapPx(next);
+    sheetRef.current.style.transition = 'transform 0.38s cubic-bezier(0.32,0.72,0,1)';
+    sheetRef.current.style.transform = `translateY(${targetTY}px)`;
 
     setTimeout(() => {
       if (sheetRef.current) {
-        sheetRef.current.style.height = '';
-        sheetRef.current.style.transform = '';
         sheetRef.current.style.transition = '';
+        sheetRef.current.style.transform = '';
       }
       setSheetState(next);
     }, 400);
@@ -174,9 +170,11 @@ export default function JourneyHub({
         ref={sheetRef}
         className="fixed bottom-0 left-0 right-0 z-40 flex flex-col rounded-t-3xl bg-white border-t border-black/8 shadow-2xl shadow-black/20"
         style={{
-          height: `${SNAP_POINTS[sheetState] * 100}vh`,
-          transform: (mapPinMode || hidden) ? 'translateY(100%)' : 'translateY(0%)',
-          transition: 'transform 0.42s cubic-bezier(0.32,0.72,0,1), height 0.42s cubic-bezier(0.32,0.72,0,1)',
+          height: '100vh',
+          transform: (mapPinMode || hidden)
+            ? 'translateY(100%)'
+            : `translateY(${SNAP_Y[sheetState]}%)`,
+          transition: 'transform 0.42s cubic-bezier(0.32,0.72,0,1)',
           pointerEvents: (mapPinMode || hidden) ? 'none' : undefined,
         }}
       >
