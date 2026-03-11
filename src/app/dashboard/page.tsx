@@ -349,6 +349,7 @@ export default function DashboardPage() {
           userPhoto={user?.photoURL}
           onLogout={handleLogout}
           onAddPlace={() => router.push('/places/add')}
+          hidden={settingsOpen}
         />
 
       </div>

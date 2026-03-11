@@ -40,6 +40,7 @@ interface JourneyHubProps {
   userPhoto?: string | null;
   onLogout?: () => void;
   onAddPlace?: () => void;
+  hidden?: boolean;
 }
 
 const NAV_ITEMS: { id: NavTab; label: string; icon: React.ReactNode }[] = [
@@ -60,6 +61,7 @@ export default function JourneyHub({
   userName,
   userPhoto,
   onAddPlace,
+  hidden = false,
 }: JourneyHubProps) {
   const [activeNav, setActiveNav] = useState<NavTab>('me');
   const [sheetState, setSheetState] = useState<SheetState>('middle');
@@ -140,9 +142,9 @@ export default function JourneyHub({
         className="fixed bottom-0 left-0 right-0 z-40 flex flex-col rounded-t-3xl bg-white border-t border-black/8 shadow-2xl shadow-black/20"
         style={{
           height: `${SNAP_POINTS[sheetState === 'closed' ? 'middle' : sheetState] * 100}vh`,
-          transform: (mapPinMode || sheetState === 'closed') ? 'translateY(100%)' : 'translateY(0%)',
+          transform: (mapPinMode || sheetState === 'closed' || hidden) ? 'translateY(100%)' : 'translateY(0%)',
           transition: 'transform 0.42s cubic-bezier(0.32,0.72,0,1), height 0.42s cubic-bezier(0.32,0.72,0,1)',
-          pointerEvents: (mapPinMode || sheetState === 'closed') ? 'none' : undefined,
+          pointerEvents: (mapPinMode || sheetState === 'closed' || hidden) ? 'none' : undefined,
         }}
       >
         {/* Handle — drag sadece buradan */}
@@ -338,6 +340,7 @@ export default function JourneyHub({
         className="fixed bottom-0 left-0 right-0 z-50 flex flex-col items-center gap-2 pb-5 pt-2 pointer-events-none"
         style={{
           background: 'linear-gradient(to top, rgba(255,255,255,0.08) 0%, transparent 100%)',
+          display: hidden ? 'none' : undefined,
         }}
       >
         {/* ── Mode Switcher ── */}
@@ -453,13 +456,15 @@ export default function JourneyHub({
       )}
 
       {/* Trippo Chat — standalone FAB, kendi state'ini yönetir */}
-      <TrippoChat
-        context={
-          journeys.length > 0
-            ? `Kullanıcının ${journeys.length} journey'si var. En son: ${journeys[journeys.length - 1]?.name ?? ''}`
-            : undefined
-        }
-      />
+      {!hidden && (
+        <TrippoChat
+          context={
+            journeys.length > 0
+              ? `Kullanıcının ${journeys.length} journey'si var. En son: ${journeys[journeys.length - 1]?.name ?? ''}`
+              : undefined
+          }
+        />
+      )}
 
       {/* Trip Detail View — full screen */}
       <AnimatePresence>

@@ -156,24 +156,22 @@ function Background() {
 
         {/* ── Plane 1: sol-alttan sağ-üste, tek seferlik düzgün uçuş ── */}
         <motion.g
-          style={{ rotate: 40 }}
           initial={{ x: -20, y: 730, opacity: 0 }}
           animate={{ x: 450, y: 120, opacity: [0, 0.65, 0.65, 0] }}
           transition={{ duration: 3.0, ease: 'easeInOut', delay: 0.5, times: [0, 0.12, 0.88, 1] }}
         >
           <path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0 0 11.5 2A1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1l3.5 1v-1.5L13 19v-5.5l8 2.5z"
-            fill="#2563eb" transform="translate(-12, -12) scale(0.65)" />
+            fill="#2563eb" transform="translate(-12,-12) scale(0.65) rotate(40,12,12)" />
         </motion.g>
 
         {/* ── Plane 2: sağ-alttan sol-üste, tek seferlik düzgün uçuş ── */}
         <motion.g
-          style={{ rotate: -50 }}
           initial={{ x: 440, y: 730, opacity: 0 }}
           animate={{ x: -30, y: 180, opacity: [0, 0.55, 0.55, 0] }}
           transition={{ duration: 3.4, ease: 'easeInOut', delay: 1.2, times: [0, 0.12, 0.88, 1] }}
         >
           <path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0 0 11.5 2A1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1l3.5 1v-1.5L13 19v-5.5l8 2.5z"
-            fill="#3b82f6" transform="translate(-11, -11) scale(0.58)" />
+            fill="#3b82f6" transform="translate(-11,-11) scale(0.58) rotate(-50,11,11)" />
         </motion.g>
 
         {[
@@ -345,17 +343,29 @@ function LoginView({ onBack, onGoRegister }: { onBack: () => void; onGoRegister:
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 60 }}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-      className="flex-1 flex flex-col px-6 pt-14 pb-8 overflow-y-auto"
+      className="flex-1 flex flex-col px-6 pt-10 pb-8 overflow-y-auto"
     >
       <button onClick={onBack}
-        className="flex items-center gap-1.5 text-slate-400 hover:text-slate-600 transition-colors mb-8 w-fit">
+        className="flex items-center gap-1.5 text-slate-400 hover:text-slate-600 transition-colors mb-6 w-fit">
         <ChevronLeft className="w-4 h-4" />
         <span className="text-sm font-medium">Back</span>
       </button>
 
-      <div className="mb-8">
-        <h2 className="text-slate-900 text-2xl font-bold mb-1 tracking-tight">Welcome back</h2>
-        <p className="text-slate-400 text-sm">Sign in to continue your journey</p>
+      {/* Mini brand header */}
+      <div className="flex items-center gap-3 mb-8">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+          style={{ background: 'linear-gradient(145deg, #3b82f6 0%, #2563eb 60%, #1d4ed8 100%)', boxShadow: '0 4px 14px rgba(37,99,235,0.32)' }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0 0 11.5 2A1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1l3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="white"/>
+          </svg>
+        </div>
+        <div>
+          <h1 className="text-[18px] font-bold leading-tight tracking-tight">
+            <span className="text-slate-900">Trip</span>
+            <span style={{ color: '#2563eb' }}>Noute</span>
+          </h1>
+          <p className="text-slate-400 text-[11px] font-medium">Welcome back</p>
+        </div>
       </div>
 
       {displayError && (
@@ -472,17 +482,29 @@ function RegisterView({ onBack, onGoLogin }: { onBack: () => void; onGoLogin: ()
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 60 }}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-      className="flex-1 flex flex-col px-6 pt-14 pb-8 overflow-y-auto"
+      className="flex-1 flex flex-col px-6 pt-10 pb-8 overflow-y-auto"
     >
       <button onClick={onBack}
-        className="flex items-center gap-1.5 text-slate-400 hover:text-slate-600 transition-colors mb-8 w-fit">
+        className="flex items-center gap-1.5 text-slate-400 hover:text-slate-600 transition-colors mb-6 w-fit">
         <ChevronLeft className="w-4 h-4" />
         <span className="text-sm font-medium">Back</span>
       </button>
 
-      <div className="mb-8">
-        <h2 className="text-slate-900 text-2xl font-bold mb-1 tracking-tight">Create account</h2>
-        <p className="text-slate-400 text-sm">Start your travel journey today</p>
+      {/* Mini brand header */}
+      <div className="flex items-center gap-3 mb-8">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+          style={{ background: 'linear-gradient(145deg, #3b82f6 0%, #2563eb 60%, #1d4ed8 100%)', boxShadow: '0 4px 14px rgba(37,99,235,0.32)' }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0 0 11.5 2A1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1l3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="white"/>
+          </svg>
+        </div>
+        <div>
+          <h1 className="text-[18px] font-bold leading-tight tracking-tight">
+            <span className="text-slate-900">Trip</span>
+            <span style={{ color: '#2563eb' }}>Noute</span>
+          </h1>
+          <p className="text-slate-400 text-[11px] font-medium">Create account</p>
+        </div>
       </div>
 
       {displayError && (
@@ -617,7 +639,7 @@ export default function Page() {
             </span>
             <div className="h-px w-8 bg-blue-200" />
           </div>
-          <p className="text-slate-300 text-[10px] tracking-wide">© 2026 TripNoute</p>
+          <p className="text-slate-400 text-[11px] tracking-wide font-medium">© 2026 TripNoute</p>
         </motion.div>
       )}
     </div>
