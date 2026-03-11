@@ -263,7 +263,6 @@ export default function JourneyCreationModal({
                       <input
                         ref={inputRef}
                         type="text"
-                        autoFocus
                         placeholder="Paris, Tokyo, New York…"
                         value={locationQuery}
                         onChange={(e) => {
