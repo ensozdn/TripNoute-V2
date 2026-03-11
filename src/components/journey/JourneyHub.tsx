@@ -13,13 +13,13 @@ import { User, Users, Globe, Bell, Plus, TrendingUp, MapPin, MoreHorizontal } fr
 import { deduplicateCountries } from '@/utils/dataNormalizer';
 
 type NavTab = 'me' | 'activity' | 'explore' | 'notifications';
-type SheetState = 'closed' | 'middle' | 'full';
+type SheetState = 'peek' | 'middle' | 'full';
 type ActiveMode = 'plan' | 'track';
 
 const SNAP_POINTS: Record<SheetState, number> = {
-  closed: 0.0,
-  middle: 0.42,
-  full: 0.95,
+  peek:   0.10,  // sadece handle + tab bar görünür
+  middle: 0.44,  // yarı açık
+  full:   0.82,  // neredeyse tam ekran, status bar görünür
 };
 
 interface JourneyHubProps {
@@ -82,7 +82,7 @@ export default function JourneyHub({
     if (mapPinMode) return;
     const vh = window.innerHeight;
     dragStartY.current = e.clientY;
-    dragStartH.current = SNAP_POINTS[sheetState === 'closed' ? 'middle' : sheetState] * vh;
+    dragStartH.current = SNAP_POINTS[sheetState] * vh;
     lastYRef.current = e.clientY;
     lastTimeRef.current = Date.now();
     velocityRef.current = 0;
@@ -95,7 +95,7 @@ export default function JourneyHub({
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDraggingRef.current || !sheetRef.current || sheetState === 'closed') return;
+    if (!isDraggingRef.current || !sheetRef.current) return;
     const now = Date.now();
     const dt = now - lastTimeRef.current;
     if (dt > 0) {
@@ -121,9 +121,9 @@ export default function JourneyHub({
 
     // Snap noktaları
     const snapValues = [
-      { state: 'closed' as SheetState,  ratio: SNAP_POINTS.middle }, // kapalıyken de middle yüksekliğinde
-      { state: 'middle' as SheetState,  ratio: SNAP_POINTS.middle },
-      { state: 'full' as SheetState,    ratio: SNAP_POINTS.full   },
+      { state: 'peek'   as SheetState, ratio: SNAP_POINTS.peek   },
+      { state: 'middle' as SheetState, ratio: SNAP_POINTS.middle },
+      { state: 'full'   as SheetState, ratio: SNAP_POINTS.full   },
     ];
 
     let next: SheetState;
@@ -134,19 +134,19 @@ export default function JourneyHub({
       next = sheetState === 'middle' ? 'full' : 'full';
     } else if (velocity < -0.5) {
       // Hızlı aşağı swipe
-      next = sheetState === 'full' ? 'middle' : 'closed';
+      next = sheetState === 'full' ? 'middle' : 'peek';
     } else {
       // Pozisyon bazlı snap — en yakın noktaya git
       const midToFull = (SNAP_POINTS.middle + SNAP_POINTS.full) / 2;
-      const closedToMid = SNAP_POINTS.middle * 0.5;
+      const peekToMid = (SNAP_POINTS.peek + SNAP_POINTS.middle) / 2;
       if (currentRatio >= midToFull) next = 'full';
-      else if (currentRatio >= closedToMid) next = 'middle';
-      else next = 'closed';
+      else if (currentRatio >= peekToMid) next = 'middle';
+      else next = 'peek';
     }
 
     // Hedef yükseklik ve transform
-    const targetH = snapValues.find(s => s.state === (next === 'closed' ? 'middle' : next))!.ratio * vh;
-    const targetTransform = next === 'closed' ? 'translateY(100%)' : 'translateY(0%)';
+    const targetH = snapValues.find(s => s.state === next)!.ratio * vh;
+    const targetTransform = 'translateY(0%)';
 
     sheetRef.current.style.transition = 'transform 0.38s cubic-bezier(0.32,0.72,0,1), height 0.38s cubic-bezier(0.32,0.72,0,1)';
     sheetRef.current.style.height = targetH + 'px';
@@ -174,10 +174,10 @@ export default function JourneyHub({
         ref={sheetRef}
         className="fixed bottom-0 left-0 right-0 z-40 flex flex-col rounded-t-3xl bg-white border-t border-black/8 shadow-2xl shadow-black/20"
         style={{
-          height: `${SNAP_POINTS[sheetState === 'closed' ? 'middle' : sheetState] * 100}vh`,
-          transform: (mapPinMode || sheetState === 'closed' || hidden) ? 'translateY(100%)' : 'translateY(0%)',
+          height: `${SNAP_POINTS[sheetState] * 100}vh`,
+          transform: (mapPinMode || hidden) ? 'translateY(100%)' : 'translateY(0%)',
           transition: 'transform 0.42s cubic-bezier(0.32,0.72,0,1), height 0.42s cubic-bezier(0.32,0.72,0,1)',
-          pointerEvents: (mapPinMode || sheetState === 'closed' || hidden) ? 'none' : undefined,
+          pointerEvents: (mapPinMode || hidden) ? 'none' : undefined,
         }}
       >
         {/* Handle — drag sadece buradan */}
@@ -414,10 +414,10 @@ export default function JourneyHub({
                   key={item.id}
                   onClick={() => {
                     if (activeNav === item.id) {
-                      setSheetState(sheetState === 'closed' ? 'middle' : 'closed');
+                      setSheetState(sheetState === 'peek' ? 'middle' : 'peek');
                     } else {
                       setActiveNav(item.id);
-                      if (sheetState === 'closed') setSheetState('middle');
+                      if (sheetState === 'peek') setSheetState('middle');
                     }
                   }}
                   className="relative flex flex-col items-center gap-0.5 px-5 py-3 transition-all duration-200"
