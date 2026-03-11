@@ -455,10 +455,9 @@ export default function JourneyHub({
         />
       )}
 
-      {/* Trippo Chat — standalone FAB, kendi state'ini yönetir */}
+      {/* Trippo Chat — standalone FAB, bottom sheet arkasında kalır (z-30) */}
       {!hidden && (
         <TrippoChat
-          fabVisible={sheetState !== 'full'}
           context={
             journeys.length > 0
               ? `Kullanıcının ${journeys.length} journey'si var. En son: ${journeys[journeys.length - 1]?.name ?? ''}`

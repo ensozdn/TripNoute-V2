@@ -13,7 +13,6 @@ interface Message {
 
 interface TrippoChatProps {
   context?: string;
-  fabVisible?: boolean;
 }
 
 const STORAGE_KEY = 'trippo_messages';
@@ -30,7 +29,7 @@ function loadMessages(): Message[] {
   return [DEFAULT_MESSAGE];
 }
 
-export default function TrippoChat({ context, fabVisible = true }: TrippoChatProps) {
+export default function TrippoChat({ context }: TrippoChatProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [messages, setMessages] = useState<Message[]>([DEFAULT_MESSAGE]);
@@ -85,11 +84,11 @@ export default function TrippoChat({ context, fabVisible = true }: TrippoChatPro
 
   return (
     <>
-      {/* FAB — sheet kapalıyken ve fabVisible=true iken görünür */}
-      {!open && fabVisible && (
+      {/* FAB — sheet kapalıyken görünür, bottom sheet arkasında kalır (z-30) */}
+      {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed top-28 right-3 z-[9999] w-11 h-11 rounded-2xl flex items-center justify-center shadow-xl active:scale-95 transition-transform"
+          className="fixed top-28 right-3 z-30 w-11 h-11 rounded-2xl flex items-center justify-center shadow-xl active:scale-95 transition-transform"
           style={{ background: 'linear-gradient(135deg, #3d87ffff, #2b2effff)' }}
           aria-label="Trippo AI"
         >
