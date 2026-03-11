@@ -1,9 +1,8 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Locate, MapPin, Search, X } from 'lucide-react';
-import { useMapbox } from '@/hooks/useMapbox';
 
 export interface SelectedLocation {
   lat: number;
@@ -28,15 +27,83 @@ export default function StepLocation({
   onLocationSelect,
   onContinue,
 }: StepLocationProps) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const [isLocating, setIsLocating]   = useState(false);
-  const [searchOpen, setSearchOpen]   = useState(false);
-  const [query, setQuery]             = useState('');
-  const [results, setResults]         = useState<MapboxFeature[]>([]);
-  const [searching, setSearching]     = useState(false);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef          = useRef<mapboxgl.Map | null>(null);
+  const markerRef       = useRef<mapboxgl.Marker | null>(null);
+
+  const [isLoaded,    setIsLoaded]    = useState(false);
+  const [isLocating,  setIsLocating]  = useState(false);
+  const [searchOpen,  setSearchOpen]  = useState(false);
+  const [query,       setQuery]       = useState('');
+  const [results,     setResults]     = useState<MapboxFeature[]>([]);
+  const [searching,   setSearching]   = useState(false);
 
   const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? '';
+  const HEADER_H = 88;
 
+  /* ── Init mapboxgl directly (no singleton service) ── */
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
+
+    let map: mapboxgl.Map;
+
+    const init = async () => {
+      const mapboxgl = (await import('mapbox-gl')).default;
+
+      mapboxgl.accessToken = TOKEN;
+
+      map = new mapboxgl.Map({
+        container: mapContainerRef.current!,
+        style: 'mapbox://styles/mapbox/satellite-streets-v12',
+        center: selectedLocation
+          ? [selectedLocation.lng, selectedLocation.lat]
+          : [28.9784, 41.0082],
+        zoom: selectedLocation ? 13 : 3,
+        attributionControl: false,
+      });
+
+      map.on('load', () => {
+        setIsLoaded(true);
+        map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-left');
+      });
+
+      map.on('click', async (e) => {
+        const { lat, lng } = e.lngLat;
+        const address = await reverseGeocode(lat, lng);
+        onLocationSelect({ lat, lng, address });
+
+        // Update/create marker
+        if (markerRef.current) {
+          markerRef.current.setLngLat([lng, lat]);
+        } else {
+          markerRef.current = new mapboxgl.Marker({ color: '#3b82f6' })
+            .setLngLat([lng, lat])
+            .addTo(map);
+        }
+      });
+
+      mapRef.current = map;
+    };
+
+    init();
+
+    return () => {
+      markerRef.current?.remove();
+      markerRef.current = null;
+      mapRef.current?.remove();
+      mapRef.current = null;
+      setIsLoaded(false);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [TOKEN]);
+
+  /* ── If selectedLocation changes externally (search/locate), fly there ── */
+  useEffect(() => {
+    if (!mapRef.current || !selectedLocation) return;
+    mapRef.current.flyTo({ center: [selectedLocation.lng, selectedLocation.lat], zoom: 14, speed: 1.4 });
+  }, [selectedLocation?.lat, selectedLocation?.lng]);
+
+  /* ── Reverse geocode ── */
   const reverseGeocode = async (lat: number, lng: number) => {
     try {
       const res = await fetch(
@@ -49,19 +116,7 @@ export default function StepLocation({
     }
   };
 
-  const { isLoaded, flyTo } = useMapbox(mapRef, {
-    accessToken: TOKEN,
-    style: 'mapbox://styles/mapbox/satellite-streets-v12',
-    center: selectedLocation
-      ? [selectedLocation.lng, selectedLocation.lat]
-      : [28.9784, 41.0082],
-    zoom: selectedLocation ? 13 : 4,
-    onMapClick: async (lat, lng) => {
-      const address = await reverseGeocode(lat, lng);
-      onLocationSelect({ lat, lng, address });
-    },
-  });
-
+  /* ── Search ── */
   const handleSearch = async (value: string) => {
     setQuery(value);
     if (value.trim().length < 2) { setResults([]); return; }
@@ -79,15 +134,30 @@ export default function StepLocation({
     }
   };
 
-  const handleResultSelect = (feature: MapboxFeature) => {
+  const handleResultSelect = async (feature: MapboxFeature) => {
     const [lng, lat] = feature.center;
-    onLocationSelect({ lat, lng, address: feature.place_name });
-    flyTo(lat, lng, 14);
+    const loc: SelectedLocation = { lat, lng, address: feature.place_name };
+    onLocationSelect(loc);
+
+    // fly + marker
+    mapRef.current?.flyTo({ center: [lng, lat], zoom: 14, speed: 1.4 });
+    if (mapRef.current) {
+      const mapboxgl = (await import('mapbox-gl')).default;
+      if (markerRef.current) {
+        markerRef.current.setLngLat([lng, lat]);
+      } else {
+        markerRef.current = new mapboxgl.Marker({ color: '#3b82f6' })
+          .setLngLat([lng, lat])
+          .addTo(mapRef.current);
+      }
+    }
+
     setSearchOpen(false);
     setQuery('');
     setResults([]);
   };
 
+  /* ── Locate me ── */
   const handleLocateMe = async () => {
     if (!('geolocation' in navigator)) return;
     setIsLocating(true);
@@ -98,15 +168,24 @@ export default function StepLocation({
       const { latitude: lat, longitude: lng } = pos.coords;
       const address = await reverseGeocode(lat, lng);
       onLocationSelect({ lat, lng, address });
-      flyTo(lat, lng, 14);
+
+      mapRef.current?.flyTo({ center: [lng, lat], zoom: 14, speed: 1.4 });
+      if (mapRef.current) {
+        const mapboxgl = (await import('mapbox-gl')).default;
+        if (markerRef.current) {
+          markerRef.current.setLngLat([lng, lat]);
+        } else {
+          markerRef.current = new mapboxgl.Marker({ color: '#3b82f6' })
+            .setLngLat([lng, lat])
+            .addTo(mapRef.current);
+        }
+      }
     } catch {
       // silently fail
     } finally {
       setIsLocating(false);
     }
   };
-
-  const HEADER_H = 88;
 
   return (
     <motion.div
@@ -119,7 +198,7 @@ export default function StepLocation({
     >
       {/* Full-bleed map canvas */}
       <div
-        ref={mapRef}
+        ref={mapContainerRef}
         className="absolute left-0 right-0 bottom-0"
         style={{ top: HEADER_H }}
       />
@@ -133,36 +212,6 @@ export default function StepLocation({
           <div className="w-10 h-10 border-4 border-white/20 border-t-white/70 rounded-full animate-spin" />
         </div>
       )}
-
-      {/* Center crosshair pin */}
-      <div
-        className="absolute inset-x-0 pointer-events-none z-20 flex flex-col items-center justify-center"
-        style={{ top: HEADER_H, bottom: 0 }}
-      >
-        <div className="flex flex-col items-center" style={{ marginBottom: 28 }}>
-          {!selectedLocation && (
-            <>
-              <div className="absolute w-14 h-14 rounded-full border-2 border-blue-400/30 animate-ping" />
-              <div className="absolute w-9 h-9 rounded-full border border-blue-400/20 animate-pulse" />
-            </>
-          )}
-          <div
-            className={`w-11 h-11 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${
-              selectedLocation
-                ? 'bg-blue-500 scale-110 shadow-blue-500/60'
-                : 'bg-white/15 backdrop-blur-sm'
-            }`}
-            style={{ border: selectedLocation ? '3px solid white' : '2px solid rgba(255,255,255,0.4)' }}
-          >
-            <MapPin
-              className={`w-5 h-5 transition-colors duration-300 ${selectedLocation ? 'text-white' : 'text-white/70'}`}
-              strokeWidth={2.5}
-            />
-          </div>
-          <div className={`w-1 h-4 rounded-full mt-0.5 transition-colors duration-300 ${selectedLocation ? 'bg-blue-400/80' : 'bg-white/30'}`} />
-          <div className={`w-3 h-1 rounded-full blur-[1px] transition-colors duration-300 ${selectedLocation ? 'bg-blue-400/50' : 'bg-white/15'}`} />
-        </div>
-      </div>
 
       {/* Top-right FABs */}
       <div
