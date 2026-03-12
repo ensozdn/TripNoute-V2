@@ -194,8 +194,8 @@ export default function JourneyHub({
           pointerEvents: (mapPinMode || hidden) ? 'none' : undefined,
         }}
       >
-        {/* Inner white surface — rounded top corners sadece burada */}
-        <div className="flex flex-col h-full rounded-t-3xl bg-white border-t border-black/8 shadow-2xl shadow-black/20">
+        {/* Inner white surface — yükseklik 100dvh ile sınırlı, ekstra 24px transparan kalır */}
+        <div className="flex flex-col rounded-t-3xl bg-white border-t border-black/8 shadow-2xl shadow-black/20" style={{ height: '100dvh' }}>
         {/* Handle — tüm sheet'ten sürüklenebilir, sadece scroll alanı hariç */}
         <div
           className="flex justify-center pt-2.5 pb-3 shrink-0 cursor-grab active:cursor-grabbing select-none"
