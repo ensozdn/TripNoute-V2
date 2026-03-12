@@ -105,7 +105,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!user) throw new Error('No user logged in');
 
       await authService.updateProfile(data);
-      setUser({ ...user, ...data });
+      // Only merge defined values so existing fields aren't wiped
+      const patch = Object.fromEntries(
+        Object.entries(data).filter(([, v]) => v !== undefined)
+      );
+      setUser({ ...user, ...patch });
     } catch (err: unknown) {
       setError(getErrorMessage(err, 'Profile update failed'));
       throw err;

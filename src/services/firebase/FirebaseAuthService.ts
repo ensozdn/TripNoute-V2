@@ -186,12 +186,14 @@ export class FirebaseAuthService implements IAuthService {
       }
 
       const userDocRef = doc(db, 'users', firebaseUser.uid);
+      const firestoreData: Record<string, unknown> = { updatedAt: serverTimestamp() };
+      if (data.displayName !== undefined) firestoreData.displayName = data.displayName;
+      if (data.photoURL !== undefined) firestoreData.photoURL = data.photoURL;
+      if (data.city !== undefined) firestoreData.city = data.city;
+      if (data.bio !== undefined) firestoreData.bio = data.bio;
       await setDoc(
         userDocRef,
-        {
-          ...data,
-          updatedAt: serverTimestamp(),
-        },
+        firestoreData,
         { merge: true }
       );
     } catch (error: unknown) {

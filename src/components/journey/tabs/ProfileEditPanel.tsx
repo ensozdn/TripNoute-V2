@@ -24,6 +24,7 @@ export default function ProfileEditPanel({ onBack }: ProfileEditPanelProps) {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -60,6 +61,7 @@ export default function ProfileEditPanel({ onBack }: ProfileEditPanelProps) {
 
   const handleSave = async () => {
     setSaving(true);
+    setSaveError(null);
     try {
       const displayName = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ');
 
@@ -76,7 +78,7 @@ export default function ProfileEditPanel({ onBack }: ProfileEditPanelProps) {
         displayName: displayName || undefined,
         photoURL,
         city: city.trim() || undefined,
-        bio: bio.trim() || undefined,
+        bio: bio.trim(),
       });
 
       if (photoURL) {
@@ -88,6 +90,7 @@ export default function ProfileEditPanel({ onBack }: ProfileEditPanelProps) {
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
       console.error('Profile save error:', err);
+      setSaveError(err instanceof Error ? err.message : 'Kaydedilemedi. Tekrar deneyin.');
     } finally {
       setSaving(false);
     }
@@ -138,6 +141,12 @@ export default function ProfileEditPanel({ onBack }: ProfileEditPanelProps) {
           </span>
         </button>
       </div>
+
+      {saveError && (
+        <div className="mx-1 mb-3 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20">
+          <p className="text-xs text-red-500">{saveError}</p>
+        </div>
+      )}
 
       <div className="space-y-5">
         <div className="flex flex-col items-center gap-2">
