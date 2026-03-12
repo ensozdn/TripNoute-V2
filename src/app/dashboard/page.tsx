@@ -238,8 +238,8 @@ export default function DashboardPage() {
 
   return (
     <ProtectedRoute>
-      <div className="relative w-full h-screen overflow-hidden bg-slate-900">
-        <div className="absolute top-0 left-0 right-0 bottom-0">
+      <div className="relative w-full overflow-hidden bg-black" style={{ height: '100dvh' }}>
+        <div className="absolute inset-0">
           {loadingPlaces ? (
             <div className="w-full h-full flex items-center justify-center bg-slate-900">
               <p className="text-slate-400">Loading your journey...</p>
@@ -252,12 +252,12 @@ export default function DashboardPage() {
               onMapClick={handleMapClick}
               zoom={1.5}
               style="mapbox://styles/mapbox/satellite-streets-v12"
-              className="absolute top-0 left-0 w-full h-screen"
+              className="absolute inset-0 w-full h-full"
             />
           )}
         </div>
 
-        <header className="absolute top-5 left-5 z-40">
+        <header className="absolute left-5 z-40" style={{ top: 'max(20px, env(safe-area-inset-top, 20px))' }}>
           <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <Image
               src="/tripnoute-logo-v2.jpg"
@@ -285,7 +285,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div className="absolute top-4 right-4 z-30 flex flex-col gap-2">
+        <div className="absolute right-4 z-30 flex flex-col gap-2" style={{ top: 'max(16px, env(safe-area-inset-top, 16px))' }}>
           <button
             onClick={() => setSettingsOpen(true)}
             className="bg-white backdrop-blur-xl border border-black/8 rounded-xl p-2.5 shadow-lg shadow-black/15 hover:bg-slate-50 active:scale-95 transition-all"

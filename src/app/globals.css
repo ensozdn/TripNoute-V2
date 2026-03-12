@@ -153,9 +153,16 @@
 }
 
 body {
-  background: var(--color-background);
+  background: #000000;  /* iOS status bar arkası siyah — harita tam alta kadar uzanır */
   color: var(--color-foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* iOS PWA: tüm ekranı kullan, notch/status bar dahil */
+html, body {
+  height: 100%;
+  /* viewport-fit=cover ile birlikte çalışır */
+  overscroll-behavior: none;
 }
 
 /* Smooth scrolling */
