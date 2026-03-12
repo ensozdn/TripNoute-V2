@@ -82,6 +82,54 @@ Kurallar:
 
       return NextResponse.json({ success: true, data: { text: response.text } });
 
+    } else if (type === 'generate_itinerary') {
+      // -----------------------------------------------------------------------
+      // Bir destinasyon için planned step listesi üretir.
+      // Dönen format: { steps: [{ name, lat, lng, notes, order }] }
+      // -----------------------------------------------------------------------
+      const { destination, startDate, endDate, days } = payload;
+      const dayCount = days || (startDate && endDate
+        ? Math.max(1, Math.round((new Date(endDate as string).getTime() - new Date(startDate as string).getTime()) / 86400000))
+        : 3);
+
+      const prompt = `"${destination}" için ${dayCount} günlük seyahat planı oluştur.
+
+KURALLAR:
+- Her gün için 2-4 durak öner
+- Her durak için gerçek koordinatlar ver (lat, lng)
+- Mantıklı bir coğrafi sıra izle (yakın yerler art arda)
+- Sadece aşağıdaki JSON formatını döndür, başka hiçbir şey yazma
+
+JSON FORMAT:
+{
+  "steps": [
+    { "order": 0, "name": "Yer Adı", "lat": 41.0082, "lng": 28.9784, "notes": "Kısa pratik not", "day": 1 },
+    ...
+  ]
+}`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: { systemInstruction: TRIPPO_SYSTEM },
+      });
+
+      const text = response.text ?? '';
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        return NextResponse.json({ error: 'Itinerary parse hatası' }, { status: 500 });
+      }
+      const parsed = JSON.parse(jsonMatch[0]);
+
+      // status: 'planned' damgasını her adıma bas
+      const steps = (parsed.steps as any[]).map((s: any, i: number) => ({
+        ...s,
+        order: i,
+        status: 'planned',
+      }));
+
+      return NextResponse.json({ success: true, data: { steps } });
+
     } else {
       return NextResponse.json({ error: 'Unknown type' }, { status: 400 });
     }

@@ -10,6 +10,9 @@ export type TransportMode =
   | 'walking'
   | 'bike';
 
+/** planned = henüz gidilmedi, tracked = gerçek GPS ile ziyaret edildi */
+export type StepStatus = 'planned' | 'tracked';
+
 export interface JourneyStep {
   id: string;
   name: string;
@@ -17,6 +20,14 @@ export interface JourneyStep {
   timestamp: number;
   order: number;
   transportToNext: TransportMode | null;
+
+  /** Adımın durumu — varsayılan 'planned' */
+  status?: StepStatus;
+
+  /** tracked olduğunda gerçek GPS koordinatları */
+  trackedCoordinates?: [number, number];
+  /** tracked olduğunda ziyaret zamanı (ms) */
+  trackedAt?: number;
 
   // Optional link to an existing Place document
   placeId?: string;

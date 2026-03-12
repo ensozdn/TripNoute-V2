@@ -947,10 +947,14 @@ class MapboxService implements IMapboxService {
           ? current.routeGeometry
           : [current.coordinates, next.coordinates];
 
+      // segment'in tracked sayılması için BAŞLANGIÇ noktasının tracked olması yeterli
+      const isTracked = (current as any).status === 'tracked';
+
       segments.push({
         type: 'Feature',
         properties: {
           transportMode: current.transportToNext,
+          segmentStatus: isTracked ? 'tracked' : 'planned',
           color: 'rgba(255,255,255,0.5)',
         },
         geometry: {
@@ -988,14 +992,20 @@ class MapboxService implements IMapboxService {
         return;
       }
 
-      const style = this.getRouteStyle(segment.properties.transportMode);
+      const isTracked = segment.properties.segmentStatus === 'tracked';
+      const style = isTracked
+        ? this.getTrackedRouteStyle(segment.properties.transportMode)
+        : this.getRouteStyle(segment.properties.transportMode);
 
       // CRITICAL: Add line layer BEFORE medallions (so medallions appear on top)
       this.map!.addLayer({
         id: layerId,
         type: 'line',
         source: sourceId,
-        filter: ['==', ['get', 'transportMode'], segment.properties.transportMode],
+        filter: ['all',
+          ['==', ['get', 'transportMode'], segment.properties.transportMode],
+          ['==', ['get', 'segmentStatus'], segment.properties.segmentStatus],
+        ],
         layout: {
           'line-join': 'round',
           'line-cap': 'round',
@@ -1058,6 +1068,26 @@ class MapboxService implements IMapboxService {
           'line-opacity': 0.95,
           'line-blur': 0,
         };
+    }
+  }
+
+  /**
+   * tracked segmentler için stil — kesik çizgi YOK, neon parlak, kalın.
+   * Her transport modunun parlak rengi korunur.
+   */
+  private getTrackedRouteStyle(transport: TransportMode | null): any {
+    const base = {
+      'line-width': 4,
+      'line-opacity': 1,
+      'line-blur': 1.5,      // hafif glow efekti
+    };
+    switch (transport) {
+      case 'flight': return { ...base, 'line-color': '#a78bfa' };  // violet neon
+      case 'ship':   return { ...base, 'line-color': '#22d3ee' };  // cyan neon
+      case 'train':  return { ...base, 'line-color': '#fbbf24' };  // amber neon
+      case 'bus':    return { ...base, 'line-color': '#fb923c' };  // orange neon
+      case 'car':    return { ...base, 'line-color': '#34d399' };  // emerald neon
+      default:       return { ...base, 'line-color': '#38bdf8' };  // sky neon
     }
   }
 

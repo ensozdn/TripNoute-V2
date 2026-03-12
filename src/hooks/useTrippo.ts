@@ -18,7 +18,7 @@ export function useTrippo() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const ask = async (type: 'place_info' | 'chat', payload: Record<string, unknown>) => {
+  const ask = async (type: 'place_info' | 'chat' | 'generate_itinerary', payload: Record<string, unknown>) => {
     setLoading(true);
     setError(null);
     try {
@@ -45,5 +45,15 @@ export function useTrippo() {
   const chat = (message: string, context?: string, history?: HistoryMessage[]): Promise<ChatResult | null> =>
     ask('chat', { message, context, history });
 
-  return { getPlaceInfo, chat, loading, error };
+  /**
+   * Bir destinasyon için AI destekli planned adım listesi üretir.
+   * Dönen her adım `status: 'planned'` ile işaretlidir.
+   */
+  const generateItinerary = (
+    destination: string,
+    opts?: { startDate?: string; endDate?: string; days?: number },
+  ): Promise<{ steps: Array<{ order: number; name: string; lat: number; lng: number; notes?: string; day?: number; status: 'planned' }> } | null> =>
+    ask('generate_itinerary', { destination, ...opts });
+
+  return { getPlaceInfo, chat, generateItinerary, loading, error };
 }
