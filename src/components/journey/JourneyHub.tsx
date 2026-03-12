@@ -177,16 +177,20 @@ export default function JourneyHub({
 
   return (
     <>
-      {/* Bottom Sheet — sabit 100dvh, translateY px olarak useEffect ile yönetilir */}
+      {/* Bottom Sheet — dış wrapper transparan, rounded köşeler sadece inner white div'de */}
+      {/* Yükseklik 100dvh + 24px (rounded-t-3xl radius): sheet tam yukarı çekilse bile
+          üst köşeler harita üzerinde float eder, status bar bölgesi beyaz kalmaz. */}
       <div
         ref={sheetRef}
-        className="fixed bottom-0 left-0 right-0 z-40 flex flex-col rounded-t-3xl bg-white border-t border-black/8 shadow-2xl shadow-black/20"
+        className="fixed bottom-0 left-0 right-0 z-40"
         style={{
-          height: '100dvh',
+          height: 'calc(100dvh + 24px)',
           willChange: 'transform',
           pointerEvents: (mapPinMode || hidden) ? 'none' : undefined,
         }}
       >
+        {/* Inner white surface — rounded top corners sadece burada */}
+        <div className="flex flex-col h-full rounded-t-3xl bg-white border-t border-black/8 shadow-2xl shadow-black/20">
         {/* Handle — tüm sheet'ten sürüklenebilir, sadece scroll alanı hariç */}
         <div
           className="flex justify-center pt-2.5 pb-3 shrink-0 cursor-grab active:cursor-grabbing select-none"
@@ -373,6 +377,7 @@ export default function JourneyHub({
             </motion.div>
           </AnimatePresence>
         </div>
+        </div>{/* /inner white surface */}
       </div>
 
       {/* Floating bottom UI — mode toggle + nav + FAB */}
