@@ -96,6 +96,7 @@ export default function JourneyCreationModal({
 
   // Step 4 — trippo
   const [trippoEnabled, setTrippoEnabled] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const totalSteps = 4;
 
@@ -119,6 +120,7 @@ export default function JourneyCreationModal({
     setPrivacy('public');
     setTrippoEnabled(false);
     setSaving(false);
+    setSaveError(null);
   };
 
   const handleClose = () => {
@@ -134,6 +136,7 @@ export default function JourneyCreationModal({
   const handleSave = async () => {
     if (!user) return;
     setSaving(true);
+    setSaveError(null);
     try {
       // Trippo ile itinerary oluşturulacaksa önce AI'dan al
       let trippoDescription: string | undefined;
@@ -166,6 +169,8 @@ export default function JourneyCreationModal({
       handleClose();
     } catch (err) {
       console.error('Failed to create journey:', err);
+      const msg = err instanceof Error ? err.message : 'Bir hata oluştu, tekrar dene.';
+      setSaveError(msg);
     } finally {
       setSaving(false);
     }
@@ -491,7 +496,13 @@ export default function JourneyCreationModal({
             </div>
 
             {/* Footer */}
-            <div className="px-6 pt-5 pb-8 flex items-center gap-3">
+            <div className="px-6 pt-5 pb-8 flex flex-col gap-3">
+              {saveError && (
+                <p className="text-xs text-red-500 text-center bg-red-50 rounded-xl px-3 py-2">
+                  {saveError}
+                </p>
+              )}
+              <div className="flex items-center gap-3">
               {step > 0 && (
                 <button
                   onClick={goBack}
@@ -522,6 +533,7 @@ export default function JourneyCreationModal({
                   </>
                 )}
               </button>
+              </div>
             </div>
           </motion.div>
         </>
