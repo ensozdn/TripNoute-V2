@@ -35,7 +35,7 @@ Kurallar:
 - JSON formatında döndür: { "tips": ["tip1", "tip2", "tip3"], "vibe": "Bu yerin atmosferini 4-5 kelimeyle özetle" }`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-flash',
         contents: prompt,
         config: { systemInstruction: TRIPPO_SYSTEM },
       });
@@ -75,7 +75,7 @@ Kurallar:
       contents.push({ role: 'user', parts: [{ text: fullMessage }] });
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-flash',
         contents,
         config: { systemInstruction: TRIPPO_SYSTEM },
       });
