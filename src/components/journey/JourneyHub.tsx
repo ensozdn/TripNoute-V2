@@ -80,9 +80,14 @@ export default function JourneyHub({
   const lastT        = useRef(0);
   const stateRef     = useRef<SheetState>('middle'); // stale closure olmadan son state
 
-  // translateY px: sheet height = 100dvh, visible kısmı = SNAP_VISIBLE oranı
-  // translateY = (1 - ratio) * innerHeight → alt kısmı gizler
-  const snapPx = (s: SheetState) => window.innerHeight * (1 - SNAP_VISIBLE[s]);
+  // Sheet yüksekliği = 100dvh + 24px (rounded-t-3xl radius kadar fazla).
+  // full snap'te translateY = 0 → sheet tam yukarı, köşe beyazlığı görünmez.
+  // Diğer snap'lerde: ne kadar gizleneceği = innerHeight * (1 - ratio) + 24px
+  const SHEET_EXTRA = 24; // px — rounded-t-3xl = 24px
+  const snapPx = (s: SheetState) =>
+    s === 'full'
+      ? 0
+      : window.innerHeight * (1 - SNAP_VISIBLE[s]) + SHEET_EXTRA;
 
   const setTY = (px: number, animate: boolean) => {
     const el = sheetRef.current;
