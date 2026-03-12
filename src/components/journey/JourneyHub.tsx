@@ -195,7 +195,14 @@ export default function JourneyHub({
         }}
       >
         {/* Inner white surface — yükseklik 100dvh ile sınırlı, ekstra 24px transparan kalır */}
-        <div className="flex flex-col rounded-t-3xl bg-white border-t border-black/8 shadow-2xl shadow-black/20" style={{ height: '100dvh' }}>
+        <div className="flex flex-col rounded-t-3xl border-t border-black/8 shadow-2xl shadow-black/20"
+          style={{
+            height: '100dvh',
+            backgroundColor: 'rgba(255,255,255,0.82)',
+            backdropFilter: 'blur(32px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(32px) saturate(180%)',
+          }}
+        >
         {/* Handle — tüm sheet'ten sürüklenebilir, sadece scroll alanı hariç */}
         <div
           className="flex justify-center pt-2.5 pb-3 shrink-0 cursor-grab active:cursor-grabbing select-none"

@@ -238,7 +238,7 @@ export default function DashboardPage() {
 
   return (
     <ProtectedRoute>
-      <div className="relative w-full overflow-hidden bg-black" style={{ height: '100dvh' }}>
+      <div className="relative w-full bg-black" style={{ height: '100dvh' }}>
         <div className="absolute inset-0">
           {loadingPlaces ? (
             <div className="w-full h-full flex items-center justify-center bg-slate-900">
