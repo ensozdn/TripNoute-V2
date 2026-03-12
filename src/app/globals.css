@@ -161,6 +161,7 @@ body {
 /* iOS PWA: tüm ekranı kullan, notch/status bar dahil */
 html, body {
   height: 100%;
+  background: #000000;  /* html de dahil — iOS status bar arkası */
   /* viewport-fit=cover ile birlikte çalışır */
   overscroll-behavior: none;
 }
