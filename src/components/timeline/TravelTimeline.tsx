@@ -101,7 +101,7 @@ export default function TravelTimeline({
       setMenuPosition(null);
     } else {
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      setMenuPosition({ x: rect.right, y: rect.bottom + 8 });
+      setMenuPosition({ x: rect.right, y: rect.top });
       setOpenMenuId(placeId);
     }
   };
@@ -333,7 +333,7 @@ export default function TravelTimeline({
       {openMenuId && menuPosition && (
         <div
           className="fixed w-36 bg-white border border-black/10 rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.12)] overflow-hidden z-[100]"
-          style={{ top: menuPosition.y, left: menuPosition.x - 144 }}
+          style={{ top: menuPosition.y, left: menuPosition.x - 144, transform: 'translateY(-100%)' }}
         >
           <div className="p-1">
             {onPlaceEdit && (() => {
