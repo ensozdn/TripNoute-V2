@@ -45,7 +45,7 @@ export default function TravelTimeline({
   className = '',
 }: TravelTimelineProps) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ x: number; y: number; openUp: boolean } | null>(null);
   const [deletingPlaceId, setDeletingPlaceId] = useState<string | null>(null);
 
   const sortedPlaces = [...places].sort((a, b) => {
@@ -101,7 +101,9 @@ export default function TravelTimeline({
       setMenuPosition(null);
     } else {
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      setMenuPosition({ x: rect.right, y: rect.top });
+      const menuHeight = 90; // Edit + Delete iki satır ~90px
+      const openUp = rect.top + menuHeight > window.innerHeight - 80; // 80px nav bar payı
+      setMenuPosition({ x: rect.right, y: openUp ? rect.top : rect.bottom + 8, openUp });
       setOpenMenuId(placeId);
     }
   };
@@ -333,7 +335,7 @@ export default function TravelTimeline({
       {openMenuId && menuPosition && (
         <div
           className="fixed w-36 bg-white border border-black/10 rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.12)] overflow-hidden z-[100]"
-          style={{ top: menuPosition.y, left: menuPosition.x - 144, transform: 'translateY(-100%)' }}
+          style={{ top: menuPosition.y, left: menuPosition.x - 144, transform: menuPosition.openUp ? 'translateY(-100%)' : 'none' }}
         >
           <div className="p-1">
             {onPlaceEdit && (() => {
