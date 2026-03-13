@@ -101,8 +101,9 @@ export default function TravelTimeline({
       setMenuPosition(null);
     } else {
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      const menuHeight = 90; // Edit + Delete iki satır ~90px
-      const openUp = rect.top + menuHeight > window.innerHeight - 80; // 80px nav bar payı
+      const menuHeight = 96; // Edit + Delete iki satır ~96px
+      const navBarHeight = 90; // nav bar yüksekliği payı
+      const openUp = rect.bottom + 8 + menuHeight > window.innerHeight - navBarHeight;
       setMenuPosition({ x: rect.right, y: openUp ? rect.top : rect.bottom + 8, openUp });
       setOpenMenuId(placeId);
     }
