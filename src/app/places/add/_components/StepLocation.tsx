@@ -64,7 +64,7 @@ export default function StepLocation({
         center: selectedLocation
           ? [selectedLocation.lng, selectedLocation.lat]
           : [0, 20],
-        zoom: selectedLocation ? 13 : 1.5,
+        zoom: selectedLocation ? 13 : 1.1,
         attributionControl: false,
       });
 
