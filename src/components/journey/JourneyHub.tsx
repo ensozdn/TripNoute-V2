@@ -15,7 +15,6 @@ import TravelTimeline from '@/components/timeline/TravelTimeline';
 
 type NavTab = 'me' | 'activity' | 'explore' | 'notifications';
 type SheetState = 'peek' | 'middle' | 'full';
-type ActiveMode = 'plan' | 'track';
 
 // Snap noktaları: ekranın ne kadarı görünür (0–1)
 const SNAP_VISIBLE: Record<SheetState, number> = {
@@ -73,7 +72,6 @@ export default function JourneyHub({
   const [sheetState, setSheetState] = useState<SheetState>('middle');
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [creationModalOpen, setCreationModalOpen] = useState(false);
-  const [activeMode, setActiveMode] = useState<ActiveMode>('plan');
   const [editingJourney, setEditingJourney] = useState<Trip | null>(null);
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const sheetRef     = useRef<HTMLDivElement>(null);
@@ -413,33 +411,6 @@ export default function JourneyHub({
           display: hidden ? 'none' : undefined,
         }}
       >
-        {/* ── Mode Switcher ── */}
-        <div className="flex items-center bg-white/95 backdrop-blur-xl rounded-full shadow-lg shadow-black/10 border border-black/6 p-1 pointer-events-auto">
-          {(['plan', 'track'] as ActiveMode[]).map((mode) => {
-            const isActive = activeMode === mode;
-            return (
-              <button
-                key={mode}
-                onClick={() => setActiveMode(mode)}
-                className="relative px-5 py-1.5 rounded-full text-xs font-bold capitalize transition-colors"
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="mode-pill"
-                    className="absolute inset-0 rounded-full bg-blue-500"
-                    transition={{ type: 'spring', stiffness: 420, damping: 30 }}
-                  />
-                )}
-                <span
-                  className={`relative z-10 transition-colors ${isActive ? 'text-white' : 'text-slate-400'}`}
-                >
-                  {mode}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
         {/* ── Nav pill + FAB row ── */}
         <div className="flex items-center justify-center gap-3 w-full px-4 pr-4">
           {/* Nav pill */}
@@ -480,7 +451,7 @@ export default function JourneyHub({
           {/* Dynamic Action FAB */}
           <div className="pointer-events-auto">
             <JourneyActionMenu
-              activeMode={activeMode}
+              activeMode="plan"
               onCreateItinerary={() => setCreationModalOpen(true)}
               onAddSpot={onAddPlace}
               onAddStay={() => setCreationModalOpen(true)}

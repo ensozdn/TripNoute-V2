@@ -20,7 +20,6 @@ import {
 } from 'lucide-react';
 import TrippoPlaceInsight from '@/components/common/TrippoPlaceInsight';
 
-type ActiveMode = 'plan' | 'track';
 type SheetState = 'peek' | 'mid' | 'full';
 
 const SHEET_SNAPS: Record<SheetState, string> = {
@@ -226,7 +225,6 @@ export default function TripDetailView({
   onEdit,
   onDelete,
 }: TripDetailViewProps) {
-  const [activeMode, setActiveMode] = useState<ActiveMode>('plan');
   const [sheetState, setSheetState] = useState<SheetState>('mid');
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -267,7 +265,7 @@ export default function TripDetailView({
     }
   };
 
-  const isTrackEmpty = activeMode === 'track' && trip.steps.length === 0;
+  const isTrackEmpty = false;
 
   return (
     <motion.div
@@ -501,50 +499,11 @@ export default function TripDetailView({
         </div>
       </motion.div>
 
-      {/* ── Bottom bar: mode toggle + FAB ── */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 flex items-center justify-between px-6 pb-8 pt-4 pointer-events-none">
-        {/* Mode toggle */}
-        <div className="flex items-center bg-white/95 backdrop-blur-xl rounded-full p-1 pointer-events-auto border border-black/8 shadow-lg shadow-black/15">
-          {(['plan', 'track'] as ActiveMode[]).map((mode) => {
-            const isActive = activeMode === mode;
-            return (
-              <button
-                key={mode}
-                onClick={() => setActiveMode(mode)}
-                className="relative px-5 py-1.5 rounded-full text-xs font-bold capitalize"
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="detail-mode-pill"
-                    className="absolute inset-0 rounded-full bg-blue-500"
-                    transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-                  />
-                )}
-                <span
-                  className={`relative z-10 flex items-center gap-1.5 transition-colors ${
-                    isActive ? 'text-white' : 'text-slate-400'
-                  }`}
-                >
-                  {mode}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
+      {/* ── Bottom bar: FAB ── */}
+      <div className="absolute bottom-0 left-0 right-0 z-20 flex items-center justify-end px-6 pb-8 pt-4 pointer-events-none">
         {/* FAB */}
         <div className="pointer-events-auto">
-          {activeMode === 'plan' ? (
-            <PlanFAB onAction={() => {}} />
-          ) : (
-            <motion.button
-              whileTap={{ scale: 0.88 }}
-              className="w-12 h-12 rounded-full bg-red-500 flex items-center justify-center shadow-lg shadow-red-500/40"
-              onClick={() => {}}
-            >
-              <Plus className="w-6 h-6 text-white" strokeWidth={2.5} />
-            </motion.button>
-          )}
+          <PlanFAB onAction={() => {}} />
         </div>
       </div>
 
