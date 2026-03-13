@@ -306,32 +306,17 @@ class MapboxService implements IMapboxService {
       inner.style.boxShadow = '0 6px 16px -4px rgba(0, 0, 0, 0.4), 0 4px 8px -2px rgba(0, 0, 0, 0.24)';
     } else {
 
-      wrapper.style.width = '40px';
+      wrapper.style.width = '32px';
       wrapper.style.height = '40px';
 
       inner.style.width = '100%';
       inner.style.height = '100%';
       inner.innerHTML = `
-        <div style="
-          background-color: ${marker.color || '#3b82f6'};
-          width: 100%;
-          height: 100%;
-          border-radius: 50% 50% 50% 0;
-          transform: rotate(-45deg);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 6px 12px rgba(0,0,0,0.3);
-          border: 3px solid white;
-        ">
-          <div style="
-            width: 10px;
-            height: 10px;
-            background: white;
-            border-radius: 50%;
-            transform: rotate(45deg);
-          "></div>
-        </div>
+        <svg viewBox="0 0 32 40" width="32" height="40" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16 0C7.163 0 0 7.163 0 16c0 10.438 14.222 22.916 15.314 23.862a1 1 0 0 0 1.372 0C17.778 38.916 32 26.438 32 16 32 7.163 24.837 0 16 0z"
+            fill="${marker.color || '#3b82f6'}" stroke="white" stroke-width="2.5"/>
+          <circle cx="16" cy="16" r="6" fill="white"/>
+        </svg>
       `;
     }
 
@@ -340,8 +325,9 @@ class MapboxService implements IMapboxService {
     wrapper.onmouseenter = () => inner.style.transform = 'scale(1.2)';
     wrapper.onmouseleave = () => inner.style.transform = 'scale(1)';
 
-    // Photo marker: anchor at center; pin marker: anchor at bottom-left (tip of rotated square)
-    const anchor: mapboxgl.Anchor = marker.icon?.startsWith('http') || marker.icon?.startsWith('/') ? 'center' : 'bottom-left';
+    // Photo marker: center anchor; SVG pin marker: bottom anchor (tip of teardrop at bottom-center)
+    const isPhotoMarker = !!(marker.icon?.startsWith('http') || marker.icon?.startsWith('/'));
+    const anchor: mapboxgl.Anchor = isPhotoMarker ? 'center' : 'bottom';
     const offset: [number, number] = [0, 0];
 
     const mapboxMarker = new mapboxgl.Marker({ element: wrapper, anchor, offset })

@@ -1,7 +1,8 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ImageIcon } from 'lucide-react';
+import { ImageIcon, X } from 'lucide-react';
 import { ImageUploader } from '@/components/place';
 
 interface StepPhotosProps {
@@ -24,6 +25,29 @@ export default function StepPhotos({
   error,
 }: StepPhotosProps) {
   const isLoading = isSaving || uploading;
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const prevFilesRef = useRef<File[]>([]);
+
+  // Sync preview URLs with selectedFiles from parent
+  useEffect(() => {
+    if (prevFilesRef.current === selectedFiles) return;
+    prevFilesRef.current = selectedFiles;
+
+    // Revoke old URLs
+    previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    const urls = selectedFiles.map((f) => URL.createObjectURL(f));
+    setPreviewUrls(urls);
+
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedFiles]);
+
+  const removeFile = (index: number) => {
+    const newFiles = selectedFiles.filter((_, i) => i !== index);
+    onFilesSelected(newFiles);
+  };
 
   return (
     <motion.div
@@ -34,7 +58,7 @@ export default function StepPhotos({
       transition={{ type: 'spring', stiffness: 380, damping: 32 }}
       className="absolute inset-0 flex flex-col bg-white overflow-y-auto"
     >
-      {/* Spacer for WizardProgress bar (bar is ~72px) */}
+      {/* Spacer for WizardProgress bar */}
       <div className="h-[88px] shrink-0" />
 
       <div className="flex-1 px-5 pb-36 pt-6 space-y-6">
@@ -59,21 +83,80 @@ export default function StepPhotos({
           </div>
         )}
 
-        {/* Image uploader */}
-        <ImageUploader
-          onFilesSelected={onFilesSelected}
-          maxFiles={10}
-          maxSizeInMB={10}
-          disabled={isLoading}
-          uploading={uploading}
-          uploadProgress={uploadProgress}
-        />
-
-        {selectedFiles.length > 0 && (
-          <p className="text-xs text-slate-400 text-center">
-            {selectedFiles.length} photo{selectedFiles.length > 1 ? 's' : ''} selected
-          </p>
+        {/* Upload progress bar */}
+        {uploading && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-500 font-medium">Uploading photos…</span>
+              <span className="font-bold text-slate-800">{Math.round(uploadProgress)}%</span>
+            </div>
+            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-blue-500 transition-all duration-300 rounded-full"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          </div>
         )}
+
+        {/* Thumbnail grid — shown when files selected */}
+        {selectedFiles.length > 0 && !uploading && (
+          <div>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+              {selectedFiles.length} photo{selectedFiles.length > 1 ? 's' : ''} selected
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {selectedFiles.map((file, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.85 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.04, type: 'spring', stiffness: 380, damping: 28 }}
+                  className="relative aspect-square rounded-xl overflow-hidden bg-slate-100 group"
+                >
+                  {previewUrls[i] && (
+                    <img
+                      src={previewUrls[i]}
+                      alt={file.name}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                  {/* Remove button */}
+                  <button
+                    type="button"
+                    onClick={() => removeFile(i)}
+                    disabled={isLoading}
+                    className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 active:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
+                  </button>
+                  {/* Index badge */}
+                  {i === 0 && (
+                    <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-black/60 text-white text-[10px] font-bold">
+                      Cover
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Image uploader (add more) */}
+        <ImageUploader
+          onFilesSelected={(newFiles) => {
+            // Merge with existing (ImageUploader passes only its own selection)
+            const merged = [...selectedFiles, ...newFiles.filter(
+              (f) => !selectedFiles.some((e) => e.name === f.name && e.size === f.size)
+            )];
+            onFilesSelected(merged);
+          }}
+          maxFiles={10 - selectedFiles.length}
+          maxSizeInMB={10}
+          disabled={isLoading || selectedFiles.length >= 10}
+          uploading={false}
+          uploadProgress={0}
+        />
       </div>
 
       {/* Sticky bottom CTAs */}
@@ -87,9 +170,9 @@ export default function StepPhotos({
             bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white shadow-xl shadow-blue-500/25"
         >
           {uploading
-            ? `Uploading photos... ${Math.round(uploadProgress)}%`
+            ? `Uploading photos… ${Math.round(uploadProgress)}%`
             : isSaving
-            ? 'Saving place...'
+            ? 'Saving place…'
             : 'Save Place ✓'}
         </motion.button>
 

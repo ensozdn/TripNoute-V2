@@ -65,7 +65,7 @@ export default function StepDetails({
       transition={{ type: 'spring', stiffness: 380, damping: 32 }}
       className="absolute inset-0 flex flex-col bg-white overflow-y-auto"
     >
-      {/* Spacer for WizardProgress bar (bar is ~72px) */}
+      {/* Spacer for WizardProgress bar */}
       <div className="h-[88px] shrink-0" />
 
       <div className="flex-1 px-5 pb-36 space-y-6 pt-4">
@@ -107,7 +107,7 @@ export default function StepDetails({
 
         {/* City + Country row */}
         <div className="grid grid-cols-2 gap-3">
-          <InputField label="City *" icon={<MapPin className="w-3 h-3" />}>
+          <InputField label="City" icon={<MapPin className="w-3 h-3" />}>
             <input
               type="text"
               value={details.city}
@@ -117,7 +117,7 @@ export default function StepDetails({
               className={inputCls}
             />
           </InputField>
-          <InputField label="Country *" icon={<MapPin className="w-3 h-3" />}>
+          <InputField label="Country" icon={<MapPin className="w-3 h-3" />}>
             <input
               type="text"
               value={details.country}
@@ -145,7 +145,7 @@ export default function StepDetails({
             value={details.notes}
             onChange={set('notes')}
             placeholder="Share your experience, tips, or memories..."
-            rows={5}
+            rows={4}
             maxLength={1000}
             className={`${inputCls} resize-none`}
           />

@@ -39,6 +39,7 @@ export default function StepLocation({
   const [query,       setQuery]       = useState('');
   const [results,     setResults]     = useState<MapboxFeature[]>([]);
   const [searching,   setSearching]   = useState(false);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? '';
   const HEADER_H = 88;
@@ -71,6 +72,19 @@ export default function StepLocation({
       map.on('load', () => {
         setIsLoaded(true);
         map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-left');
+
+        // Auto-zoom to user's location if no location is already selected
+        if (!selectedLocation && 'geolocation' in navigator) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              if (!mounted) return;
+              const { latitude: lat, longitude: lng } = pos.coords;
+              map.flyTo({ center: [lng, lat], zoom: 13, speed: 1.6 });
+            },
+            () => { /* silently ignore — user denied or unavailable */ },
+            { timeout: 8000, maximumAge: 60000 }
+          );
+        }
       });
 
       map.on('click', async (e: any) => {
@@ -124,21 +138,80 @@ export default function StepLocation({
   };
 
   /* ── Search ── */
-  const handleSearch = async (value: string) => {
+  const handleSearch = (value: string) => {
     setQuery(value);
-    if (value.trim().length < 2) { setResults([]); return; }
-    setSearching(true);
-    try {
-      const res = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(value)}.json?access_token=${TOKEN}&autocomplete=true&limit=5&language=en`
-      );
-      const data = await res.json();
-      setResults(data.features ?? []);
-    } catch {
+
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+
+    if (value.trim().length < 2) {
       setResults([]);
-    } finally {
-      setSearching(false);
+      return;
     }
+
+    searchTimerRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const center = mapRef.current?.getCenter();
+
+        // ── Photon (Komoot/OSM) — üniversite, kafe, restoran, landmark, her şey
+        const photonParams = new URLSearchParams({
+          q: value,
+          limit: '8',
+          lang: 'en',
+          ...(center ? { lat: center.lat.toFixed(4), lon: center.lng.toFixed(4) } : {}),
+        });
+
+        const photonRes = await fetch(
+          `https://photon.komoot.io/api/?${photonParams}`
+        );
+        const photonData = await photonRes.json();
+        const photonFeatures: Array<{ properties: Record<string, string>; geometry: { coordinates: [number, number] } }> =
+          photonData.features ?? [];
+
+        if (photonFeatures.length > 0) {
+          const converted: MapboxFeature[] = photonFeatures.map((f, i) => {
+            const p = f.properties;
+            // Build a readable label: Name, Street, City, Country
+            const parts = [
+              p.name,
+              p.street && p.housenumber ? `${p.street} ${p.housenumber}` : p.street,
+              p.city || p.town || p.village,
+              p.state,
+              p.country,
+            ].filter(Boolean);
+            return {
+              id: `photon.${i}.${f.geometry.coordinates[0]}`,
+              place_name: parts.join(', '),
+              center: f.geometry.coordinates,
+            };
+          });
+          setResults(converted);
+          return;
+        }
+
+        // ── Mapbox fallback — Photon sonuç vermezse (çok genel şehir/ülke adları)
+        const proximity = center
+          ? `${center.lng.toFixed(4)},${center.lat.toFixed(4)}`
+          : undefined;
+
+        const mapboxRes = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(value)}.json?${new URLSearchParams({
+            access_token: TOKEN,
+            autocomplete: 'true',
+            limit: '6',
+            language: 'tr,en',
+            types: 'place,region,country,address',
+            ...(proximity ? { proximity } : {}),
+          })}`
+        );
+        const mapboxData = await mapboxRes.json();
+        setResults(mapboxData.features ?? []);
+      } catch {
+        setResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 250);
   };
 
   const handleResultSelect = async (feature: MapboxFeature) => {
