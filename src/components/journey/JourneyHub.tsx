@@ -193,7 +193,7 @@ export default function JourneyHub({
         <div className="flex flex-col rounded-t-3xl border-t border-black/8 shadow-2xl shadow-black/20"
           style={{
             height: '100dvh',
-            backgroundColor: 'rgba(255,255,255,0.82)',
+            backgroundColor: 'rgba(255,255,255,0.97)',
             backdropFilter: 'blur(32px) saturate(180%)',
             WebkitBackdropFilter: 'blur(32px) saturate(180%)',
           }}
