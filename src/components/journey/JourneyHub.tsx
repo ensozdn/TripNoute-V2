@@ -11,6 +11,7 @@ import TripDetailView from './TripDetailView';
 import TrippoChat from '@/components/common/TrippoChat';
 import { User, Users, Globe, Bell, Plus, TrendingUp, MapPin, MoreHorizontal } from 'lucide-react';
 import { deduplicateCountries } from '@/utils/dataNormalizer';
+import TravelTimeline from '@/components/timeline/TravelTimeline';
 
 type NavTab = 'me' | 'activity' | 'explore' | 'notifications';
 type SheetState = 'peek' | 'middle' | 'full';
@@ -54,6 +55,10 @@ const NAV_ITEMS: { id: NavTab; label: string; icon: React.ReactNode }[] = [
 export default function JourneyHub({
   places,
   journeys = [],
+  selectedPlaceId,
+  onPlaceSelect,
+  onPlaceDelete,
+  onPlaceEdit,
   onJourneyCreated,
   onJourneyUpdated,
   onJourneyDelete,
@@ -361,6 +366,19 @@ export default function JourneyHub({
                       </button>
                     </motion.div>
                   )}
+
+                  {/* ── Places Timeline ─────────────────────────────── */}
+                  <div className="mt-2">
+                    <div className="h-px bg-black/6 mb-5" />
+                    <TravelTimeline
+                      places={places}
+                      selectedPlaceId={selectedPlaceId}
+                      onPlaceSelect={onPlaceSelect}
+                      onPlaceDelete={onPlaceDelete}
+                      onPlaceEdit={onPlaceEdit}
+                      onAddPlace={onAddPlace}
+                    />
+                  </div>
                 </div>
               )}
               {activeNav === 'activity' && (
