@@ -77,6 +77,7 @@ export default function JourneyHub({
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [openPlaceMenuId, setOpenPlaceMenuId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string } | null>(null);
+  const [tripDeleteConfirm, setTripDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const sheetRef     = useRef<HTMLDivElement>(null);
   const dragStartY   = useRef(0);
   const dragStartTop = useRef(0);
@@ -269,8 +270,7 @@ export default function JourneyHub({
                   </button>
                   <button
                     onClick={() => {
-                      onJourneyDelete?.(selectedTrip.id);
-                      closeTripView();
+                      setTripDeleteConfirm({ id: selectedTrip.id, name: selectedTrip.name });
                     }}
                     className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center active:scale-90 transition-transform shrink-0"
                   >
@@ -819,6 +819,59 @@ export default function JourneyHub({
                       const { id } = deleteConfirm;
                       setDeleteConfirm(null);
                       await onPlaceDelete?.(id);
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Trip delete confirmation modal ── */}
+      <AnimatePresence>
+        {tripDeleteConfirm && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-[70] bg-black/40 backdrop-blur-sm"
+              onClick={() => setTripDeleteConfirm(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              className="fixed z-[71] left-4 right-4 bottom-8 bg-white rounded-3xl shadow-2xl shadow-black/25 overflow-hidden"
+              style={{ maxWidth: 400, margin: '0 auto' }}
+            >
+              <div className="p-6">
+                <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center mb-4 mx-auto">
+                  <AlertTriangle className="w-7 h-7 text-red-500" strokeWidth={1.5} />
+                </div>
+                <h3 className="text-slate-900 text-lg font-bold text-center mb-1.5">Delete trip?</h3>
+                <p className="text-slate-400 text-sm text-center leading-relaxed mb-6">
+                  <span className="font-semibold text-slate-600">{tripDeleteConfirm.name}</span> will be permanently removed from your map.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    className="flex-1 py-3.5 rounded-2xl border border-black/12 text-slate-700 text-sm font-semibold active:scale-95 transition-all"
+                    onClick={() => setTripDeleteConfirm(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="flex-1 py-3.5 rounded-2xl bg-red-500 text-white text-sm font-semibold active:scale-95 transition-all shadow-lg shadow-red-500/25"
+                    onClick={() => {
+                      const { id } = tripDeleteConfirm;
+                      setTripDeleteConfirm(null);
+                      onJourneyDelete?.(id);
+                      closeTripView();
                     }}
                   >
                     Delete
