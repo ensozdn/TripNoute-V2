@@ -9,10 +9,8 @@ import JourneyActionMenu from './JourneyActionMenu';
 import JourneyCreationModal from './JourneyCreationModal';
 import TripDetailView from './TripDetailView';
 import TrippoChat from '@/components/common/TrippoChat';
-import { User, Users, Globe, Bell, Plus, TrendingUp, MapPin, MoreHorizontal } from 'lucide-react';
+import { User, Users, Globe, Bell, Plus, TrendingUp, MapPin, MoreHorizontal, Pencil, Trash2, Calendar, AlertTriangle } from 'lucide-react';
 import { deduplicateCountries } from '@/utils/dataNormalizer';
-import TravelTimeline from '@/components/timeline/TravelTimeline';
-
 type NavTab = 'me' | 'activity' | 'explore' | 'notifications';
 type SheetState = 'peek' | 'middle' | 'full';
 
@@ -20,7 +18,7 @@ type SheetState = 'peek' | 'middle' | 'full';
 const SNAP_VISIBLE: Record<SheetState, number> = {
   peek:   0.20,  // handle + nav bar + biraz boşluk — kolayca yakalanabilir
   middle: 0.46,  // yarı açık
-  full:   0.82,  // neredeyse tam ekran
+  full:   0.92,  // neredeyse tam ekran
 };
 
 interface JourneyHubProps {
@@ -74,6 +72,8 @@ export default function JourneyHub({
   const [creationModalOpen, setCreationModalOpen] = useState(false);
   const [editingJourney, setEditingJourney] = useState<Trip | null>(null);
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
+  const [openPlaceMenuId, setOpenPlaceMenuId] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string } | null>(null);
   const sheetRef     = useRef<HTMLDivElement>(null);
   const dragStartY   = useRef(0);
   const dragStartTop = useRef(0);
@@ -255,13 +255,13 @@ export default function JourneyHub({
                     </div>
                     <div className="w-px h-8 bg-black/10" />
                     <div className="flex-1 flex flex-col items-center">
-                      <span className="text-slate-900 text-xl font-bold">0</span>
-                      <span className="text-slate-400 text-xs mt-0.5">Followers</span>
+                      <span className="text-slate-900 text-xl font-bold">{places.length}</span>
+                      <span className="text-slate-400 text-xs mt-0.5">Places</span>
                     </div>
                     <div className="w-px h-8 bg-black/10" />
                     <div className="flex-1 flex flex-col items-end">
-                      <span className="text-slate-900 text-xl font-bold">0</span>
-                      <span className="text-slate-400 text-xs mt-0.5">Following</span>
+                      <span className="text-slate-900 text-xl font-bold">{journeys.length}</span>
+                      <span className="text-slate-400 text-xs mt-0.5">Trips</span>
                     </div>
                   </div>
 
@@ -283,9 +283,9 @@ export default function JourneyHub({
                     </button>
                   </div>
 
-                  {/* Journey cards */}
+                  {/* ── Journey cards ── */}
                   {journeys.length > 0 ? (
-                    <div className="space-y-3 mb-4">
+                    <div className="space-y-3 mb-6">
                       {journeys.map((journey, index) => (
                         <motion.div
                           key={journey.id}
@@ -365,18 +365,116 @@ export default function JourneyHub({
                     </motion.div>
                   )}
 
-                  {/* ── Places Timeline ─────────────────────────────── */}
-                  <div className="mt-2">
-                    <div className="h-px bg-black/6 mb-5" />
-                    <TravelTimeline
-                      places={places}
-                      selectedPlaceId={selectedPlaceId}
-                      onPlaceSelect={onPlaceSelect}
-                      onPlaceDelete={onPlaceDelete}
-                      onPlaceEdit={onPlaceEdit}
-                      onAddPlace={onAddPlace}
-                    />
-                  </div>
+                  {/* ── Place cards ── */}
+                  {places.length > 0 && (
+                    <>
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-slate-800 text-sm font-bold tracking-tight">My Places</h3>
+                        <span className="text-xs text-slate-400 font-medium">{places.length} saved</span>
+                      </div>
+                      <div className="space-y-2.5">
+                        {places.map((place, index) => {
+                          const isMenuOpen = openPlaceMenuId === place.id;
+                          const isSelected = selectedPlaceId === place.id;
+                          const coverPhoto = place.photos?.[0]?.url ?? null;
+                          const visitDate = place.visitDate
+                            ? new Date(
+                                typeof place.visitDate === 'object' && 'seconds' in place.visitDate
+                                  ? (place.visitDate as { seconds: number }).seconds * 1000
+                                  : place.visitDate
+                              ).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                            : null;
+                          return (
+                            <motion.div
+                              key={place.id}
+                              initial={{ opacity: 0, y: 12 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.25, delay: index * 0.04 }}
+                              className={`relative flex items-center gap-3 p-3 rounded-2xl border active:scale-[0.98] transition-transform cursor-pointer ${isSelected ? 'bg-blue-500/6 border-blue-500/20' : 'bg-black/[0.025] border-black/6'}`}
+                              onClick={() => {
+                                if (isMenuOpen) setOpenPlaceMenuId(null);
+                                else onPlaceSelect(place);
+                              }}
+                            >
+                              {/* Cover photo or color swatch */}
+                              <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 bg-blue-50 flex items-center justify-center">
+                                {coverPhoto ? (
+                                  <img src={coverPhoto} alt={place.title} className="w-full h-full object-cover" />
+                                ) : (
+                                  <MapPin className="w-6 h-6 text-blue-400" strokeWidth={1.5} />
+                                )}
+                              </div>
+
+                              {/* Info */}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-slate-900 text-sm font-semibold truncate leading-snug">{place.title}</p>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <MapPin className="w-3 h-3 text-slate-300 shrink-0" />
+                                  <p className="text-slate-400 text-xs truncate">
+                                    {[place.address?.city, place.address?.country].filter(Boolean).join(', ') || 'Location saved'}
+                                  </p>
+                                </div>
+                                {visitDate && (
+                                  <div className="flex items-center gap-1.5 mt-0.5">
+                                    <Calendar className="w-3 h-3 text-slate-300 shrink-0" />
+                                    <p className="text-slate-400 text-xs">{visitDate}</p>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Menu button */}
+                              <button
+                                className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-black/8 active:scale-90 transition-all shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenPlaceMenuId(isMenuOpen ? null : place.id);
+                                }}
+                              >
+                                <MoreHorizontal className="w-4 h-4 text-slate-400" />
+                              </button>
+
+                              {/* Dropdown menu */}
+                              <AnimatePresence>
+                                {isMenuOpen && (
+                                  <motion.div
+                                    initial={{ opacity: 0, scale: 0.92, y: -4 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.92, y: -4 }}
+                                    transition={{ duration: 0.15 }}
+                                    className="absolute right-2 top-14 z-50 bg-white rounded-2xl shadow-xl shadow-black/15 border border-black/8 overflow-hidden min-w-[160px]"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <button
+                                      className="w-full flex items-center gap-3 px-4 py-3 text-slate-700 text-sm font-medium hover:bg-black/5 active:bg-black/8 transition-colors"
+                                      onClick={() => {
+                                        setOpenPlaceMenuId(null);
+                                        onPlaceEdit?.(place);
+                                      }}
+                                    >
+                                      <Pencil className="w-4 h-4 text-slate-400" />
+                                      Edit
+                                    </button>
+                                    <div className="h-px bg-black/6 mx-3" />
+                                    <button
+                                      className="w-full flex items-center gap-3 px-4 py-3 text-red-500 text-sm font-medium hover:bg-red-50 active:bg-red-100 transition-colors"
+                                      onClick={() => {
+                                        setOpenPlaceMenuId(null);
+                                        setDeleteConfirm({ id: place.id, title: place.title });
+                                      }}
+                                    >
+                                      <Trash2 className="w-4 h-4 text-red-400" />
+                                      Delete
+                                    </button>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+
                 </div>
               )}
               {activeNav === 'activity' && (
@@ -471,6 +569,60 @@ export default function JourneyHub({
           onJourneyCreated?.(trip);
         }}
       />
+
+      {/* ── Delete confirmation modal ── */}
+      <AnimatePresence>
+        {deleteConfirm && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-[70] bg-black/40 backdrop-blur-sm"
+              onClick={() => setDeleteConfirm(null)}
+            />
+            {/* Modal card */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              className="fixed z-[71] left-4 right-4 bottom-8 bg-white rounded-3xl shadow-2xl shadow-black/25 overflow-hidden"
+              style={{ maxWidth: 400, margin: '0 auto' }}
+            >
+              <div className="p-6">
+                <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center mb-4 mx-auto">
+                  <AlertTriangle className="w-7 h-7 text-red-500" strokeWidth={1.5} />
+                </div>
+                <h3 className="text-slate-900 text-lg font-bold text-center mb-1.5">Delete place?</h3>
+                <p className="text-slate-400 text-sm text-center leading-relaxed mb-6">
+                  <span className="font-semibold text-slate-600">{deleteConfirm.title}</span> will be permanently removed from your map.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    className="flex-1 py-3.5 rounded-2xl border border-black/12 text-slate-700 text-sm font-semibold active:scale-95 transition-all"
+                    onClick={() => setDeleteConfirm(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="flex-1 py-3.5 rounded-2xl bg-red-500 text-white text-sm font-semibold active:scale-95 transition-all shadow-lg shadow-red-500/25"
+                    onClick={async () => {
+                      const { id } = deleteConfirm;
+                      setDeleteConfirm(null);
+                      await onPlaceDelete?.(id);
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Journey Creator — waypoint editor (editing existing trips) */}
       {onRequestMapPin && (

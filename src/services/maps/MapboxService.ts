@@ -283,109 +283,104 @@ class MapboxService implements IMapboxService {
       throw new Error('Map not initialized');
     }
 
-    const wrapper = document.createElement('div');
-    wrapper.className = 'marker-wrapper';
-    wrapper.style.cursor = 'pointer';
+    // ── Build the marker element ──────────────────────────────────────
+    // We use a single element (no nested wrapper/inner) so Mapbox can
+    // measure its exact bounding box for anchor calculation.
+    const el = document.createElement('div');
+    el.className = 'marker-el';
+    el.style.cursor = 'pointer';
+    el.style.userSelect = 'none';
+    el.style.webkitUserSelect = 'none';
 
-    const inner = document.createElement('div');
-    inner.className = 'marker-inner';
-    inner.style.transition = 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+    const isPhotoMarker = !!(marker.icon?.startsWith('http') || marker.icon?.startsWith('/'));
 
-    if (marker.icon && (marker.icon.startsWith('http') || marker.icon.startsWith('/'))) {
-
-      wrapper.style.width = '56px';
-      wrapper.style.height = '56px';
-
-      inner.style.width = '100%';
-      inner.style.height = '100%';
-      inner.style.backgroundImage = `url(${marker.icon})`;
-      inner.style.backgroundSize = 'cover';
-      inner.style.backgroundPosition = 'center';
-      inner.style.borderRadius = '50%';
-      inner.style.border = '4px solid white';
-      inner.style.boxShadow = '0 6px 16px -4px rgba(0, 0, 0, 0.4), 0 4px 8px -2px rgba(0, 0, 0, 0.24)';
+    if (isPhotoMarker) {
+      // ── Circular photo marker ──
+      el.style.width  = '48px';
+      el.style.height = '48px';
+      el.style.borderRadius = '50%';
+      el.style.backgroundImage    = `url(${marker.icon})`;
+      el.style.backgroundSize     = 'cover';
+      el.style.backgroundPosition = 'center';
+      el.style.border     = '3px solid white';
+      el.style.boxShadow  = '0 4px 12px rgba(0,0,0,0.35)';
+      el.style.transition = 'transform 0.18s ease';
+      el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.12)'; });
+      el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)'; });
     } else {
-
-      wrapper.style.width = '32px';
-      wrapper.style.height = '40px';
-
-      inner.style.width = '100%';
-      inner.style.height = '100%';
-      inner.innerHTML = `
-        <svg viewBox="0 0 32 40" width="32" height="40" xmlns="http://www.w3.org/2000/svg">
-          <path d="M16 0C7.163 0 0 7.163 0 16c0 10.438 14.222 22.916 15.314 23.862a1 1 0 0 0 1.372 0C17.778 38.916 32 26.438 32 16 32 7.163 24.837 0 16 0z"
-            fill="${marker.color || '#3b82f6'}" stroke="white" stroke-width="2.5"/>
-          <circle cx="16" cy="16" r="6" fill="white"/>
-        </svg>
-      `;
+      // ── SVG teardrop pin ──
+      // viewBox="0 0 28 36": tip is EXACTLY at SVG point (14, 36) = bottom-center
+      // With anchor:'bottom', Mapbox pins the bottom-center of el to the coordinate.
+      el.style.width  = '28px';
+      el.style.height = '36px';
+      el.style.lineHeight = '0';    // kill descender gap
+      el.style.fontSize   = '0';    // kill inline text gap
+      el.style.overflow   = 'visible';
+      el.style.transition = 'transform 0.18s ease';
+      el.style.transformOrigin = '50% 100%'; // scale from bottom tip — no positional shift
+      el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.2)'; });
+      el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)'; });
+      el.innerHTML = `<svg viewBox="0 0 28 36" width="28" height="36" xmlns="http://www.w3.org/2000/svg" style="display:block">
+        <path d="M14 0C6.268 0 0 6.268 0 14C0 21.732 14 36 14 36C14 36 28 21.732 28 14C28 6.268 21.732 0 14 0Z" fill="${marker.color || '#3b82f6'}"/>
+        <path d="M14 1.5C7.1 1.5 1.5 7.1 1.5 14C1.5 20.9 14 34 14 34C14 34 26.5 20.9 26.5 14C26.5 7.1 20.9 1.5 14 1.5Z" fill="none" stroke="white" stroke-width="2"/>
+        <circle cx="14" cy="13" r="5" fill="white" opacity="0.9"/>
+      </svg>`;
     }
 
-    wrapper.appendChild(inner);
-
-    wrapper.onmouseenter = () => inner.style.transform = 'scale(1.2)';
-    wrapper.onmouseleave = () => inner.style.transform = 'scale(1)';
-
-    // Photo marker: center anchor; SVG pin marker: bottom anchor (tip of teardrop at bottom-center)
-    const isPhotoMarker = !!(marker.icon?.startsWith('http') || marker.icon?.startsWith('/'));
+    // ── Anchor ────────────────────────────────────────────────────────
+    // photo → center of circle sits on coordinate
+    // pin   → bottom-center (the tip) sits on coordinate
     const anchor: mapboxgl.Anchor = isPhotoMarker ? 'center' : 'bottom';
-    const offset: [number, number] = [0, 0];
 
-    const mapboxMarker = new mapboxgl.Marker({ element: wrapper, anchor, offset })
+    const mapboxMarker = new mapboxgl.Marker({ element: el, anchor })
       .setLngLat([marker.position.lng, marker.position.lat]);
 
+    // ── Hover tooltip (title) ─────────────────────────────────────────
     if (marker.title) {
-      // Label floats above the marker element — no mouse/touch events needed, works on mobile
-      const label = document.createElement('div');
-      label.style.cssText = `
-        position: absolute;
-        bottom: calc(100% + 10px);
-        left: 50%;
-        transform: translateX(-50%);
-        white-space: nowrap;
-        pointer-events: none;
-        padding: 8px 12px;
-        background: rgba(255, 255, 255, 0.96);
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(0,0,0,0.06);
-        border-radius: 10px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.15), 0 1px 4px rgba(0,0,0,0.08);
-        font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
-        opacity: 0;
-        transition: opacity 0.15s ease;
-        z-index: 10;
-      `;
-      label.innerHTML = `
-        <div style="font-weight:600;font-size:12px;color:#1e293b;line-height:1.3;">${marker.title}</div>
-        ${marker.description ? `<div style="font-size:11px;color:#64748b;margin-top:2px;">${marker.description}</div>` : ''}
-      `;
-      wrapper.style.position = 'relative';
-      wrapper.style.overflow = 'visible';
-      wrapper.appendChild(label);
+      const tip = document.createElement('div');
+      tip.style.cssText = [
+        'position:absolute',
+        'bottom:calc(100% + 6px)',
+        'left:50%',
+        'transform:translateX(-50%)',
+        'white-space:nowrap',
+        'pointer-events:none',
+        'padding:5px 9px',
+        'background:rgba(255,255,255,0.96)',
+        'backdrop-filter:blur(10px)',
+        'border:1px solid rgba(0,0,0,0.07)',
+        'border-radius:8px',
+        'box-shadow:0 3px 12px rgba(0,0,0,0.14)',
+        'font-family:ui-sans-serif,system-ui,-apple-system,sans-serif',
+        'font-size:12px',
+        'font-weight:600',
+        'color:#1e293b',
+        'line-height:1.3',
+        'opacity:0',
+        'transition:opacity 0.12s ease',
+        'z-index:10',
+      ].join(';');
+      tip.textContent = marker.title;
+      el.appendChild(tip);
 
-      // Desktop: hover
-      wrapper.addEventListener('mouseenter', () => { label.style.opacity = '1'; });
-      wrapper.addEventListener('mouseleave', () => { label.style.opacity = '0'; });
-
-      // Mobile: tap toggles label
-      let labelVisible = false;
-      wrapper.addEventListener('touchstart', (e) => {
+      el.addEventListener('mouseenter', () => { tip.style.opacity = '1'; });
+      el.addEventListener('mouseleave', () => { tip.style.opacity = '0'; });
+      let tipOn = false;
+      el.addEventListener('touchstart', (e) => {
         e.stopPropagation();
-        labelVisible = !labelVisible;
-        label.style.opacity = labelVisible ? '1' : '0';
+        tipOn = !tipOn;
+        tip.style.opacity = tipOn ? '1' : '0';
       }, { passive: true });
     }
 
-    wrapper.addEventListener('click', (e) => {
+    // ── Click ─────────────────────────────────────────────────────────
+    el.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (this.markerClickCallback) {
-        this.markerClickCallback(marker.id);
-      }
+      if (this.markerClickCallback) this.markerClickCallback(marker.id);
     });
 
     mapboxMarker.addTo(this.map);
-
     this.markers.set(marker.id, mapboxMarker);
-
     return mapboxMarker;
   }
   removeMarker(markerId: string): void {
