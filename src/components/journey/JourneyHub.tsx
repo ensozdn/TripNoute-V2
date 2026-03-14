@@ -7,9 +7,8 @@ import { Trip } from '@/types/trip';
 import JourneyCreator from './creator/JourneyCreator';
 import JourneyActionMenu from './JourneyActionMenu';
 import JourneyCreationModal from './JourneyCreationModal';
-import TripDetailView from './TripDetailView';
 import TrippoChat from '@/components/common/TrippoChat';
-import { User, Users, Globe, Bell, Plus, TrendingUp, MapPin, MoreHorizontal, Pencil, Trash2, AlertTriangle } from 'lucide-react';
+import { User, Users, Globe, Bell, Plus, TrendingUp, MapPin, MoreHorizontal, Pencil, Trash2, AlertTriangle, ChevronLeft } from 'lucide-react';
 import { deduplicateCountries } from '@/utils/dataNormalizer';
 type NavTab = 'me' | 'activity' | 'explore' | 'notifications';
 type SheetState = 'peek' | 'middle' | 'full';
@@ -30,6 +29,7 @@ interface JourneyHubProps {
   onPlaceEdit?: (place: Place) => void;
   onJourneyCreated?: (journey: Trip) => void;
   onJourneySelect?: (journey: Trip) => void;
+  onJourneyBack?: () => void;
   onJourneyDelete?: (journeyId: string) => Promise<void>;
   onJourneyUpdated?: (journey: Trip) => void;
   onRequestMapPin?: (onPinDropped: (name: string, lat: number, lng: number) => void) => void;
@@ -58,6 +58,8 @@ export default function JourneyHub({
   onPlaceEdit,
   onJourneyCreated,
   onJourneyUpdated,
+  onJourneySelect,
+  onJourneyBack,
   onJourneyDelete,
   onRequestMapPin,
   mapPinMode = false,
@@ -68,6 +70,7 @@ export default function JourneyHub({
 }: JourneyHubProps) {
   const [activeNav, setActiveNav] = useState<NavTab>('me');
   const [sheetState, setSheetState] = useState<SheetState>('middle');
+  const [prevSheetState, setPrevSheetState] = useState<SheetState>('middle');
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [creationModalOpen, setCreationModalOpen] = useState(false);
   const [editingJourney, setEditingJourney] = useState<Trip | null>(null);
@@ -93,6 +96,15 @@ export default function JourneyHub({
     el.style.transition = animate ? 'transform 0.42s cubic-bezier(0.32,0.72,0,1)' : 'none';
     el.style.transform  = `translateY(${Math.round(px)}px)`;
   };
+
+  // Trip seçilince sheet peek'e iner (harita görünsün), kapanınca eski state'e döner
+  useEffect(() => {
+    if (selectedTrip) {
+      setPrevSheetState(stateRef.current);
+      setSheetState('peek');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTrip]);
 
   // State değişince sheet'i doğru px konumuna götür (CSS %'sini bypass et)
   useEffect(() => {
@@ -178,6 +190,12 @@ export default function JourneyHub({
     return countryMap.size;
   }, [places]);
 
+  const closeTripView = () => {
+    setSelectedTrip(null);
+    setSheetState(prevSheetState);
+    onJourneyBack?.();
+  };
+
   return (
     <>
       {/* Bottom Sheet — dış wrapper transparan, rounded köşeler sadece inner white div'de */}
@@ -219,6 +237,113 @@ export default function JourneyHub({
           style={{ touchAction: 'pan-y pinch-zoom' }}
         >
           <AnimatePresence mode="wait">
+            {selectedTrip ? (
+              /* ── Trip Detail View (inline, harita görünür kalır) ── */
+              <motion.div
+                key="trip-detail"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0, transition: { duration: 0.22 } }}
+                exit={{ opacity: 0, y: 16, transition: { duration: 0.18 } }}
+                className="px-4 pb-32 pt-3"
+              >
+                {/* Header */}
+                <div className="flex items-center gap-3 mb-4">
+                  <button
+                    onClick={closeTripView}
+                    className="w-9 h-9 rounded-xl bg-black/6 flex items-center justify-center active:scale-90 transition-transform shrink-0"
+                  >
+                    <ChevronLeft className="w-5 h-5 text-slate-700" />
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-slate-900 text-lg font-bold truncate">{selectedTrip.name}</h2>
+                    <p className="text-slate-400 text-xs">{selectedTrip.steps.length} stops</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      onJourneyDelete?.(selectedTrip.id);
+                      closeTripView();
+                    }}
+                    className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center active:scale-90 transition-transform shrink-0"
+                  >
+                    <Trash2 className="w-4 h-4 text-red-500" />
+                  </button>
+                </div>
+
+                {/* Trip color banner */}
+                <div
+                  className="w-full rounded-2xl mb-4 flex items-center justify-center"
+                  style={{
+                    background: `linear-gradient(135deg, ${selectedTrip.color ?? '#1e3a5f'}dd, ${selectedTrip.color ?? '#1e3a5f'}88)`,
+                    height: 72,
+                  }}
+                >
+                  <p className="text-white text-2xl font-bold opacity-80">{selectedTrip.name}</p>
+                </div>
+
+                {/* Stats row */}
+                <div className="flex gap-2 mb-5">
+                  <div className="flex-1 bg-black/[0.03] rounded-2xl px-3 py-2.5 text-center">
+                    <p className="text-slate-900 text-lg font-bold">{selectedTrip.steps.length}</p>
+                    <p className="text-slate-400 text-[10px] font-semibold uppercase tracking-wide mt-0.5">Stops</p>
+                  </div>
+                  {selectedTrip.steps?.[0]?.timestamp && (
+                    <div className="flex-1 bg-black/[0.03] rounded-2xl px-3 py-2.5 text-center">
+                      <p className="text-slate-900 text-lg font-bold">
+                        {new Date(selectedTrip.steps[0].timestamp).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                      </p>
+                      <p className="text-slate-400 text-[10px] font-semibold uppercase tracking-wide mt-0.5">Started</p>
+                    </div>
+                  )}
+                  {selectedTrip.steps?.length >= 2 &&
+                    selectedTrip.steps[0]?.timestamp &&
+                    selectedTrip.steps[selectedTrip.steps.length - 1]?.timestamp && (
+                    <div className="flex-1 bg-black/[0.03] rounded-2xl px-3 py-2.5 text-center">
+                      <p className="text-slate-900 text-lg font-bold">
+                        {Math.max(1, Math.round(
+                          (selectedTrip.steps[selectedTrip.steps.length - 1].timestamp - selectedTrip.steps[0].timestamp)
+                          / (1000 * 60 * 60 * 24)
+                        ))}
+                      </p>
+                      <p className="text-slate-400 text-[10px] font-semibold uppercase tracking-wide mt-0.5">Days</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Steps list */}
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-1 h-4 rounded-full bg-blue-500" />
+                  <h3 className="text-slate-900 text-sm font-bold">Route</h3>
+                </div>
+                <div className="space-y-2">
+                  {selectedTrip.steps.map((step, i) => (
+                    <div
+                      key={step.id ?? i}
+                      className="flex items-center gap-3 bg-black/[0.025] rounded-2xl px-4 py-3"
+                    >
+                      <div
+                        className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-bold"
+                        style={{ backgroundColor: selectedTrip.color ?? '#1e3a5f' }}
+                      >
+                        {i + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-slate-900 text-sm font-semibold truncate">{step.name}</p>
+                        {step.timestamp && (
+                          <p className="text-slate-400 text-xs mt-0.5">
+                            {new Date(step.timestamp).toLocaleDateString('en-US', {
+                              weekday: 'short', day: 'numeric', month: 'short'
+                            })}
+                          </p>
+                        )}
+                      </div>
+                      {i < selectedTrip.steps.length - 1 && (
+                        <div className="text-slate-300 text-xs">→</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            ) : (
             <motion.div
               key={activeNav}
               initial={{ opacity: 0, y: 8 }}
@@ -294,7 +419,10 @@ export default function JourneyHub({
                           transition={{ duration: 0.3, delay: index * 0.06 }}
                           className="relative w-full rounded-2xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform"
                           style={{ minHeight: 180 }}
-                          onClick={() => setSelectedTrip(journey)}
+                          onClick={() => {
+                            setSelectedTrip(journey);
+                            onJourneySelect?.(journey);
+                          }}
                         >
                           <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${journey.color ?? '#1e3a5f'}cc, ${journey.color ?? '#1e3a5f'}55)`, backgroundColor: '#1e3a5f' }} />
                           <div className="absolute inset-0 bg-black/30" />
@@ -545,6 +673,7 @@ export default function JourneyHub({
                 </div>
               )}
             </motion.div>
+            )} {/* end selectedTrip ternary */}
           </AnimatePresence>
         </div>
         </div>{/* /inner white surface */}
@@ -707,27 +836,6 @@ export default function JourneyHub({
           }
         />
       )}
-
-      {/* Trip Detail View — full screen */}
-      <AnimatePresence>
-        {selectedTrip && (
-          <TripDetailView
-            trip={selectedTrip}
-            userName={userName ?? ''}
-            userPhoto={userPhoto ?? undefined}
-            onBack={() => setSelectedTrip(null)}
-            onEdit={(trip) => {
-              setSelectedTrip(null);
-              setEditingJourney(trip);
-              setCreatorOpen(true);
-            }}
-            onDelete={(tripId) => {
-              onJourneyDelete?.(tripId);
-              setSelectedTrip(null);
-            }}
-          />
-        )}
-      </AnimatePresence>
     </>
   );
 }

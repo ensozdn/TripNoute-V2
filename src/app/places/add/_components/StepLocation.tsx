@@ -153,7 +153,6 @@ export default function StepLocation({
       try {
         const center = mapRef.current?.getCenter();
 
-        // ── Photon (Komoot/OSM) — üniversite, kafe, restoran, landmark, her şey
         const photonParams = new URLSearchParams({
           q: value,
           limit: '8',

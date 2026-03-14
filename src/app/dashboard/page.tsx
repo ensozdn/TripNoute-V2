@@ -81,14 +81,7 @@ export default function DashboardPage() {
     return () => { mapboxService.stopRotation(); };
   }, []);
 
-  const [mapReady, setMapReady] = useState(false);
-
-  // Ask the MapboxService to notify us when the style has fully loaded.
-  // This is reliable regardless of whether Firebase data or the map loads first.
-  useEffect(() => {
-    const mapboxService = getMapboxService();
-    mapboxService.onMapReady(() => setMapReady(true));
-  }, []);
+  // No-op: map ready callback no longer needed since we don't auto-render journeys.
 
   useEffect(() => {
     const handleClickOutside = () => {
@@ -98,18 +91,8 @@ export default function DashboardPage() {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [openMenuId]);
 
-  useEffect(() => {
-    // Both mapReady and journeys must be set before we can render anything.
-    if (!mapReady || journeys.length === 0) return;
-
-
-    const mapboxService = getMapboxService();
-    // renderAllJourneys: clears everything first, then renders each journey
-    // through the internal queue — guaranteed sequential, no race conditions.
-    mapboxService.renderAllJourneys(journeys).catch((err) => {
-      console.error('Error rendering journeys:', err);
-    });
-  }, [mapReady, journeys]);
+  // Intentionally NOT rendering all journeys on load.
+  // Trips are only shown on the map when the user explicitly taps a trip card.
 
   const handleLogout = async () => {
     await logout();
@@ -156,9 +139,22 @@ export default function DashboardPage() {
 
   const handleJourneySelect = useCallback((journey: Trip) => {
     const mapboxService = getMapboxService();
-    mapboxService.focusOnRoute(
-      journey.steps.map((s) => ({ location: { lat: s.coordinates[1], lng: s.coordinates[0] } })),
-    );
+    const stepLocations = journey.steps.map((s) => ({
+      location: { lat: s.coordinates[1], lng: s.coordinates[0] },
+    }));
+
+    // Clear map, fly to route immediately (don't wait for render to complete),
+    // then render the full journey in the background.
+    mapboxService.clearAllJourneys();
+
+    // Small delay so the sheet peek animation settles before flyTo starts.
+    setTimeout(() => {
+      mapboxService.focusOnRoute(stepLocations);
+    }, 350);
+
+    mapboxService.renderJourney(journey).catch((err) => {
+      console.error('Error rendering journey:', err);
+    });
   }, []);
 
   const handleJourneyDelete = useCallback(async (journeyId: string) => {
@@ -170,6 +166,12 @@ export default function DashboardPage() {
     } catch (err) {
       console.error('Failed to delete journey:', err);
     }
+  }, []);
+
+  const handleJourneyBack = useCallback(() => {
+    // User closed the trip detail view — clear the map back to global state.
+    const mapboxService = getMapboxService();
+    mapboxService.clearAllJourneys();
   }, []);
 
   // Called by JourneyCreator when the user taps "Tap on Map".
@@ -340,6 +342,7 @@ export default function DashboardPage() {
           onPlaceEdit={handlePlaceEdit}
           onJourneyCreated={handleJourneyCreated}
           onJourneySelect={handleJourneySelect}
+          onJourneyBack={handleJourneyBack}
           onJourneyDelete={handleJourneyDelete}
           onJourneyUpdated={handleJourneyUpdated}
           onRequestMapPin={handleRequestMapPin}
