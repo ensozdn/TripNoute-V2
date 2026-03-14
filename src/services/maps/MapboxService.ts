@@ -102,7 +102,7 @@ class MapboxService implements IMapboxService {
         fadeDuration: 0,                // tile geçişleri anında — blend animation yok
         renderWorldCopies: false,       // globe modunda kopya dünyalar gereksiz
         localIdeographFontFamily: "'Noto Sans', 'Noto Sans CJK SC', sans-serif", // font fetch engeller
-        maxTileCacheSize: isMobile ? 20 : 50, // satellite tile cache'i sınırla
+        maxTileCacheSize: isMobile ? 50 : 150, // yeterli cache — az tile re-fetch
       });
 
       if (isMobile) {
@@ -258,32 +258,34 @@ class MapboxService implements IMapboxService {
 
     this.isRotating = true;
 
-    // Mapbox's recommended globe rotation pattern:
-    // Hook into the map's own render loop via requestAnimationFrame,
-    // nudge the center longitude slightly each frame.
-    // This is the same technique used in Mapbox's official globe spin example.
-    const DEGREES_PER_MS = 360 / 90_000; // full revolution in 90 seconds
+    // Attach directly to Mapbox's own render event — fires exactly once per GL frame,
+    // perfectly in sync with the GPU. No separate rAF loop competing with the map.
+    // This is the pattern from Mapbox's official "globe spin" example.
+    const MS_PER_REVOLUTION = 90_000; // 90s full spin
+    let lastTime = performance.now();
 
-    let lastTime: number | null = null;
-
-    const frame = (now: number) => {
+    const onRender = () => {
       if (!this.map || !this.isRotating) return;
 
-      if (lastTime !== null) {
-        const delta = now - lastTime;
-        const center = this.map.getCenter();
-        // Only spin when not being dragged / during user interactions
-        if (!this.map.isMoving()) {
-          center.lng += DEGREES_PER_MS * delta;
-          this.map.setCenter(center);
-        }
-      }
-
+      const now = performance.now();
+      const delta = now - lastTime;
       lastTime = now;
-      this.rotationAnimationId = requestAnimationFrame(frame);
+
+      // Only move when the map is idle — never fight a user gesture
+      if (this.map.isMoving()) return;
+
+      const center = this.map.getCenter();
+      center.lng += (360 / MS_PER_REVOLUTION) * delta;
+      // jumpTo with no duration = instant, no easing overhead
+      this.map.jumpTo({ center });
     };
 
-    this.rotationAnimationId = requestAnimationFrame(frame);
+    this.map.on('render', onRender);
+    // Store handler ref so we can remove it on stopRotation
+    (this as any)._onRenderHandler = onRender;
+
+    // Trigger the first render to kick off the loop
+    this.map.triggerRepaint();
   }
   stopRotation(): void {
     this.isRotating = false;
@@ -291,7 +293,11 @@ class MapboxService implements IMapboxService {
       cancelAnimationFrame(this.rotationAnimationId);
       this.rotationAnimationId = null;
     }
-    // NOTE: intentionally NOT calling map.stop() — that would cancel user gestures too
+    // Remove the render listener cleanly
+    if (this.map && (this as any)._onRenderHandler) {
+      this.map.off('render', (this as any)._onRenderHandler);
+      (this as any)._onRenderHandler = null;
+    }
   }
   isGlobeRotating(): boolean {
     return this.isRotating;

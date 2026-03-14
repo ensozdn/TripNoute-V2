@@ -61,26 +61,6 @@ export default function DashboardPage() {
     loadData();
   }, [user]);
 
-  useEffect(() => {
-    const mapboxService = getMapboxService();
-    const map = mapboxService.getMap();
-    if (!map) return;
-
-    const startRotation = () => {
-      if (map.getZoom() < 4) {
-        setTimeout(() => { mapboxService.startSlowRotation(); }, 1000);
-      }
-    };
-
-    if (map.isStyleLoaded()) {
-      startRotation();
-    } else {
-      map.once('style.load', startRotation);
-    }
-
-    return () => { mapboxService.stopRotation(); };
-  }, []);
-
   // No-op: map ready callback no longer needed since we don't auto-render journeys.
 
   useEffect(() => {
