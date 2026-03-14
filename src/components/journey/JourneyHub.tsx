@@ -260,6 +260,15 @@ export default function JourneyHub({
                   </div>
                   <button
                     onClick={() => {
+                      setEditingJourney(selectedTrip);
+                      setCreatorOpen(true);
+                    }}
+                    className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center active:scale-90 transition-transform shrink-0"
+                  >
+                    <Pencil className="w-4 h-4 text-blue-500" />
+                  </button>
+                  <button
+                    onClick={() => {
                       onJourneyDelete?.(selectedTrip.id);
                       closeTripView();
                     }}
@@ -310,10 +319,25 @@ export default function JourneyHub({
                 </div>
 
                 {/* Steps list */}
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-1 h-4 rounded-full bg-blue-500" />
-                  <h3 className="text-slate-900 text-sm font-bold">Route</h3>
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1 h-4 rounded-full bg-blue-500" />
+                    <h3 className="text-slate-900 text-sm font-bold">Route</h3>
+                  </div>
                 </div>
+                {selectedTrip.steps.length === 0 ? (
+                  <button
+                    onClick={() => {
+                      setEditingJourney(selectedTrip);
+                      setCreatorOpen(true);
+                    }}
+                    className="w-full flex flex-col items-center py-8 px-4 rounded-2xl border-2 border-dashed border-black/10 hover:border-blue-400/50 hover:bg-blue-50/40 transition-colors text-center"
+                  >
+                    <MapPin className="w-8 h-8 text-blue-300 mb-2" strokeWidth={1.5} />
+                    <p className="text-slate-600 text-sm font-semibold mb-0.5">No route yet</p>
+                    <p className="text-slate-400 text-xs">Tap to add waypoints and build your route</p>
+                  </button>
+                ) : (
                 <div className="space-y-2">
                   {selectedTrip.steps.map((step, i) => (
                     <div
@@ -342,6 +366,7 @@ export default function JourneyHub({
                     </div>
                   ))}
                 </div>
+                )}
               </motion.div>
             ) : (
             <motion.div
@@ -745,6 +770,9 @@ export default function JourneyHub({
         onCreated={(trip) => {
           setCreationModalOpen(false);
           onJourneyCreated?.(trip);
+          // Immediately open waypoint editor so user can add route stops
+          setEditingJourney(trip);
+          setCreatorOpen(true);
         }}
       />
 
@@ -820,6 +848,11 @@ export default function JourneyHub({
           onUpdated={(journey) => {
             setCreatorOpen(false);
             setEditingJourney(null);
+            // Update the selected trip so detail view shows new route immediately
+            if (selectedTrip?.id === journey.id) {
+              setSelectedTrip(journey);
+              onJourneySelect?.(journey);
+            }
             onJourneyUpdated?.(journey);
           }}
           onRequestMapPin={onRequestMapPin}

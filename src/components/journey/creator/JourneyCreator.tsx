@@ -58,7 +58,8 @@ export default function JourneyCreator({
           placeId: s.placeId,
         })),
       );
-      setWizardStep('meta');
+      // If trip has no steps yet (just created), skip straight to waypoints step
+      setWizardStep(editingJourney.steps.length === 0 ? 'waypoints' : 'meta');
     }
   }, [isOpen, editingJourney]);
 
@@ -99,6 +100,7 @@ export default function JourneyCreator({
         const updated = await journeyDatabaseService.updateJourney({
           id: editingJourney.id,
           name: name.trim(),
+          color: editingJourney.color,
           steps: steps.map((s, i) => {
             const step: any = {
               id: s._key.startsWith('edit-') || s._key.startsWith('map-') || s._key.startsWith('place-')
