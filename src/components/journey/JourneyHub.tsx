@@ -9,7 +9,7 @@ import JourneyActionMenu from './JourneyActionMenu';
 import JourneyCreationModal from './JourneyCreationModal';
 import TripDetailView from './TripDetailView';
 import TrippoChat from '@/components/common/TrippoChat';
-import { User, Users, Globe, Bell, Plus, TrendingUp, MapPin, MoreHorizontal, Pencil, Trash2, Calendar, AlertTriangle } from 'lucide-react';
+import { User, Users, Globe, Bell, Plus, TrendingUp, MapPin, MoreHorizontal, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import { deduplicateCountries } from '@/utils/dataNormalizer';
 type NavTab = 'me' | 'activity' | 'explore' | 'notifications';
 type SheetState = 'peek' | 'middle' | 'full';
@@ -368,11 +368,18 @@ export default function JourneyHub({
                   {/* ── Place cards ── */}
                   {places.length > 0 && (
                     <>
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-slate-800 text-sm font-bold tracking-tight">My Places</h3>
-                        <span className="text-xs text-slate-400 font-medium">{places.length} saved</span>
+                      {/* Section header */}
+                      <div className="flex items-center justify-between mb-4 mt-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-1 h-4 rounded-full bg-blue-500" />
+                          <h3 className="text-slate-900 text-sm font-bold tracking-tight">My Places</h3>
+                        </div>
+                        <span className="text-[11px] text-blue-500 font-semibold bg-blue-50 px-2.5 py-1 rounded-full">
+                          {places.length} saved
+                        </span>
                       </div>
-                      <div className="space-y-2.5">
+
+                      <div className="space-y-3">
                         {places.map((place, index) => {
                           const isMenuOpen = openPlaceMenuId === place.id;
                           const isSelected = selectedPlaceId === place.id;
@@ -384,56 +391,98 @@ export default function JourneyHub({
                                   : place.visitDate
                               ).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
                             : null;
+
+                          // Pick a color accent per index for no-photo cards
+                          const accents = [
+                            { bg: 'bg-blue-500',   light: 'bg-blue-50'   },
+                            { bg: 'bg-violet-500', light: 'bg-violet-50' },
+                            { bg: 'bg-emerald-500',light: 'bg-emerald-50'},
+                            { bg: 'bg-amber-500',  light: 'bg-amber-50'  },
+                            { bg: 'bg-rose-500',   light: 'bg-rose-50'   },
+                            { bg: 'bg-cyan-500',   light: 'bg-cyan-50'   },
+                          ];
+                          const accent = accents[index % accents.length];
+
                           return (
+                            /* Outer wrapper: overflow-visible so dropdown escapes the card */
                             <motion.div
                               key={place.id}
-                              initial={{ opacity: 0, y: 12 }}
+                              initial={{ opacity: 0, y: 14 }}
                               animate={{ opacity: 1, y: 0 }}
-                              transition={{ duration: 0.25, delay: index * 0.04 }}
-                              className={`relative flex items-center gap-3 p-3 rounded-2xl border active:scale-[0.98] transition-transform cursor-pointer ${isSelected ? 'bg-blue-500/6 border-blue-500/20' : 'bg-black/[0.025] border-black/6'}`}
-                              onClick={() => {
-                                if (isMenuOpen) setOpenPlaceMenuId(null);
-                                else onPlaceSelect(place);
-                              }}
+                              transition={{ duration: 0.28, delay: index * 0.05 }}
+                              className="relative"
                             >
-                              {/* Cover photo or color swatch */}
-                              <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 bg-blue-50 flex items-center justify-center">
-                                {coverPhoto ? (
-                                  <img src={coverPhoto} alt={place.title} className="w-full h-full object-cover" />
-                                ) : (
-                                  <MapPin className="w-6 h-6 text-blue-400" strokeWidth={1.5} />
-                                )}
-                              </div>
-
-                              {/* Info */}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-slate-900 text-sm font-semibold truncate leading-snug">{place.title}</p>
-                                <div className="flex items-center gap-1.5 mt-0.5">
-                                  <MapPin className="w-3 h-3 text-slate-300 shrink-0" />
-                                  <p className="text-slate-400 text-xs truncate">
-                                    {[place.address?.city, place.address?.country].filter(Boolean).join(', ') || 'Location saved'}
-                                  </p>
-                                </div>
-                                {visitDate && (
-                                  <div className="flex items-center gap-1.5 mt-0.5">
-                                    <Calendar className="w-3 h-3 text-slate-300 shrink-0" />
-                                    <p className="text-slate-400 text-xs">{visitDate}</p>
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Menu button */}
-                              <button
-                                className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-black/8 active:scale-90 transition-all shrink-0"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setOpenPlaceMenuId(isMenuOpen ? null : place.id);
+                              {/* Card itself: overflow-hidden for rounded corners + photo crop */}
+                              <div
+                                className={`relative rounded-2xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform
+                                  ${isSelected
+                                    ? 'ring-2 ring-blue-500 shadow-lg shadow-blue-500/15'
+                                    : 'shadow-sm shadow-black/8'
+                                  }`}
+                                onClick={() => {
+                                  if (isMenuOpen) setOpenPlaceMenuId(null);
+                                  else onPlaceSelect(place);
                                 }}
                               >
-                                <MoreHorizontal className="w-4 h-4 text-slate-400" />
-                              </button>
+                                {/* Card body */}
+                                <div className="flex gap-0 bg-white">
 
-                              {/* Dropdown menu */}
+                                  {/* Left accent strip / photo */}
+                                  {coverPhoto ? (
+                                    <div className="w-20 h-20 shrink-0 relative">
+                                      <img
+                                        src={coverPhoto}
+                                        alt={place.title}
+                                        className="w-full h-full object-cover"
+                                      />
+                                      <div className="absolute inset-0 bg-gradient-to-r from-black/5 to-transparent" />
+                                    </div>
+                                  ) : (
+                                    <div className={`w-3 shrink-0 ${accent.bg}`} />
+                                  )}
+
+                                  {/* Content */}
+                                  <div className="flex-1 min-w-0 px-3.5 py-3">
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-slate-900 text-sm font-bold truncate leading-snug">
+                                          {place.title}
+                                        </p>
+                                        <div className="flex items-center gap-1 mt-1">
+                                          <MapPin className="w-3 h-3 shrink-0 text-slate-300" />
+                                          <p className="text-slate-400 text-xs truncate">
+                                            {[place.address?.city, place.address?.country].filter(Boolean).join(', ') || 'Location saved'}
+                                          </p>
+                                        </div>
+                                      </div>
+
+                                      {/* Menu button */}
+                                      <button
+                                        className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-black/6 active:bg-black/10 transition-colors shrink-0 mt-0.5"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setOpenPlaceMenuId(isMenuOpen ? null : place.id);
+                                        }}
+                                      >
+                                        <MoreHorizontal className="w-4 h-4 text-slate-400" />
+                                      </button>
+                                    </div>
+
+                                    {/* Bottom row: date badge */}
+                                    {visitDate && (
+                                      <div className="flex items-center gap-1.5 mt-2">
+                                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${accent.light} ${
+                                          accent.bg.replace('bg-', 'text-')
+                                        }`}>
+                                          {visitDate}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>{/* end card */}
+
+                              {/* Dropdown menu — outside overflow-hidden card */}
                               <AnimatePresence>
                                 {isMenuOpen && (
                                   <motion.div
@@ -441,7 +490,7 @@ export default function JourneyHub({
                                     animate={{ opacity: 1, scale: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.92, y: -4 }}
                                     transition={{ duration: 0.15 }}
-                                    className="absolute right-2 top-14 z-50 bg-white rounded-2xl shadow-xl shadow-black/15 border border-black/8 overflow-hidden min-w-[160px]"
+                                    className="absolute right-0 top-2 z-50 bg-white rounded-2xl shadow-xl shadow-black/15 border border-black/8 overflow-hidden min-w-[160px]"
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     <button
