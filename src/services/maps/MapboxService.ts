@@ -304,9 +304,6 @@ class MapboxService implements IMapboxService {
       el.style.backgroundPosition = 'center';
       el.style.border     = '3px solid white';
       el.style.boxShadow  = '0 4px 12px rgba(0,0,0,0.35)';
-      el.style.transition = 'transform 0.18s ease';
-      el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.12)'; });
-      el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)'; });
     } else {
       // ── SVG teardrop pin ──
       // viewBox="0 0 28 36": tip is EXACTLY at SVG point (14, 36) = bottom-center
@@ -315,11 +312,6 @@ class MapboxService implements IMapboxService {
       el.style.height = '36px';
       el.style.lineHeight = '0';    // kill descender gap
       el.style.fontSize   = '0';    // kill inline text gap
-      el.style.overflow   = 'visible';
-      el.style.transition = 'transform 0.18s ease';
-      el.style.transformOrigin = '50% 100%'; // scale from bottom tip — no positional shift
-      el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.2)'; });
-      el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)'; });
       el.innerHTML = `<svg viewBox="0 0 28 36" width="28" height="36" xmlns="http://www.w3.org/2000/svg" style="display:block">
         <path d="M14 0C6.268 0 0 6.268 0 14C0 21.732 14 36 14 36C14 36 28 21.732 28 14C28 6.268 21.732 0 14 0Z" fill="${marker.color || '#3b82f6'}"/>
         <path d="M14 1.5C7.1 1.5 1.5 7.1 1.5 14C1.5 20.9 14 34 14 34C14 34 26.5 20.9 26.5 14C26.5 7.1 20.9 1.5 14 1.5Z" fill="none" stroke="white" stroke-width="2"/>
