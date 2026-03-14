@@ -127,29 +127,23 @@ export default function MapboxMap({
 
   return (
     <div className={`relative w-full h-full ${className}`} style={{ minHeight: '400px' }}>
-      {}
       <div
         ref={containerRef}
         className="absolute inset-0 w-full h-full"
-        style={{ minHeight: '400px' }}
+        style={{
+          minHeight: '400px',
+          // Force GPU compositing layer — keeps map rendering isolated from React re-paints
+          transform: 'translateZ(0)',
+          willChange: 'transform',
+        }}
       />
 
-      {}
       {!isLoaded && (
         <div className="absolute inset-0 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
           <div className="text-center">
             <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
             <p className="text-white font-medium">Harita yükleniyor...</p>
           </div>
-        </div>
-      )}
-
-      {}
-      {isLoaded && markers.length > 0 && (
-        <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-lg shadow-lg">
-          <p className="text-sm font-medium text-slate-900">
-            {markers.length} konum gösteriliyor
-          </p>
         </div>
       )}
     </div>

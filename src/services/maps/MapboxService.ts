@@ -17,8 +17,6 @@ class MapboxService implements IMapboxService {
 
   private rotationAnimationId: number | null = null;
   private isRotating: boolean = false;
-  private lastFrameTime: number = 0;
-  private rotationSpeed: number = 0.05;
 
   private userLocationMarker: mapboxgl.Marker | null = null;
   private transportMarkers: mapboxgl.Marker[] = [];
@@ -100,7 +98,11 @@ class MapboxService implements IMapboxService {
         bearing: config.bearing || 0,
         projection: 'globe' as any,
         maxPitch: 85,
-        antialias: true,
+        antialias: !isMobile,           // GPU yükü azaltır mobilde, desktop'ta kalır
+        fadeDuration: 0,                // tile geçişleri anında — blend animation yok
+        renderWorldCopies: false,       // globe modunda kopya dünyalar gereksiz
+        localIdeographFontFamily: "'Noto Sans', 'Noto Sans CJK SC', sans-serif", // font fetch engeller
+        maxTileCacheSize: isMobile ? 20 : 50, // satellite tile cache'i sınırla
       });
 
       if (isMobile) {
@@ -235,42 +237,54 @@ class MapboxService implements IMapboxService {
   private setupRotationInterrupts(): void {
     if (!this.map) return;
 
-    this.map.on('dragstart', () => this.stopRotation());
-    this.map.on('zoomstart', () => this.stopRotation());
-    this.map.on('pitchstart', () => this.stopRotation());
-    this.map.on('rotatestart', () => this.stopRotation());
-    this.map.on('touchstart', () => this.stopRotation());
+    // Any user interaction immediately halts the rotateTo animation
+    const stop = () => this.stopRotation();
+    this.map.on('mousedown', stop);
+    this.map.on('dragstart',   stop);
+    this.map.on('zoomstart',   stop);
+    this.map.on('pitchstart',  stop);
+    this.map.on('rotatestart', stop);
+    this.map.on('touchstart',  stop);
   }
   startSlowRotation(): void {
     if (!this.map || this.isRotating) return;
 
     this.isRotating = true;
-    this.lastFrameTime = performance.now();
 
-    const rotate = (currentTime: number): void => {
+    // Use Mapbox's native bearing-based rotation instead of setCenter().
+    // rotateTo() runs entirely inside the GL render loop — zero JS-thread cost.
+    // We chain calls: when one finishes, immediately queue the next full revolution.
+    const DEG_PER_REV = 360;
+    // 120 seconds for one full revolution at globe zoom — feels natural
+    const MS_PER_REV = 120_000;
+
+    const scheduleNext = () => {
       if (!this.map || !this.isRotating) return;
 
-      const deltaTime = currentTime - this.lastFrameTime;
-      const targetFrameTime = 1000 / 60;
-      const speedMultiplier = deltaTime / targetFrameTime;
+      const currentBearing = this.map.getBearing();
+      const targetBearing = currentBearing - DEG_PER_REV; // counter-clockwise feels natural
 
-      const center = this.map.getCenter();
-      const newLng = center.lng + (this.rotationSpeed * speedMultiplier);
+      this.map.rotateTo(targetBearing, {
+        duration: MS_PER_REV,
+        easing: (t: number) => t, // linear — constant speed
+      });
 
-      this.map.setCenter([newLng, center.lat]);
-
-      this.lastFrameTime = currentTime;
-      this.rotationAnimationId = requestAnimationFrame(rotate);
+      // Queue the next revolution just before this one ends to avoid any gap
+      this.rotationAnimationId = window.setTimeout(scheduleNext, MS_PER_REV - 100) as unknown as number;
     };
 
-    this.rotationAnimationId = requestAnimationFrame(rotate);
+    scheduleNext();
   }
   stopRotation(): void {
     this.isRotating = false;
     if (this.rotationAnimationId !== null) {
+      // Clear the setTimeout (used by new rotation) and any leftover rAF
+      clearTimeout(this.rotationAnimationId as unknown as ReturnType<typeof setTimeout>);
       cancelAnimationFrame(this.rotationAnimationId);
       this.rotationAnimationId = null;
     }
+    // Stop any in-progress rotateTo animation immediately
+    this.map?.stop();
   }
   isGlobeRotating(): boolean {
     return this.isRotating;
