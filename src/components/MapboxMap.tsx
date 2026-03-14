@@ -132,9 +132,8 @@ export default function MapboxMap({
         className="absolute inset-0 w-full h-full"
         style={{
           minHeight: '400px',
-          // Force GPU compositing layer — keeps map rendering isolated from React re-paints
+          // Own GPU compositing layer — isolates map from React re-paints
           transform: 'translateZ(0)',
-          willChange: 'transform',
         }}
       />
 

@@ -242,7 +242,7 @@ export default function DashboardPage() {
     <ProtectedRoute>
       <div className="relative w-full bg-black" style={{ height: '100dvh' }}>
         {/* Map layer — isolated GPU composite layer so sheet animations don't trigger map repaints */}
-        <div className="absolute inset-0" style={{ transform: 'translateZ(0)', willChange: 'transform', isolation: 'isolate' }}>
+        <div className="absolute inset-0" style={{ transform: 'translateZ(0)' }}>
           {loadingPlaces ? (
             <div className="w-full h-full flex items-center justify-center bg-slate-900">
               <p className="text-slate-400">Loading your journey...</p>

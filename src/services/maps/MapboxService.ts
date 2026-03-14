@@ -237,54 +237,61 @@ class MapboxService implements IMapboxService {
   private setupRotationInterrupts(): void {
     if (!this.map) return;
 
-    // Any user interaction immediately halts the rotateTo animation
-    const stop = () => this.stopRotation();
-    this.map.on('mousedown', stop);
-    this.map.on('dragstart',   stop);
-    this.map.on('zoomstart',   stop);
-    this.map.on('pitchstart',  stop);
-    this.map.on('rotatestart', stop);
-    this.map.on('touchstart',  stop);
+    // Stop auto-rotation when user starts interacting — but never call map.stop()
+    // as that would also cancel the user's own drag/zoom gestures.
+    const stopAuto = () => {
+      if (!this.isRotating) return;
+      this.isRotating = false;
+      if (this.rotationAnimationId !== null) {
+        cancelAnimationFrame(this.rotationAnimationId);
+        this.rotationAnimationId = null;
+      }
+    };
+    this.map.on('dragstart',   stopAuto);
+    this.map.on('zoomstart',   stopAuto);
+    this.map.on('pitchstart',  stopAuto);
+    this.map.on('rotatestart', stopAuto);
+    this.map.on('touchstart',  stopAuto);
   }
   startSlowRotation(): void {
     if (!this.map || this.isRotating) return;
 
     this.isRotating = true;
 
-    // Use Mapbox's native bearing-based rotation instead of setCenter().
-    // rotateTo() runs entirely inside the GL render loop — zero JS-thread cost.
-    // We chain calls: when one finishes, immediately queue the next full revolution.
-    const DEG_PER_REV = 360;
-    // 120 seconds for one full revolution at globe zoom — feels natural
-    const MS_PER_REV = 120_000;
+    // Mapbox's recommended globe rotation pattern:
+    // Hook into the map's own render loop via requestAnimationFrame,
+    // nudge the center longitude slightly each frame.
+    // This is the same technique used in Mapbox's official globe spin example.
+    const DEGREES_PER_MS = 360 / 90_000; // full revolution in 90 seconds
 
-    const scheduleNext = () => {
+    let lastTime: number | null = null;
+
+    const frame = (now: number) => {
       if (!this.map || !this.isRotating) return;
 
-      const currentBearing = this.map.getBearing();
-      const targetBearing = currentBearing - DEG_PER_REV; // counter-clockwise feels natural
+      if (lastTime !== null) {
+        const delta = now - lastTime;
+        const center = this.map.getCenter();
+        // Only spin when not being dragged / during user interactions
+        if (!this.map.isMoving()) {
+          center.lng += DEGREES_PER_MS * delta;
+          this.map.setCenter(center);
+        }
+      }
 
-      this.map.rotateTo(targetBearing, {
-        duration: MS_PER_REV,
-        easing: (t: number) => t, // linear — constant speed
-      });
-
-      // Queue the next revolution just before this one ends to avoid any gap
-      this.rotationAnimationId = window.setTimeout(scheduleNext, MS_PER_REV - 100) as unknown as number;
+      lastTime = now;
+      this.rotationAnimationId = requestAnimationFrame(frame);
     };
 
-    scheduleNext();
+    this.rotationAnimationId = requestAnimationFrame(frame);
   }
   stopRotation(): void {
     this.isRotating = false;
     if (this.rotationAnimationId !== null) {
-      // Clear the setTimeout (used by new rotation) and any leftover rAF
-      clearTimeout(this.rotationAnimationId as unknown as ReturnType<typeof setTimeout>);
       cancelAnimationFrame(this.rotationAnimationId);
       this.rotationAnimationId = null;
     }
-    // Stop any in-progress rotateTo animation immediately
-    this.map?.stop();
+    // NOTE: intentionally NOT calling map.stop() — that would cancel user gestures too
   }
   isGlobeRotating(): boolean {
     return this.isRotating;
