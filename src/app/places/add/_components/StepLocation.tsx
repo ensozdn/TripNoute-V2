@@ -14,6 +14,15 @@ interface MapboxFeature {
   id: string;
   place_name: string;
   center: [number, number];
+  countryCode?: string;
+}
+
+/** ISO 3166-1 alpha-2 → Unicode flag emoji (e.g. "de" → "🇩🇪") */
+function countryFlag(code?: string): string {
+  if (!code || code.length !== 2) return '';
+  return code.toUpperCase().split('').map(
+    c => String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)
+  ).join('');
 }
 
 interface StepLocationProps {
@@ -182,6 +191,7 @@ export default function StepLocation({
               id: `photon.${i}.${f.geometry.coordinates[0]}`,
               place_name: parts.join(', '),
               center: f.geometry.coordinates,
+              countryCode: (p.countrycode || p.country_code)?.toLowerCase(),
             };
           });
           setResults(converted);
@@ -204,7 +214,13 @@ export default function StepLocation({
           })}`
         );
         const mapboxData = await mapboxRes.json();
-        setResults(mapboxData.features ?? []);
+        // Extract country code from Mapbox context array
+        const mapboxFeatures: MapboxFeature[] = (mapboxData.features ?? []).map((f: any) => {
+          const countryCtx = f.context?.find((c: any) => c.id?.startsWith('country.'));
+          const countryCode = countryCtx?.short_code?.toLowerCase();
+          return { id: f.id, place_name: f.place_name, center: f.center, countryCode };
+        });
+        setResults(mapboxFeatures);
       } catch {
         setResults([]);
       } finally {
@@ -350,16 +366,23 @@ export default function StepLocation({
                     exit={{ height: 0, opacity: 0 }}
                     className="border-t border-white/10 overflow-hidden"
                   >
-                    {results.map(feature => (
+                    {results.map(feature => {
+                      const flag = countryFlag(feature.countryCode);
+                      return (
                       <button
                         key={feature.id}
                         onClick={() => handleResultSelect(feature)}
                         className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-white/8 active:bg-white/12 transition-colors border-b border-white/5 last:border-0"
                       >
-                        <MapPin className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" strokeWidth={2} />
+                        {flag ? (
+                          <span className="text-lg leading-none shrink-0 mt-0.5">{flag}</span>
+                        ) : (
+                          <MapPin className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" strokeWidth={2} />
+                        )}
                         <span className="text-sm text-white/90 leading-snug">{feature.place_name}</span>
                       </button>
-                    ))}
+                      );
+                    })}
                   </motion.div>
                 )}
               </AnimatePresence>

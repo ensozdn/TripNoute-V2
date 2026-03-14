@@ -1078,13 +1078,18 @@ class MapboxService implements IMapboxService {
       el.style.cursor = 'pointer';
 
       if (isFirst || isLast) {
-        // Start / end: solid filled circle using journey color
-        el.style.width = '18px';
-        el.style.height = '18px';
-        el.style.borderRadius = '50%';
-        el.style.backgroundColor = journeyColor;
-        el.style.border = '3px solid #ffffff';
-        el.style.boxShadow = `0 0 0 3px ${journeyColor}55, 0 4px 12px rgba(0,0,0,0.5)`;
+        // Start / end: small white teardrop pin marker
+        el.style.width = '22px';
+        el.style.height = '28px';
+        el.style.display = 'block';
+        el.style.lineHeight = '0';
+        el.style.fontSize = '0';
+        el.innerHTML = `
+          <svg width="22" height="28" viewBox="0 0 22 28" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.45))">
+            <path d="M11 0C4.925 0 0 4.925 0 11C0 17.075 11 28 11 28C11 28 22 17.075 22 11C22 4.925 17.075 0 11 0Z" fill="white"/>
+            <circle cx="11" cy="11" r="4.5" fill="${isFirst ? '#22c55e' : '#ef4444'}"/>
+          </svg>
+        `;
       } else {
         // Waypoint: smaller hollow circle with journey color border
         el.style.width = '11px';
@@ -1095,11 +1100,12 @@ class MapboxService implements IMapboxService {
         el.style.boxShadow = `0 2px 8px rgba(0,0,0,0.4)`;
       }
 
-      const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
+      const anchor = (isFirst || isLast) ? 'bottom' : 'center';
+      const marker = new mapboxgl.Marker({ element: el, anchor })
         .setLngLat(step.coordinates)
         .addTo(this.map!);
 
-      const popupOffset = isFirst || isLast ? 16 : 12;
+      const popupOffset = isFirst || isLast ? 28 : 10;
 
       const popup = new mapboxgl.Popup({
         offset: popupOffset,

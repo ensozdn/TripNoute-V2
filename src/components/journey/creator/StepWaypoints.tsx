@@ -1,12 +1,28 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Plus, Trash2, GripVertical, Search, Plane, Car, Train, Bus, Ship, Bike, PersonStanding } from 'lucide-react';
+import { MapPin, Plus, Trash2, GripVertical, Search, Plane, Car, Train, Bus, Ship, Bike, PersonStanding, X } from 'lucide-react';
 import { Place } from '@/types';
 import { TransportMode } from '@/types/trip';
-import PlaceSearchBar from '@/components/PlaceSearchBar';
-import type { GooglePlaceResult } from '@/types/maps';
+
+/** ISO 3166-1 alpha-2 → Unicode flag emoji */
+function countryFlag(code?: string): string {
+  if (!code || code.length !== 2) return '';
+  return code.toUpperCase().split('').map(
+    c => String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)
+  ).join('');
+}
+
+interface PhotonResult {
+  id: string;
+  name: string;
+  label: string;
+  coordinates: [number, number]; // [lng, lat]
+  countryCode?: string;
+  city?: string;
+  country?: string;
+}
 
 export interface DraftStep {
   // Temporary id for UI keying only — replaced by DB on save
@@ -137,6 +153,10 @@ export default function StepWaypoints({
 }: StepWaypointsProps) {
   const [showPlacePicker, setShowPlacePicker] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<PhotonResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const addFromPlace = (place: Place) => {
     const newStep: DraftStep = {
@@ -155,18 +175,22 @@ export default function StepWaypoints({
     setShowPlacePicker(false);
   };
 
-  const addFromSearch = (result: GooglePlaceResult) => {
+  const addFromSearch = (result: PhotonResult) => {
     const newStep: DraftStep = {
       _key: `search-${Date.now()}`,
-      name: result.name || result.formattedAddress,
-      coordinates: [result.location.lng, result.location.lat],
+      name: result.name,
+      coordinates: result.coordinates,
       address: {
-        formatted: result.formattedAddress,
+        city: result.city,
+        country: result.country,
+        formatted: result.label,
       },
       transportToNext: null,
     };
     onStepsChange([...steps, newStep]);
     setShowSearch(false);
+    setSearchQuery('');
+    setSearchResults([]);
   };
 
   const removeStep = (key: string) => {
@@ -246,7 +270,7 @@ export default function StepWaypoints({
         </button>
       </div>
 
-      {/* Search bar — inline dropdown */}
+      {/* Search bar — inline Photon search with flag emojis */}
       <AnimatePresence>
         {showSearch && (
           <motion.div
@@ -256,15 +280,95 @@ export default function StepWaypoints({
             className="overflow-visible"
           >
             <div className="rounded-2xl border border-black/8 bg-black/3 p-3 overflow-visible">
-              <PlaceSearchBar
-                onPlaceSelect={addFromSearch}
-                placeholder="Search any place..."
-                className="w-full"
-                dropdownDirection="up"
-              />
-              <p className="text-[11px] text-slate-400 mt-2 text-center">
-                Select a result to add as waypoint
-              </p>
+              {/* Input */}
+              <div className="flex items-center gap-2 bg-white rounded-xl border border-black/10 px-3 py-2.5">
+                <Search className="w-4 h-4 text-slate-400 shrink-0" strokeWidth={2} />
+                <input
+                  autoFocus
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setSearchQuery(val);
+                    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+                    if (val.trim().length < 2) { setSearchResults([]); return; }
+                    searchTimerRef.current = setTimeout(async () => {
+                      setSearching(true);
+                      try {
+                        const res = await fetch(
+                          `https://photon.komoot.io/api/?${new URLSearchParams({ q: val, limit: '7', lang: 'en' })}`
+                        );
+                        const data = await res.json();
+                        const features: PhotonResult[] = (data.features ?? []).map((f: any, i: number) => {
+                          const p = f.properties;
+                          const parts = [
+                            p.name,
+                            p.street && p.housenumber ? `${p.street} ${p.housenumber}` : p.street,
+                            p.city || p.town || p.village,
+                            p.country,
+                          ].filter(Boolean);
+                          return {
+                            id: `photon.${i}.${f.geometry.coordinates[0]}`,
+                            name: p.name || parts[0] || val,
+                            label: parts.join(', '),
+                            coordinates: f.geometry.coordinates as [number, number],
+                            countryCode: (p.countrycode || p.country_code)?.toLowerCase(),
+                            city: p.city || p.town || p.village,
+                            country: p.country,
+                          };
+                        });
+                        setSearchResults(features);
+                      } catch { setSearchResults([]); }
+                      finally { setSearching(false); }
+                    }, 250);
+                  }}
+                  placeholder="Search any place..."
+                  className="flex-1 bg-transparent text-slate-900 placeholder:text-slate-400 text-sm outline-none"
+                />
+                {searching && (
+                  <div className="w-4 h-4 border-2 border-slate-200 border-t-slate-500 rounded-full animate-spin shrink-0" />
+                )}
+                {searchQuery && !searching && (
+                  <button onClick={() => { setSearchQuery(''); setSearchResults([]); }}
+                    className="w-4 h-4 text-slate-400 shrink-0"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* Results */}
+              <AnimatePresence>
+                {searchResults.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    className="mt-2 rounded-xl border border-black/8 overflow-hidden"
+                  >
+                    {searchResults.map(result => {
+                      const flag = countryFlag(result.countryCode);
+                      return (
+                        <button
+                          key={result.id}
+                          onClick={() => addFromSearch(result)}
+                          className="w-full flex items-start gap-3 px-3 py-2.5 text-left bg-white hover:bg-slate-50 active:bg-slate-100 transition-colors border-b border-black/5 last:border-0"
+                        >
+                          {flag ? (
+                            <span className="text-base leading-none shrink-0 mt-0.5">{flag}</span>
+                          ) : (
+                            <MapPin className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" strokeWidth={2} />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-800 truncate">{result.name}</p>
+                            <p className="text-xs text-slate-400 truncate">{result.label}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </motion.div>
         )}
