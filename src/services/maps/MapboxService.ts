@@ -315,6 +315,7 @@ class MapboxService implements IMapboxService {
     // Ease back to a wide globe view first, then start rotating once the
     // camera movement ends — so rotation never fights an ongoing flyTo.
     this.map.flyTo({
+      center: [20, 20], // default globe center — same as initial app load
       zoom: 1.8,
       pitch: 0,
       bearing: 0,
