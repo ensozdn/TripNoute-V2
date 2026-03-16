@@ -158,6 +158,8 @@ export default function StepWaypoints({
   const [searching, setSearching] = useState(false);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? '';
+
   const addFromPlace = (place: Place) => {
     const newStep: DraftStep = {
       _key: `place-${place.id}-${Date.now()}`,
@@ -295,26 +297,35 @@ export default function StepWaypoints({
                     searchTimerRef.current = setTimeout(async () => {
                       setSearching(true);
                       try {
+                        const params = new URLSearchParams({
+                          access_token: TOKEN,
+                          autocomplete: 'true',
+                          limit: '7',
+                          language: 'en',
+                          types: 'country,region,place,locality,neighborhood,address',
+                        });
                         const res = await fetch(
-                          `https://photon.komoot.io/api/?${new URLSearchParams({ q: val, limit: '7', lang: 'en' })}`
+                          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(val)}.json?${params}`
                         );
                         const data = await res.json();
-                        const features: PhotonResult[] = (data.features ?? []).map((f: any, i: number) => {
-                          const p = f.properties;
-                          const parts = [
-                            p.name,
-                            p.street && p.housenumber ? `${p.street} ${p.housenumber}` : p.street,
-                            p.city || p.town || p.village,
-                            p.country,
-                          ].filter(Boolean);
+                        const features: PhotonResult[] = (data.features ?? []).map((f: any) => {
+                          const countryCtx = (f.context ?? []).find((c: any) => c.id?.startsWith('country.'));
+                          const rawCode = countryCtx?.short_code || f.properties?.short_code || '';
+                          const countryCode = rawCode.split('-')[0].toLowerCase() || undefined;
+                          // Extract city from context (place or locality entry)
+                          const placeCtx = (f.context ?? []).find((c: any) =>
+                            c.id?.startsWith('place.') || c.id?.startsWith('locality.')
+                          );
+                          const countryName = countryCtx?.text || '';
+                          const cityName = placeCtx?.text || '';
                           return {
-                            id: `photon.${i}.${f.geometry.coordinates[0]}`,
-                            name: p.name || parts[0] || val,
-                            label: parts.join(', '),
-                            coordinates: f.geometry.coordinates as [number, number],
-                            countryCode: (p.countrycode || p.country_code)?.toLowerCase(),
-                            city: p.city || p.town || p.village,
-                            country: p.country,
+                            id: f.id,
+                            name: f.text,
+                            label: f.place_name,
+                            coordinates: f.center as [number, number],
+                            countryCode,
+                            city: cityName,
+                            country: countryName,
                           };
                         });
                         setSearchResults(features);

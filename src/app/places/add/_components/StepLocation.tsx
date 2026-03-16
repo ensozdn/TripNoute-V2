@@ -161,66 +161,35 @@ export default function StepLocation({
       setSearching(true);
       try {
         const center = mapRef.current?.getCenter();
-
-        const photonParams = new URLSearchParams({
-          q: value,
-          limit: '8',
-          lang: 'en',
-          ...(center ? { lat: center.lat.toFixed(4), lon: center.lng.toFixed(4) } : {}),
-        });
-
-        const photonRes = await fetch(
-          `https://photon.komoot.io/api/?${photonParams}`
-        );
-        const photonData = await photonRes.json();
-        const photonFeatures: Array<{ properties: Record<string, string>; geometry: { coordinates: [number, number] } }> =
-          photonData.features ?? [];
-
-        if (photonFeatures.length > 0) {
-          const converted: MapboxFeature[] = photonFeatures.map((f, i) => {
-            const p = f.properties;
-            // Build a readable label: Name, Street, City, Country
-            const parts = [
-              p.name,
-              p.street && p.housenumber ? `${p.street} ${p.housenumber}` : p.street,
-              p.city || p.town || p.village,
-              p.state,
-              p.country,
-            ].filter(Boolean);
-            return {
-              id: `photon.${i}.${f.geometry.coordinates[0]}`,
-              place_name: parts.join(', '),
-              center: f.geometry.coordinates,
-              countryCode: (p.countrycode || p.country_code)?.toLowerCase(),
-            };
-          });
-          setResults(converted);
-          return;
-        }
-
-        // ── Mapbox fallback — Photon sonuç vermezse (çok genel şehir/ülke adları)
         const proximity = center
           ? `${center.lng.toFixed(4)},${center.lat.toFixed(4)}`
           : undefined;
 
-        const mapboxRes = await fetch(
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(value)}.json?${new URLSearchParams({
-            access_token: TOKEN,
-            autocomplete: 'true',
-            limit: '6',
-            language: 'tr,en',
-            types: 'place,region,country,address',
-            ...(proximity ? { proximity } : {}),
-          })}`
+        const params: Record<string, string> = {
+          access_token: TOKEN,
+          autocomplete: 'true',
+          limit: '7',
+          language: 'en',
+          types: 'country,region,place,locality,neighborhood,address',
+        };
+        if (proximity) params.proximity = proximity;
+
+        const res = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(value)}.json?${new URLSearchParams(params)}`
         );
-        const mapboxData = await mapboxRes.json();
-        // Extract country code from Mapbox context array
-        const mapboxFeatures: MapboxFeature[] = (mapboxData.features ?? []).map((f: any) => {
-          const countryCtx = f.context?.find((c: any) => c.id?.startsWith('country.'));
-          const countryCode = countryCtx?.short_code?.toLowerCase();
+        const data = await res.json();
+
+        const features: MapboxFeature[] = (data.features ?? []).map((f: any) => {
+          // For country-type results, short_code is on properties directly
+          // For city/place results, it lives inside context[]
+          const countryCtx = (f.context ?? []).find((c: any) => c.id?.startsWith('country.'));
+          const rawCode = countryCtx?.short_code || f.properties?.short_code || '';
+          // short_code can be 'US-CA' for states — take only the first 2-char part
+          const countryCode = rawCode.split('-')[0].toLowerCase() || undefined;
           return { id: f.id, place_name: f.place_name, center: f.center, countryCode };
         });
-        setResults(mapboxFeatures);
+
+        setResults(features);
       } catch {
         setResults([]);
       } finally {
