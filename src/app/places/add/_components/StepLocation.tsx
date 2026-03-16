@@ -15,6 +15,8 @@ interface MapboxFeature {
   place_name: string;
   center: [number, number];
   countryCode?: string;
+  /** mapbox_id used to retrieve full coordinates on select */
+  mapboxId?: string;
 }
 
 /** ISO 3166-1 alpha-2 → Unicode flag emoji (e.g. "de" → "🇩🇪") */
@@ -48,7 +50,8 @@ export default function StepLocation({
   const [query,       setQuery]       = useState('');
   const [results,     setResults]     = useState<MapboxFeature[]>([]);
   const [searching,   setSearching]   = useState(false);
-  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sessionTokenRef = useRef<string>(crypto.randomUUID());
 
   const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? '';
   const HEADER_H = 88;
@@ -161,32 +164,30 @@ export default function StepLocation({
       setSearching(true);
       try {
         const center = mapRef.current?.getCenter();
-        const proximity = center
-          ? `${center.lng.toFixed(4)},${center.lat.toFixed(4)}`
-          : undefined;
-
         const params: Record<string, string> = {
+          q: value.trim(),
           access_token: TOKEN,
-          autocomplete: 'true',
-          limit: '7',
           language: 'en',
-          types: 'country,region,place,locality,neighborhood,address',
+          limit: '7',
+          session_token: sessionTokenRef.current,
         };
-        if (proximity) params.proximity = proximity;
+        if (center) params.proximity = `${center.lng.toFixed(5)},${center.lat.toFixed(5)}`;
 
-        const res = await fetch(
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(value)}.json?${new URLSearchParams(params)}`
+        const res  = await fetch(
+          `https://api.mapbox.com/search/searchbox/v1/suggest?${new URLSearchParams(params)}`
         );
         const data = await res.json();
 
-        const features: MapboxFeature[] = (data.features ?? []).map((f: any) => {
-          // For country-type results, short_code is on properties directly
-          // For city/place results, it lives inside context[]
-          const countryCtx = (f.context ?? []).find((c: any) => c.id?.startsWith('country.'));
-          const rawCode = countryCtx?.short_code || f.properties?.short_code || '';
-          // short_code can be 'US-CA' for states — take only the first 2-char part
-          const countryCode = rawCode.split('-')[0].toLowerCase() || undefined;
-          return { id: f.id, place_name: f.place_name, center: f.center, countryCode };
+        const features: MapboxFeature[] = (data.suggestions ?? []).map((s: any) => {
+          const cc = s.context?.country?.country_code?.toLowerCase() ?? undefined;
+          const label = [s.name, s.place_formatted].filter(Boolean).join(', ');
+          return {
+            id:          s.mapbox_id,
+            place_name:  label,
+            center:      [0, 0] as [number, number], // filled on select via retrieve
+            countryCode: cc,
+            mapboxId:    s.mapbox_id,
+          };
         });
 
         setResults(features);
@@ -195,15 +196,35 @@ export default function StepLocation({
       } finally {
         setSearching(false);
       }
-    }, 250);
+    }, 220);
   };
 
+  /* ── Retrieve full coordinates on select ── */
   const handleResultSelect = async (feature: MapboxFeature) => {
-    const [lng, lat] = feature.center;
-    const loc: SelectedLocation = { lat, lng, address: feature.place_name };
+    let lng = feature.center[0];
+    let lat = feature.center[1];
+    let address = feature.place_name;
+
+    // Retrieve exact coordinates from Search Box if we have a mapbox_id
+    if (feature.mapboxId) {
+      try {
+        const res  = await fetch(
+          `https://api.mapbox.com/search/searchbox/v1/retrieve/${feature.mapboxId}?access_token=${TOKEN}&session_token=${sessionTokenRef.current}`
+        );
+        const data = await res.json();
+        const f    = data.features?.[0];
+        if (f) {
+          [lng, lat] = f.geometry.coordinates;
+          address    = f.properties.full_address || f.properties.name || address;
+        }
+      } catch { /* fallback to whatever we had */ }
+      // Rotate session token after a retrieval (Search Box API requirement)
+      sessionTokenRef.current = crypto.randomUUID();
+    }
+
+    const loc: SelectedLocation = { lat, lng, address };
     onLocationSelect(loc);
 
-    // fly + marker
     mapRef.current?.flyTo({ center: [lng, lat], zoom: 14, speed: 1.4 });
     if (mapRef.current) {
       const mapboxgl = (await import('mapbox-gl')).default;

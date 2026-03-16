@@ -22,6 +22,7 @@ interface PhotonResult {
   countryCode?: string;
   city?: string;
   country?: string;
+  mapboxId?: string;
 }
 
 export interface DraftStep {
@@ -156,7 +157,8 @@ export default function StepWaypoints({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<PhotonResult[]>([]);
   const [searching, setSearching] = useState(false);
-  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sessionTokenRef = useRef<string>(crypto.randomUUID());
 
   const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? '';
 
@@ -177,15 +179,34 @@ export default function StepWaypoints({
     setShowPlacePicker(false);
   };
 
-  const addFromSearch = (result: PhotonResult) => {
+  const addFromSearch = async (result: PhotonResult) => {
+    let coordinates = result.coordinates;
+    let formattedLabel = result.label;
+
+    // Retrieve exact coordinates if we have a mapbox_id
+    if (result.mapboxId && (coordinates[0] === 0 && coordinates[1] === 0)) {
+      try {
+        const res  = await fetch(
+          `https://api.mapbox.com/search/searchbox/v1/retrieve/${result.mapboxId}?access_token=${TOKEN}&session_token=${sessionTokenRef.current}`
+        );
+        const data = await res.json();
+        const f    = data.features?.[0];
+        if (f) {
+          coordinates  = f.geometry.coordinates as [number, number];
+          formattedLabel = f.properties.full_address || f.properties.name || formattedLabel;
+        }
+      } catch { /* use whatever we have */ }
+      sessionTokenRef.current = crypto.randomUUID();
+    }
+
     const newStep: DraftStep = {
       _key: `search-${Date.now()}`,
       name: result.name,
-      coordinates: result.coordinates,
+      coordinates,
       address: {
-        city: result.city,
-        country: result.country,
-        formatted: result.label,
+        city:      result.city,
+        country:   result.country,
+        formatted: formattedLabel,
       },
       transportToNext: null,
     };
@@ -297,41 +318,41 @@ export default function StepWaypoints({
                     searchTimerRef.current = setTimeout(async () => {
                       setSearching(true);
                       try {
-                        const params = new URLSearchParams({
+                        const lastStep = steps.length > 0 ? steps[steps.length - 1] : null;
+                        const params: Record<string, string> = {
+                          q: val.trim(),
                           access_token: TOKEN,
-                          autocomplete: 'true',
-                          limit: '7',
                           language: 'en',
-                          types: 'country,region,place,locality,neighborhood,address',
-                        });
-                        const res = await fetch(
-                          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(val)}.json?${params}`
+                          limit: '7',
+                          session_token: sessionTokenRef.current,
+                        };
+                        if (lastStep) {
+                          params.proximity = `${lastStep.coordinates[0]},${lastStep.coordinates[1]}`;
+                        }
+                        const res  = await fetch(
+                          `https://api.mapbox.com/search/searchbox/v1/suggest?${new URLSearchParams(params)}`
                         );
                         const data = await res.json();
-                        const features: PhotonResult[] = (data.features ?? []).map((f: any) => {
-                          const countryCtx = (f.context ?? []).find((c: any) => c.id?.startsWith('country.'));
-                          const rawCode = countryCtx?.short_code || f.properties?.short_code || '';
-                          const countryCode = rawCode.split('-')[0].toLowerCase() || undefined;
-                          // Extract city from context (place or locality entry)
-                          const placeCtx = (f.context ?? []).find((c: any) =>
-                            c.id?.startsWith('place.') || c.id?.startsWith('locality.')
-                          );
-                          const countryName = countryCtx?.text || '';
-                          const cityName = placeCtx?.text || '';
+                        const features: PhotonResult[] = (data.suggestions ?? []).map((s: any) => {
+                          const cc          = s.context?.country?.country_code?.toLowerCase() ?? undefined;
+                          const countryName = s.context?.country?.name ?? '';
+                          const cityName    = s.context?.place?.name ?? s.context?.locality?.name ?? '';
+                          const label       = [s.name, s.place_formatted].filter(Boolean).join(', ');
                           return {
-                            id: f.id,
-                            name: f.text,
-                            label: f.place_name,
-                            coordinates: f.center as [number, number],
-                            countryCode,
-                            city: cityName,
-                            country: countryName,
+                            id:          s.mapbox_id,
+                            name:        s.name,
+                            label,
+                            coordinates: [0, 0] as [number, number], // filled on select
+                            countryCode: cc,
+                            city:        cityName,
+                            country:     countryName,
+                            mapboxId:    s.mapbox_id,
                           };
                         });
                         setSearchResults(features);
                       } catch { setSearchResults([]); }
                       finally { setSearching(false); }
-                    }, 250);
+                    }, 220);
                   }}
                   placeholder="Search any place..."
                   className="flex-1 bg-transparent text-slate-900 placeholder:text-slate-400 text-sm outline-none"
