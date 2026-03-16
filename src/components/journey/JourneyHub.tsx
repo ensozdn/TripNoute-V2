@@ -75,6 +75,7 @@ export default function JourneyHub({
   const [creationModalOpen, setCreationModalOpen] = useState(false);
   const [editingJourney, setEditingJourney] = useState<Trip | null>(null);
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
+  const [selectedPlaceDetail, setSelectedPlaceDetail] = useState<Place | null>(null);
   const [openPlaceMenuId, setOpenPlaceMenuId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string } | null>(null);
   const [tripDeleteConfirm, setTripDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
@@ -106,6 +107,15 @@ export default function JourneyHub({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTrip]);
+
+  // Place seçilince sheet peek'e iner (harita görünsün), kapanınca eski state'e döner
+  useEffect(() => {
+    if (selectedPlaceDetail) {
+      setPrevSheetState(stateRef.current);
+      setSheetState('peek');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPlaceDetail]);
 
   // State değişince sheet'i doğru px konumuna götür (CSS %'sini bypass et)
   useEffect(() => {
@@ -197,6 +207,11 @@ export default function JourneyHub({
     onJourneyBack?.();
   };
 
+  const closePlaceView = () => {
+    setSelectedPlaceDetail(null);
+    setSheetState(prevSheetState);
+  };
+
   return (
     <>
       {/* Bottom Sheet — dış wrapper transparan, rounded köşeler sadece inner white div'de */}
@@ -238,7 +253,140 @@ export default function JourneyHub({
           style={{ touchAction: 'pan-y pinch-zoom' }}
         >
           <AnimatePresence mode="wait">
-            {selectedTrip ? (
+            {selectedPlaceDetail ? (
+              /* ── Place Detail View (inline, harita görünür kalır) ── */
+              <motion.div
+                key="place-detail"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0, transition: { duration: 0.22 } }}
+                exit={{ opacity: 0, y: 16, transition: { duration: 0.18 } }}
+                className="px-4 pb-32 pt-3"
+              >
+                {/* Header */}
+                <div className="flex items-center gap-3 mb-4">
+                  <button
+                    onClick={closePlaceView}
+                    className="w-9 h-9 rounded-xl bg-black/6 flex items-center justify-center active:scale-90 transition-transform shrink-0"
+                  >
+                    <ChevronLeft className="w-5 h-5 text-slate-700" />
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-slate-900 text-lg font-bold truncate">{selectedPlaceDetail.title}</h2>
+                    <p className="text-slate-400 text-xs truncate">
+                      {[selectedPlaceDetail.address?.city, selectedPlaceDetail.address?.country].filter(Boolean).join(', ') || 'Location saved'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      closePlaceView();
+                      onPlaceEdit?.(selectedPlaceDetail);
+                    }}
+                    className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center active:scale-90 transition-transform shrink-0"
+                  >
+                    <Pencil className="w-4 h-4 text-blue-500" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDeleteConfirm({ id: selectedPlaceDetail.id, title: selectedPlaceDetail.title });
+                    }}
+                    className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center active:scale-90 transition-transform shrink-0"
+                  >
+                    <Trash2 className="w-4 h-4 text-red-500" />
+                  </button>
+                </div>
+
+                {/* Cover photo or color banner */}
+                {selectedPlaceDetail.photos?.[0]?.url ? (
+                  <div className="w-full rounded-2xl mb-4 overflow-hidden" style={{ height: 160 }}>
+                    <img
+                      src={selectedPlaceDetail.photos[0].url}
+                      alt={selectedPlaceDetail.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div
+                    className="w-full rounded-2xl mb-4 flex items-center justify-center"
+                    style={{
+                      background: `linear-gradient(135deg, #1e3a5fdd, #1e3a5f88)`,
+                      height: 80,
+                    }}
+                  >
+                    <MapPin className="w-8 h-8 text-white/60" strokeWidth={1.5} />
+                  </div>
+                )}
+
+                {/* Stats row */}
+                <div className="flex gap-2 mb-5">
+                  {selectedPlaceDetail.visitDate && (
+                    <div className="flex-1 bg-black/[0.03] rounded-2xl px-3 py-2.5 text-center">
+                      <p className="text-slate-900 text-sm font-bold">
+                        {new Date(
+                          typeof selectedPlaceDetail.visitDate === 'object' && 'seconds' in selectedPlaceDetail.visitDate
+                            ? (selectedPlaceDetail.visitDate as { seconds: number }).seconds * 1000
+                            : selectedPlaceDetail.visitDate as unknown as number
+                        ).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                      </p>
+                      <p className="text-slate-400 text-[10px] font-semibold uppercase tracking-wide mt-0.5">Visit Date</p>
+                    </div>
+                  )}
+                  {selectedPlaceDetail.category && (
+                    <div className="flex-1 bg-black/[0.03] rounded-2xl px-3 py-2.5 text-center">
+                      <p className="text-slate-900 text-sm font-bold capitalize">{selectedPlaceDetail.category}</p>
+                      <p className="text-slate-400 text-[10px] font-semibold uppercase tracking-wide mt-0.5">Category</p>
+                    </div>
+                  )}
+                  {selectedPlaceDetail.rating && (
+                    <div className="flex-1 bg-black/[0.03] rounded-2xl px-3 py-2.5 text-center">
+                      <p className="text-slate-900 text-sm font-bold">{'★'.repeat(selectedPlaceDetail.rating)}</p>
+                      <p className="text-slate-400 text-[10px] font-semibold uppercase tracking-wide mt-0.5">Rating</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Description / Notes */}
+                {selectedPlaceDetail.description && (
+                  <div className="bg-black/[0.025] rounded-2xl px-4 py-3.5 mb-4">
+                    <p className="text-slate-500 text-[10px] font-semibold uppercase tracking-wide mb-1.5">Notes</p>
+                    <p className="text-slate-700 text-sm leading-relaxed">{selectedPlaceDetail.description}</p>
+                  </div>
+                )}
+
+                {/* Tags */}
+                {selectedPlaceDetail.tags?.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {selectedPlaceDetail.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="text-xs font-semibold px-3 py-1 rounded-full bg-blue-50 text-blue-500"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Photos grid */}
+                {selectedPlaceDetail.photos?.length > 1 && (
+                  <>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-1 h-4 rounded-full bg-blue-500" />
+                      <h3 className="text-slate-900 text-sm font-bold">Photos</h3>
+                      <span className="text-[11px] text-blue-500 font-semibold bg-blue-50 px-2 py-0.5 rounded-full">
+                        {selectedPlaceDetail.photos.length}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {selectedPlaceDetail.photos.map((photo, i) => (
+                        <div key={i} className="aspect-square rounded-xl overflow-hidden bg-black/5">
+                          <img src={photo.url} alt="" className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </motion.div>
+            ) : selectedTrip ? (
               /* ── Trip Detail View (inline, harita görünür kalır) ── */
               <motion.div
                 key="trip-detail"
@@ -574,7 +722,10 @@ export default function JourneyHub({
                                   }`}
                                 onClick={() => {
                                   if (isMenuOpen) setOpenPlaceMenuId(null);
-                                  else onPlaceSelect(place);
+                                  else {
+                                    onPlaceSelect(place);
+                                    setSelectedPlaceDetail(place);
+                                  }
                                 }}
                               >
                                 {/* Card body */}
@@ -698,7 +849,7 @@ export default function JourneyHub({
                 </div>
               )}
             </motion.div>
-            )} {/* end selectedTrip ternary */}
+            )} {/* end selectedTrip / selectedPlaceDetail ternary */}
           </AnimatePresence>
         </div>
         </div>{/* /inner white surface */}
@@ -818,6 +969,7 @@ export default function JourneyHub({
                     onClick={async () => {
                       const { id } = deleteConfirm;
                       setDeleteConfirm(null);
+                      if (selectedPlaceDetail?.id === id) closePlaceView();
                       await onPlaceDelete?.(id);
                     }}
                   >
