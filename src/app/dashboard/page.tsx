@@ -149,9 +149,16 @@ export default function DashboardPage() {
   }, []);
 
   const handleJourneyBack = useCallback(() => {
-    // User closed the trip detail view — clear the map back to global state.
+    // User closed the trip detail view — clear the route and return to globe.
     const mapboxService = getMapboxService();
     mapboxService.clearAllJourneys();
+    mapboxService.resumeGlobeView();
+  }, []);
+
+  const handlePlaceDetailClose = useCallback(() => {
+    // User closed the place detail view — fly back to globe and resume rotation.
+    const mapboxService = getMapboxService();
+    mapboxService.resumeGlobeView();
   }, []);
 
   // Called by JourneyCreator when the user taps "Tap on Map".
@@ -326,6 +333,7 @@ export default function DashboardPage() {
           onJourneyBack={handleJourneyBack}
           onJourneyDelete={handleJourneyDelete}
           onJourneyUpdated={handleJourneyUpdated}
+          onPlaceDetailClose={handlePlaceDetailClose}
           onRequestMapPin={handleRequestMapPin}
           mapPinMode={mapPinMode}
           userName={user?.displayName}

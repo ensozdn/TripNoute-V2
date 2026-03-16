@@ -32,6 +32,7 @@ interface JourneyHubProps {
   onJourneyBack?: () => void;
   onJourneyDelete?: (journeyId: string) => Promise<void>;
   onJourneyUpdated?: (journey: Trip) => void;
+  onPlaceDetailClose?: () => void;
   onRequestMapPin?: (onPinDropped: (name: string, lat: number, lng: number) => void) => void;
   mapPinMode?: boolean;
   userName?: string | null;
@@ -61,6 +62,7 @@ export default function JourneyHub({
   onJourneySelect,
   onJourneyBack,
   onJourneyDelete,
+  onPlaceDetailClose,
   onRequestMapPin,
   mapPinMode = false,
   userName,
@@ -210,6 +212,7 @@ export default function JourneyHub({
   const closePlaceView = () => {
     setSelectedPlaceDetail(null);
     setSheetState(prevSheetState);
+    onPlaceDetailClose?.();
   };
 
   return (

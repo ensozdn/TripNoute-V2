@@ -302,6 +302,30 @@ class MapboxService implements IMapboxService {
   isGlobeRotating(): boolean {
     return this.isRotating;
   }
+
+  /**
+   * Fly back to the global overview and resume the slow rotation.
+   * Call this whenever the user returns from a place/trip detail view.
+   */
+  resumeGlobeView(): void {
+    if (!this.map) return;
+
+    this.stopRotation();
+
+    // Ease back to a wide globe view first, then start rotating once the
+    // camera movement ends — so rotation never fights an ongoing flyTo.
+    this.map.flyTo({
+      zoom: 1.8,
+      pitch: 0,
+      bearing: 0,
+      duration: 1800,
+      essential: true,
+    });
+
+    this.map.once('moveend', () => {
+      this.startSlowRotation();
+    });
+  }
   getMap(): mapboxgl.Map | null {
     return this.map;
   }
