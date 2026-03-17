@@ -72,7 +72,6 @@ export default function JourneyHub({
 }: JourneyHubProps) {
   const [activeNav, setActiveNav] = useState<NavTab>('me');
   const [sheetState, setSheetState] = useState<SheetState>('middle');
-  const [prevSheetState, setPrevSheetState] = useState<SheetState>('middle');
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [creationModalOpen, setCreationModalOpen] = useState(false);
   const [editingJourney, setEditingJourney] = useState<Trip | null>(null);
@@ -101,19 +100,17 @@ export default function JourneyHub({
     el.style.transform  = `translateY(${Math.round(px)}px)`;
   };
 
-  // Trip seçilince sheet peek'e iner (harita görünsün), kapanınca eski state'e döner
+  // Trip seçilince sheet peek'e iner (harita görünsün)
   useEffect(() => {
     if (selectedTrip) {
-      setPrevSheetState(stateRef.current);
       setSheetState('peek');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTrip]);
 
-  // Place seçilince sheet peek'e iner (harita görünsün), kapanınca eski state'e döner
+  // Place seçilince sheet peek'e iner (harita görünsün)
   useEffect(() => {
     if (selectedPlaceDetail) {
-      setPrevSheetState(stateRef.current);
       setSheetState('peek');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -205,13 +202,13 @@ export default function JourneyHub({
 
   const closeTripView = () => {
     setSelectedTrip(null);
-    setSheetState(prevSheetState);
+    setSheetState('middle');
     onJourneyBack?.();
   };
 
   const closePlaceView = () => {
     setSelectedPlaceDetail(null);
-    setSheetState(prevSheetState);
+    setSheetState('middle');
     onPlaceDetailClose?.();
   };
 
