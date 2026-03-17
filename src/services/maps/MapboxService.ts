@@ -316,7 +316,7 @@ class MapboxService implements IMapboxService {
     // camera movement ends — so rotation never fights an ongoing flyTo.
     this.map.flyTo({
       center: [20, 20], // default globe center — same as initial app load
-      zoom: 1.8,
+      zoom: 1.0,
       pitch: 0,
       bearing: 0,
       duration: 1800,
