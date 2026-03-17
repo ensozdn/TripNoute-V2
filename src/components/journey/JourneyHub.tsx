@@ -8,7 +8,7 @@ import JourneyCreator from './creator/JourneyCreator';
 import JourneyActionMenu from './JourneyActionMenu';
 import JourneyCreationModal from './JourneyCreationModal';
 import TrippoChat from '@/components/common/TrippoChat';
-import { User, Users, Globe, Bell, Plus, TrendingUp, MapPin, MoreHorizontal, Pencil, Trash2, AlertTriangle, ChevronLeft } from 'lucide-react';
+import { User, Users, Globe, Bell, Plus, TrendingUp, MapPin, MoreHorizontal, Pencil, Trash2, AlertTriangle, ChevronLeft, Search, UserPlus, UserCheck, X } from 'lucide-react';
 import { deduplicateCountries } from '@/utils/dataNormalizer';
 type NavTab = 'me' | 'activity' | 'explore' | 'notifications';
 type SheetState = 'peek' | 'middle' | 'full';
@@ -50,6 +50,28 @@ const NAV_ITEMS: { id: NavTab; label: string; icon: React.ReactNode }[] = [
   { id: 'notifications', label: 'Notifications', icon: <Bell className="w-5 h-5" /> },
 ];
 
+// Mock suggested users (backend'den gelecek)
+const SUGGESTED_USERS = [
+  { id: '1', name: 'Ali Yılmaz', location: 'Istanbul', placesCount: 24, photoUrl: null, isFollowing: false },
+  { id: '2', name: 'Ayşe Demir', location: 'Paris', placesCount: 18, photoUrl: null, isFollowing: false },
+  { id: '3', name: 'Mehmet Can', location: 'Berlin', placesCount: 31, photoUrl: null, isFollowing: false },
+];
+
+// Mock trending destinations (backend'den gelecek)
+const TRENDING_DESTINATIONS = [
+  { id: '1', name: 'Tokyo', country: 'Japan', travelers: 1248, imageUrl: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=300&fit=crop', flag: '🇯🇵' },
+  { id: '2', name: 'Paris', country: 'France', travelers: 2156, imageUrl: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400&h=300&fit=crop', flag: '🇫🇷' },
+  { id: '3', name: 'Bali', country: 'Indonesia', travelers: 987, imageUrl: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=400&h=300&fit=crop', flag: '🇮🇩' },
+  { id: '4', name: 'New York', country: 'USA', travelers: 1876, imageUrl: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=400&h=300&fit=crop', flag: '🇺🇸' },
+];
+
+// Mock notifications (backend'den gelecek)
+const MOCK_NOTIFICATIONS = [
+  { id: '1', type: 'follow', userName: 'Ali Yılmaz', userPhoto: null, message: 'started following you', time: '2 hours ago', read: false },
+  { id: '2', type: 'trip', userName: 'Ayşe Demir', userPhoto: null, message: 'completed Istanbul trip', time: '1 day ago', read: false },
+  { id: '3', type: 'place', userName: 'Mehmet Can', userPhoto: null, message: 'added 5 places to Berlin', time: '3 days ago', read: true },
+];
+
 export default function JourneyHub({
   places,
   journeys = [],
@@ -80,6 +102,8 @@ export default function JourneyHub({
   const [openPlaceMenuId, setOpenPlaceMenuId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string } | null>(null);
   const [tripDeleteConfirm, setTripDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+  const [searchFriendsOpen, setSearchFriendsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const sheetRef     = useRef<HTMLDivElement>(null);
   const dragStartY   = useRef(0);
   const dragStartTop = useRef(0);
@@ -831,21 +855,208 @@ export default function JourneyHub({
                 </div>
               )}
               {activeNav === 'activity' && (
-                <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <Users className="w-12 h-12 text-slate-200 mb-3" strokeWidth={1.5} />
-                  <p className="text-slate-400 text-sm">Activity coming soon</p>
+                <div className="pt-4 pb-8">
+                  {/* Empty state — not following anyone */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="flex flex-col items-center py-12 px-4 text-center"
+                  >
+                    <div className="w-20 h-20 rounded-3xl bg-blue-50 flex items-center justify-center mb-5">
+                      <Users className="w-9 h-9 text-blue-400" strokeWidth={1.5} />
+                    </div>
+                    <h3 className="text-slate-800 text-lg font-bold mb-2">You&apos;re not following anyone yet!</h3>
+                    <p className="text-slate-400 text-sm leading-relaxed mb-6 max-w-xs">
+                      Discover who else is traveling the world and follow their adventures.
+                    </p>
+                    <button
+                      onClick={() => setSearchFriendsOpen(true)}
+                      className="flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-blue-500 active:scale-95 transition-all shadow-lg shadow-blue-500/25"
+                    >
+                      <Search className="w-5 h-5 text-white" strokeWidth={2.5} />
+                      <span className="text-white text-base font-semibold">Search for friends</span>
+                    </button>
+                  </motion.div>
+
+                  {/* Suggested travelers */}
+                  <div className="px-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1 h-4 rounded-full bg-blue-500" />
+                        <h3 className="text-slate-900 text-sm font-bold">Suggested Travelers</h3>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      {SUGGESTED_USERS.map((user, index) => (
+                        <motion.div
+                          key={user.id}
+                          initial={{ opacity: 0, y: 12 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.08 }}
+                          className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3 shadow-sm shadow-black/5"
+                        >
+                          {/* Avatar */}
+                          <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
+                            {user.photoUrl ? (
+                              <img src={user.photoUrl} alt={user.name} className="w-full h-full rounded-full object-cover" />
+                            ) : (
+                              <span className="text-slate-600 text-lg font-bold">
+                                {user.name.charAt(0).toUpperCase()}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-slate-900 text-sm font-bold truncate">{user.name}</p>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <MapPin className="w-3 h-3 text-slate-300 shrink-0" strokeWidth={2} />
+                              <p className="text-slate-400 text-xs truncate">
+                                {user.location} · {user.placesCount} places
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Follow button */}
+                          <button
+                            onClick={() => {
+                              // TODO: backend follow logic
+                              console.log('Follow:', user.id);
+                            }}
+                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-500 active:scale-95 transition-all shrink-0"
+                          >
+                            <UserPlus className="w-4 h-4 text-white" strokeWidth={2} />
+                            <span className="text-white text-xs font-semibold">Follow</span>
+                          </button>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
               {activeNav === 'explore' && (
-                <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <Globe className="w-12 h-12 text-slate-200 mb-3" strokeWidth={1.5} />
-                  <p className="text-slate-400 text-sm">Explore coming soon</p>
+                <div className="pt-4 pb-8">
+                  {/* Header */}
+                  <div className="px-4 mb-5">
+                    <h2 className="text-slate-900 text-xl font-bold mb-1">Explore</h2>
+                    <p className="text-slate-400 text-sm">Discover trending destinations around the world</p>
+                  </div>
+
+                  {/* Trending Destinations */}
+                  <div className="px-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-1 h-4 rounded-full bg-blue-500" />
+                      <h3 className="text-slate-900 text-sm font-bold">Trending Now</h3>
+                    </div>
+
+                    <div className="space-y-3">
+                      {TRENDING_DESTINATIONS.map((dest, index) => (
+                        <motion.div
+                          key={dest.id}
+                          initial={{ opacity: 0, y: 12 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.08 }}
+                          className="relative rounded-2xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform shadow-sm shadow-black/10"
+                          style={{ height: 140 }}
+                        >
+                          {/* Background image */}
+                          <div className="absolute inset-0">
+                            <img
+                              src={dest.imageUrl}
+                              alt={dest.name}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+                          </div>
+
+                          {/* Content */}
+                          <div className="relative z-10 h-full flex flex-col justify-end p-4">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h3 className="text-white text-xl font-bold">{dest.name}</h3>
+                                  <span className="text-white text-lg">{dest.flag}</span>
+                                </div>
+                                <p className="text-white/70 text-xs">{dest.country}</p>
+                              </div>
+                              <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1">
+                                <Users className="w-3 h-3 text-white" strokeWidth={2} />
+                                <span className="text-white text-xs font-semibold">{dest.travelers.toLocaleString()}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
               {activeNav === 'notifications' && (
-                <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <Bell className="w-12 h-12 text-slate-200 mb-3" strokeWidth={1.5} />
-                  <p className="text-slate-400 text-sm">No notifications yet</p>
+                <div className="pt-4 pb-8">
+                  {/* Header */}
+                  <div className="px-4 mb-5">
+                    <h2 className="text-slate-900 text-xl font-bold">Notifications</h2>
+                  </div>
+
+                  {/* Notifications list */}
+                  <div className="px-4 space-y-2">
+                    {MOCK_NOTIFICATIONS.map((notif, index) => (
+                      <motion.div
+                        key={notif.id}
+                        initial={{ opacity: 0, x: -12 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.25, delay: index * 0.06 }}
+                        className={`flex items-start gap-3 rounded-2xl px-4 py-3 ${
+                          notif.read ? 'bg-white' : 'bg-blue-50'
+                        } shadow-sm shadow-black/5`}
+                      >
+                        {/* Avatar */}
+                        <div className="w-10 h-10 rounded-full bg-slate-300 flex items-center justify-center shrink-0 mt-0.5">
+                          {notif.userPhoto ? (
+                            <img src={notif.userPhoto} alt={notif.userName} className="w-full h-full rounded-full object-cover" />
+                          ) : (
+                            <span className="text-slate-600 text-sm font-bold">
+                              {notif.userName.charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-slate-900 text-sm leading-relaxed">
+                            <span className="font-bold">{notif.userName}</span>{' '}
+                            <span className="text-slate-600">{notif.message}</span>
+                          </p>
+                          <p className="text-slate-400 text-xs mt-1">{notif.time}</p>
+                        </div>
+
+                        {/* Unread indicator */}
+                        {!notif.read && (
+                          <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-2" />
+                        )}
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  {/* Empty state fallback (eğer bildirim yoksa) */}
+                  {MOCK_NOTIFICATIONS.length === 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="flex flex-col items-center py-16 px-4 text-center"
+                    >
+                      <div className="w-20 h-20 rounded-3xl bg-slate-100 flex items-center justify-center mb-5">
+                        <Bell className="w-9 h-9 text-slate-300" strokeWidth={1.5} />
+                      </div>
+                      <h3 className="text-slate-800 text-lg font-bold mb-2">No notifications yet</h3>
+                      <p className="text-slate-400 text-sm leading-relaxed max-w-xs">
+                        You&apos;ll see updates from your friends and trips here.
+                      </p>
+                    </motion.div>
+                  )}
                 </div>
               )}
             </motion.div>
@@ -1063,6 +1274,137 @@ export default function JourneyHub({
           onRequestMapPin={onRequestMapPin}
         />
       )}
+
+      {/* ── Search Friends Modal ── */}
+      <AnimatePresence>
+        {searchFriendsOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm"
+              onClick={() => setSearchFriendsOpen(false)}
+            />
+
+            {/* Modal */}
+            <motion.div
+              initial={{ opacity: 0, y: '100%' }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: '100%' }}
+              transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+              className="fixed inset-x-0 bottom-0 top-16 z-[81] bg-white rounded-t-3xl shadow-2xl flex flex-col"
+            >
+              {/* Header */}
+              <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b border-black/8 shrink-0">
+                <button
+                  onClick={() => setSearchFriendsOpen(false)}
+                  className="w-9 h-9 rounded-xl bg-black/6 flex items-center justify-center active:scale-90 transition-transform"
+                >
+                  <ChevronLeft className="w-5 h-5 text-slate-700" strokeWidth={2.5} />
+                </button>
+                <h2 className="flex-1 text-slate-900 text-lg font-bold">Search Friends</h2>
+              </div>
+
+              {/* Search bar */}
+              <div className="px-4 pt-3 pb-4 shrink-0">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" strokeWidth={2} />
+                  <input
+                    type="text"
+                    placeholder="Search by name or email..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 border border-black/8 text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center active:scale-90 transition-transform"
+                    >
+                      <X className="w-3 h-3 text-white" strokeWidth={2.5} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-8">
+                {/* Suggested Section */}
+                {!searchQuery && (
+                  <>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-1 h-4 rounded-full bg-blue-500" />
+                      <h3 className="text-slate-900 text-sm font-bold">Suggested for You</h3>
+                    </div>
+
+                    <div className="space-y-2 mb-6">
+                      {SUGGESTED_USERS.map((user, index) => (
+                        <motion.div
+                          key={user.id}
+                          initial={{ opacity: 0, x: -12 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.25, delay: index * 0.06 }}
+                          className="flex items-center gap-3 bg-slate-50 rounded-2xl px-4 py-3"
+                        >
+                          {/* Avatar */}
+                          <div className="w-12 h-12 rounded-full bg-slate-300 flex items-center justify-center shrink-0">
+                            {user.photoUrl ? (
+                              <img src={user.photoUrl} alt={user.name} className="w-full h-full rounded-full object-cover" />
+                            ) : (
+                              <span className="text-slate-600 text-lg font-bold">
+                                {user.name.charAt(0).toUpperCase()}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-slate-900 text-sm font-bold truncate">{user.name}</p>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <MapPin className="w-3 h-3 text-slate-300 shrink-0" strokeWidth={2} />
+                              <p className="text-slate-400 text-xs truncate">
+                                {user.location} · {user.placesCount} places
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Follow button */}
+                          <button
+                            onClick={() => {
+                              // TODO: backend follow logic
+                              console.log('Follow:', user.id);
+                            }}
+                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-500 active:scale-95 transition-all shrink-0"
+                          >
+                            <UserPlus className="w-4 h-4 text-white" strokeWidth={2} />
+                            <span className="text-white text-xs font-semibold">Follow</span>
+                          </button>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* Search Results */}
+                {searchQuery && (
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <Search className="w-12 h-12 text-slate-200 mb-3" strokeWidth={1.5} />
+                    <p className="text-slate-400 text-sm">
+                      Search results will appear here
+                    </p>
+                    <p className="text-slate-300 text-xs mt-1">
+                      (Backend integration coming soon)
+                    </p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Trippo Chat — standalone FAB, bottom sheet arkasında kalır (z-30) */}
       {!hidden && (
