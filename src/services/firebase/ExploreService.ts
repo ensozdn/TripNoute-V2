@@ -25,6 +25,7 @@ import {
   CreatePostFromTripInput,
   PostWithEngagement,
 } from '@/types/explore';
+import { notificationService } from './NotificationService';
 
 /**
  * ExploreService - Handles explore feed, posts, likes, and comments
@@ -262,6 +263,14 @@ export class ExploreService {
       return; // Already liked
     }
 
+    // Get post data for notification
+    const postDoc = await getDoc(doc(this.postsCollection, postId));
+    if (!postDoc.exists()) {
+      throw new Error('Post not found');
+    }
+
+    const post = { id: postDoc.id, ...postDoc.data() } as Post;
+
     // Create like document and increment post's likesCount
     const batch = writeBatch(db);
 
@@ -279,6 +288,19 @@ export class ExploreService {
     });
 
     await batch.commit();
+
+    // Create notification (if not liking own post)
+    if (post.userId !== userId) {
+      await notificationService.createLikeNotification(
+        userId,
+        userName,
+        userPhotoUrl,
+        post.userId,
+        postId,
+        post.title || 'post',
+        post.photoUrls?.[0]
+      );
+    }
   }
 
   /**

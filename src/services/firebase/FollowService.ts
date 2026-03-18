@@ -13,6 +13,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { notificationService } from './NotificationService';
 
 export interface UserProfile {
   uid: string;
@@ -57,11 +58,23 @@ export class FollowService {
       return; // Already following
     }
 
+    // Create follow relationship
     await setDoc(followRef, {
       followerId,
       followingId,
       createdAt: serverTimestamp(),
     });
+
+    // Get follower's profile info
+    const followerProfile = await this.getUserProfile(followerId);
+
+    // Create notification for the followed user
+    await notificationService.createFollowNotification(
+      followerId,
+      followerProfile.displayName || 'Someone',
+      followerProfile.photoURL || undefined,
+      followingId
+    );
   }
 
   /**

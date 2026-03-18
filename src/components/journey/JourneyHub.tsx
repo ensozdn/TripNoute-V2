@@ -14,6 +14,8 @@ import { deduplicateCountries } from '@/utils/dataNormalizer';
 import { followService, UserProfile } from '@/services/firebase/FollowService';
 import { exploreService } from '@/services/firebase/ExploreService';
 import { useAuth } from '@/contexts/AuthContext';
+import { NotificationsList } from '@/components/notifications/NotificationsList';
+import { NotificationBadge } from '@/components/notifications/NotificationBadge';
 type NavTab = 'me' | 'activity' | 'explore' | 'notifications';
 type SheetState = 'peek' | 'middle' | 'full';
 
@@ -52,13 +54,6 @@ const NAV_ITEMS: { id: NavTab; label: string; icon: React.ReactNode }[] = [
   { id: 'activity',      label: 'Activity',      icon: <Users className="w-5 h-5" /> },
   { id: 'explore',       label: 'Explore',       icon: <Globe className="w-5 h-5" /> },
   { id: 'notifications', label: 'Notifications', icon: <Bell className="w-5 h-5" /> },
-];
-
-// Mock notifications (backend'den gelecek)
-const MOCK_NOTIFICATIONS = [
-  { id: '1', type: 'follow', userName: 'Ali Yılmaz', userPhoto: null, message: 'started following you', time: '2 hours ago', read: false },
-  { id: '2', type: 'trip', userName: 'Ayşe Demir', userPhoto: null, message: 'completed Istanbul trip', time: '1 day ago', read: false },
-  { id: '3', type: 'place', userName: 'Mehmet Can', userPhoto: null, message: 'added 5 places to Berlin', time: '3 days ago', read: true },
 ];
 
 export default function JourneyHub({
@@ -1170,71 +1165,8 @@ export default function JourneyHub({
                   userPhotoUrl={user.photoURL || undefined}
                 />
               )}
-              {activeNav === 'notifications' && (
-                <div className="pt-4 pb-8">
-                  {/* Header */}
-                  <div className="px-4 mb-5">
-                    <h2 className="text-slate-900 text-xl font-bold">Notifications</h2>
-                  </div>
-
-                  {/* Notifications list */}
-                  <div className="px-4 space-y-2">
-                    {MOCK_NOTIFICATIONS.map((notif, index) => (
-                      <motion.div
-                        key={notif.id}
-                        initial={{ opacity: 0, x: -12 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.25, delay: index * 0.06 }}
-                        className={`flex items-start gap-3 rounded-2xl px-4 py-3 ${
-                          notif.read ? 'bg-white' : 'bg-blue-50'
-                        } shadow-sm shadow-black/5`}
-                      >
-                        {/* Avatar */}
-                        <div className="w-10 h-10 rounded-full bg-slate-300 flex items-center justify-center shrink-0 mt-0.5">
-                          {notif.userPhoto ? (
-                            <img src={notif.userPhoto} alt={notif.userName} className="w-full h-full rounded-full object-cover" />
-                          ) : (
-                            <span className="text-slate-600 text-sm font-bold">
-                              {notif.userName.charAt(0).toUpperCase()}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-slate-900 text-sm leading-relaxed">
-                            <span className="font-bold">{notif.userName}</span>{' '}
-                            <span className="text-slate-600">{notif.message}</span>
-                          </p>
-                          <p className="text-slate-400 text-xs mt-1">{notif.time}</p>
-                        </div>
-
-                        {/* Unread indicator */}
-                        {!notif.read && (
-                          <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-2" />
-                        )}
-                      </motion.div>
-                    ))}
-                  </div>
-
-                  {/* Empty state fallback (eğer bildirim yoksa) */}
-                  {MOCK_NOTIFICATIONS.length === 0 && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="flex flex-col items-center py-16 px-4 text-center"
-                    >
-                      <div className="w-20 h-20 rounded-3xl bg-slate-100 flex items-center justify-center mb-5">
-                        <Bell className="w-9 h-9 text-slate-300" strokeWidth={1.5} />
-                      </div>
-                      <h3 className="text-slate-800 text-lg font-bold mb-2">No notifications yet</h3>
-                      <p className="text-slate-400 text-sm leading-relaxed max-w-xs">
-                        You&apos;ll see updates from your friends and trips here.
-                      </p>
-                    </motion.div>
-                  )}
-                </div>
+              {activeNav === 'notifications' && user && (
+                <NotificationsList userId={user.uid} />
               )}
             </motion.div>
             )} {/* end selectedTrip / selectedPlaceDetail ternary */}
@@ -1279,6 +1211,10 @@ export default function JourneyHub({
                   )}
                   <span className={`relative z-10 transition-colors duration-200 ${isActive ? 'text-slate-900' : 'text-slate-400'}`}>
                     {item.icon}
+                    {/* Unread badge for notifications */}
+                    {item.id === 'notifications' && user && (
+                      <NotificationBadge userId={user.uid} />
+                    )}
                   </span>
                   <span className={`relative z-10 text-[10px] font-semibold transition-colors duration-200 ${isActive ? 'text-slate-900' : 'text-slate-400'}`}>
                     {item.label}
