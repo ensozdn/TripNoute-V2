@@ -192,7 +192,9 @@ export class ExploreService {
       }
     }
 
+    console.log('🔍 ExploreService: Attempting to fetch posts...');
     const snapshot = await getDocs(q);
+    console.log('✅ ExploreService: Query successful, docs count:', snapshot.docs.length);
     const posts: Post[] = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),

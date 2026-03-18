@@ -107,6 +107,7 @@ export default function JourneyHub({
 
   // Share post state
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareTripModalOpen, setShareTripModalOpen] = useState(false);
   const [shareCaption, setShareCaption] = useState('');
   const [sharingPost, setSharingPost] = useState(false);
 
@@ -167,6 +168,14 @@ export default function JourneyHub({
     return () => clearTimeout(debounce);
   }, [searchQuery, user?.uid]);
 
+  // Debug: Auth state
+  useEffect(() => {
+    console.log('🔍 Auth state:', { 
+      user: user ? { uid: user.uid, email: user.email } : null,
+      isLoading: !user 
+    });
+  }, [user]);
+
   // ─────────────────────────────────────────────────────────────────
   // Follow/Unfollow handler
   // ─────────────────────────────────────────────────────────────────
@@ -194,16 +203,23 @@ export default function JourneyHub({
   // Load explore feed when tab opens
   // ─────────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (activeNav !== 'explore' || !user?.uid) return;
+    console.log('🔍 Explore tab effect triggered:', { activeNav, userId: user?.uid, userEmail: user?.email });
+    
+    if (activeNav !== 'explore' || !user?.uid) {
+      console.log('❌ Explore tab conditions not met');
+      return;
+    }
     
     const loadFeed = async () => {
+      console.log('🚀 Starting to load explore feed...');
       setLoadingPosts(true);
       try {
         const posts = await exploreService.getExploreFeed(user.uid, { limit: 20 });
+        console.log('✅ Explore feed loaded successfully:', posts.length, 'posts');
         setExplorePosts(posts);
         setLikedPosts(new Set(posts.filter(p => p.isLikedByCurrentUser).map(p => p.id)));
       } catch (error) {
-        console.error('Failed to load explore feed:', error);
+        console.error('❌ Failed to load explore feed:', error);
       } finally {
         setLoadingPosts(false);
       }
@@ -416,6 +432,45 @@ export default function JourneyHub({
     }
   };
 
+  const handleShareTrip = async () => {
+    if (!selectedTrip || !user) return;
+    
+    setSharingPost(true);
+    try {
+      await exploreService.createPostFromTrip(
+        {
+          tripId: selectedTrip.id,
+          caption: shareCaption || undefined
+        },
+        user.uid,
+        user.displayName || 'Anonymous',
+        user.photoURL || undefined
+      );
+      
+      // Reset modal and refresh explore feed if it's open
+      setShareTripModalOpen(false);
+      setShareCaption('');
+      
+      if (activeNav === 'explore') {
+        setLoadingPosts(true);
+        try {
+          const posts = await exploreService.getExploreFeed(user.uid, { limit: 20 });
+          setExplorePosts(posts);
+          setLikedPosts(new Set(posts.filter(p => p.isLikedByCurrentUser).map(p => p.id)));
+        } catch (error) {
+          console.error('Failed to refresh explore feed:', error);
+        } finally {
+          setLoadingPosts(false);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to share trip:', error);
+      alert('Failed to share trip. Please try again.');
+    } finally {
+      setSharingPost(false);
+    }
+  };
+
   return (
     <>
       {/* Bottom Sheet — dış wrapper transparan, rounded köşeler sadece inner white div'de */}
@@ -617,6 +672,12 @@ export default function JourneyHub({
                     <h2 className="text-slate-900 text-lg font-bold truncate">{selectedTrip.name}</h2>
                     <p className="text-slate-400 text-xs">{selectedTrip.steps.length} stops</p>
                   </div>
+                  <button
+                    onClick={() => setShareTripModalOpen(true)}
+                    className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center active:scale-90 transition-transform shrink-0"
+                  >
+                    <Share className="w-4 h-4 text-blue-500" />
+                  </button>
                   <button
                     onClick={() => {
                       setEditingJourney(selectedTrip);
@@ -1556,6 +1617,91 @@ export default function JourneyHub({
                   </button>
                   <button
                     onClick={handleSharePlace}
+                    disabled={sharingPost}
+                    className="flex-1 px-4 py-2.5 bg-blue-500 text-white rounded-xl font-semibold active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {sharingPost ? 'Sharing...' : 'Share'}
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Share Trip Modal ── */}
+      <AnimatePresence>
+        {shareTripModalOpen && selectedTrip && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShareTripModalOpen(false)}
+              className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4"
+            >
+              {/* Modal */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white rounded-2xl max-w-md w-full p-6"
+              >
+                <div className="text-center mb-4">
+                  <h2 className="text-xl font-bold text-slate-900">Share Trip</h2>
+                  <p className="text-slate-500 text-sm mt-1">Share "{selectedTrip.name}" to your Explore feed</p>
+                </div>
+
+                {/* Trip preview */}
+                <div className="bg-slate-50 rounded-xl p-3 mb-4">
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-12 h-12 rounded-lg flex items-center justify-center"
+                      style={{ 
+                        background: `linear-gradient(135deg, ${selectedTrip.color ?? '#1e3a5f'}dd, ${selectedTrip.color ?? '#1e3a5f'}88)`
+                      }}
+                    >
+                      <MapPin className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-slate-900 truncate">{selectedTrip.name}</h3>
+                      <p className="text-slate-500 text-xs truncate">
+                        {selectedTrip.steps.length} stops • {selectedTrip.steps?.[0]?.timestamp ? 
+                          new Date(selectedTrip.steps[0].timestamp).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) 
+                          : 'Adventure'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Caption input */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Caption (optional)
+                  </label>
+                  <textarea
+                    value={shareCaption}
+                    onChange={(e) => setShareCaption(e.target.value)}
+                    placeholder="Share your journey..."
+                    rows={3}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    maxLength={500}
+                  />
+                  <p className="text-slate-400 text-xs mt-1">{shareCaption.length}/500</p>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShareTripModalOpen(false)}
+                    className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl font-semibold text-slate-700 active:scale-95 transition-transform"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleShareTrip}
                     disabled={sharingPost}
                     className="flex-1 px-4 py-2.5 bg-blue-500 text-white rounded-xl font-semibold active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
                   >
