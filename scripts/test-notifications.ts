@@ -22,7 +22,7 @@ async function createTestNotifications(recipientId: string) {
   console.log('🔔 Creating test notifications for user:', recipientId);
 
   try {
-    // 1. Follow notification
+    // 1. Follow notification (NOW)
     const followNotif = await addDoc(collection(db, 'notifications'), {
       recipientId,
       senderId: 'test-user-1',
@@ -34,10 +34,7 @@ async function createTestNotifications(recipientId: string) {
     });
     console.log('✅ Follow notification created:', followNotif.id);
 
-    // 2. Like notification (from 2 hours ago)
-    const twoHoursAgo = new Date();
-    twoHoursAgo.setHours(twoHoursAgo.getHours() - 2);
-    
+    // 2. Like notification (NOW - will appear as "just now")
     const likeNotif = await addDoc(collection(db, 'notifications'), {
       recipientId,
       senderId: 'test-user-2',
@@ -48,14 +45,11 @@ async function createTestNotifications(recipientId: string) {
       text: 'Amazing view from Cappadocia!',
       photoUrl: 'https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?w=400',
       isRead: false,
-      createdAt: twoHoursAgo,
+      createdAt: serverTimestamp(),
     });
     console.log('✅ Like notification created:', likeNotif.id);
 
-    // 3. Comment notification (from yesterday)
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    
+    // 3. Comment notification (NOW)
     const commentNotif = await addDoc(collection(db, 'notifications'), {
       recipientId,
       senderId: 'test-user-3',
@@ -67,14 +61,11 @@ async function createTestNotifications(recipientId: string) {
       text: 'I was there last summer! Great spot 🌊',
       photoUrl: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=400',
       isRead: false,
-      createdAt: yesterday,
+      createdAt: serverTimestamp(),
     });
     console.log('✅ Comment notification created:', commentNotif.id);
 
-    // 4. Trip start notification (from 3 days ago)
-    const threeDaysAgo = new Date();
-    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-    
+    // 4. Trip start notification (NOW - marked as read)
     const tripNotif = await addDoc(collection(db, 'notifications'), {
       recipientId,
       senderId: 'test-user-4',
@@ -85,14 +76,11 @@ async function createTestNotifications(recipientId: string) {
       text: 'Balkan Road Trip',
       photoUrl: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400',
       isRead: true,
-      createdAt: threeDaysAgo,
+      createdAt: serverTimestamp(),
     });
     console.log('✅ Trip start notification created:', tripNotif.id);
 
-    // 5. Milestone notification (from 1 week ago)
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    
+    // 5. Milestone notification (NOW - marked as read)
     const milestoneNotif = await addDoc(collection(db, 'notifications'), {
       recipientId,
       senderId: 'test-user-5',
@@ -104,7 +92,7 @@ async function createTestNotifications(recipientId: string) {
       text: 'Reached the summit of Mount Olympus!',
       photoUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400',
       isRead: true,
-      createdAt: weekAgo,
+      createdAt: serverTimestamp(),
     });
     console.log('✅ Milestone notification created:', milestoneNotif.id);
 
