@@ -8,7 +8,7 @@ import JourneyCreator from './creator/JourneyCreator';
 import JourneyActionMenu from './JourneyActionMenu';
 import JourneyCreationModal from './JourneyCreationModal';
 import TrippoChat from '@/components/common/TrippoChat';
-import { User, Users, Globe, Bell, Plus, TrendingUp, MapPin, MoreHorizontal, Pencil, Trash2, AlertTriangle, ChevronLeft, Search, UserPlus, UserCheck, X } from 'lucide-react';
+import { User, Users, Globe, Bell, Plus, TrendingUp, MapPin, MoreHorizontal, Pencil, Trash2, AlertTriangle, ChevronLeft, Search, UserPlus, X } from 'lucide-react';
 import { deduplicateCountries } from '@/utils/dataNormalizer';
 type NavTab = 'me' | 'activity' | 'explore' | 'notifications';
 type SheetState = 'peek' | 'middle' | 'full';
