@@ -10,6 +10,8 @@ import JourneyCreationModal from './JourneyCreationModal';
 import TrippoChat from '@/components/common/TrippoChat';
 import { User, Users, Globe, Bell, Plus, TrendingUp, MapPin, MoreHorizontal, Pencil, Trash2, AlertTriangle, ChevronLeft, Search, UserPlus, X } from 'lucide-react';
 import { deduplicateCountries } from '@/utils/dataNormalizer';
+import { followService, UserProfile } from '@/services/firebase/FollowService';
+import { useAuth } from '@/contexts/AuthContext';
 type NavTab = 'me' | 'activity' | 'explore' | 'notifications';
 type SheetState = 'peek' | 'middle' | 'full';
 
@@ -48,13 +50,6 @@ const NAV_ITEMS: { id: NavTab; label: string; icon: React.ReactNode }[] = [
   { id: 'activity',      label: 'Activity',      icon: <Users className="w-5 h-5" /> },
   { id: 'explore',       label: 'Explore',       icon: <Globe className="w-5 h-5" /> },
   { id: 'notifications', label: 'Notifications', icon: <Bell className="w-5 h-5" /> },
-];
-
-// Mock suggested users (backend'den gelecek)
-const SUGGESTED_USERS = [
-  { id: '1', name: 'Ali Yılmaz', location: 'Istanbul', placesCount: 24, photoUrl: null, isFollowing: false },
-  { id: '2', name: 'Ayşe Demir', location: 'Paris', placesCount: 18, photoUrl: null, isFollowing: false },
-  { id: '3', name: 'Mehmet Can', location: 'Berlin', placesCount: 31, photoUrl: null, isFollowing: false },
 ];
 
 // Mock trending destinations (backend'den gelecek)
@@ -104,6 +99,93 @@ export default function JourneyHub({
   const [tripDeleteConfirm, setTripDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [searchFriendsOpen, setSearchFriendsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [suggestedUsers, setSuggestedUsers] = useState<UserProfile[]>([]);
+  const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
+  const [followingUsers, setFollowingUsers] = useState<UserProfile[]>([]);
+  const [loadingSearch, setLoadingSearch] = useState(false);
+  const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
+  const { user } = useAuth();
+
+  // ─────────────────────────────────────────────────────────────────
+  // Load suggested users on mount
+  // ─────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!user?.uid) return;
+    const loadSuggested = async () => {
+      try {
+        const users = await followService.getSuggestedUsers(user.uid, 3);
+        setSuggestedUsers(users);
+      } catch (error) {
+        console.error('Failed to load suggested users:', error);
+      }
+    };
+    loadSuggested();
+  }, [user?.uid]);
+
+  // ─────────────────────────────────────────────────────────────────
+  // Load following list on mount
+  // ─────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!user?.uid) return;
+    const loadFollowing = async () => {
+      try {
+        const following = await followService.getFollowing(user.uid);
+        setFollowingUsers(following.map(f => f.profile));
+        setFollowingIds(new Set(following.map(f => f.profile.uid)));
+      } catch (error) {
+        console.error('Failed to load following:', error);
+      }
+    };
+    loadFollowing();
+  }, [user?.uid]);
+
+  // ─────────────────────────────────────────────────────────────────
+  // Search users when query changes (debounced)
+  // ─────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!searchQuery.trim() || !user?.uid) {
+      setSearchResults([]);
+      setLoadingSearch(false);
+      return;
+    }
+    setLoadingSearch(true);
+    const searchUsers = async () => {
+      try {
+        const results = await followService.searchUsers(searchQuery, user.uid);
+        setSearchResults(results);
+      } catch (error) {
+        console.error('Search failed:', error);
+      } finally {
+        setLoadingSearch(false);
+      }
+    };
+    const debounce = setTimeout(searchUsers, 300);
+    return () => clearTimeout(debounce);
+  }, [searchQuery, user?.uid]);
+
+  // ─────────────────────────────────────────────────────────────────
+  // Follow/Unfollow handler
+  // ─────────────────────────────────────────────────────────────────
+  const handleFollowToggle = async (targetUserId: string) => {
+    if (!user?.uid) return;
+    try {
+      const isCurrentlyFollowing = followingIds.has(targetUserId);
+      if (isCurrentlyFollowing) {
+        await followService.unfollowUser(user.uid, targetUserId);
+        setFollowingIds(prev => {
+          const next = new Set(prev);
+          next.delete(targetUserId);
+          return next;
+        });
+      } else {
+        await followService.followUser(user.uid, targetUserId);
+        setFollowingIds(prev => new Set(prev).add(targetUserId));
+      }
+    } catch (error) {
+      console.error('Follow toggle failed:', error);
+    }
+  };
+
   const sheetRef     = useRef<HTMLDivElement>(null);
   const dragStartY   = useRef(0);
   const dragStartTop = useRef(0);
@@ -856,7 +938,16 @@ export default function JourneyHub({
               )}
               {activeNav === 'activity' && (
                 <div className="pt-4 pb-8">
+                  {/* Header with following count */}
+                  {followingUsers.length > 0 && (
+                    <div className="px-4 mb-5">
+                      <h2 className="text-slate-900 text-xl font-bold mb-1">Activity</h2>
+                      <p className="text-slate-400 text-sm">Following {followingUsers.length} {followingUsers.length === 1 ? 'traveler' : 'travelers'}</p>
+                    </div>
+                  )}
+
                   {/* Empty state — not following anyone */}
+                  {followingUsers.length === 0 && (
                   <motion.div
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -878,8 +969,65 @@ export default function JourneyHub({
                       <span className="text-white text-base font-semibold">Search for friends</span>
                     </button>
                   </motion.div>
+                  )}
+
+                  {/* Following list */}
+                  {followingUsers.length > 0 && (
+                    <div className="px-4 space-y-2 mb-6">
+                      {followingUsers.map((followingUser, index) => {
+                        const isFollowing = followingIds.has(followingUser.uid);
+                        return (
+                        <motion.div
+                          key={followingUser.uid}
+                          initial={{ opacity: 0, y: 12 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.06 }}
+                          className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3 shadow-sm shadow-black/5"
+                        >
+                          {/* Avatar */}
+                          <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
+                            {followingUser.photoURL ? (
+                              <img src={followingUser.photoURL} alt={followingUser.displayName} className="w-full h-full rounded-full object-cover" />
+                            ) : (
+                              <span className="text-slate-600 text-lg font-bold">
+                                {followingUser.displayName.charAt(0).toUpperCase()}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-slate-900 text-sm font-bold truncate">{followingUser.displayName}</p>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <MapPin className="w-3 h-3 text-slate-300 shrink-0" strokeWidth={2} />
+                              <p className="text-slate-400 text-xs truncate">
+                                {followingUser.stats?.placesCount || 0} places
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Following button */}
+                          <button
+                            onClick={() => handleFollowToggle(followingUser.uid)}
+                            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl active:scale-95 transition-all shrink-0 ${
+                              isFollowing
+                                ? 'bg-slate-200 text-slate-600'
+                                : 'bg-blue-500 text-white'
+                            }`}
+                          >
+                            <UserPlus className="w-4 h-4" strokeWidth={2} />
+                            <span className="text-xs font-semibold">
+                              {isFollowing ? 'Following' : 'Follow'}
+                            </span>
+                          </button>
+                        </motion.div>
+                        );
+                      })}
+                    </div>
+                  )}
 
                   {/* Suggested travelers */}
+                  {suggestedUsers.length > 0 && (
                   <div className="px-4">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
@@ -889,9 +1037,11 @@ export default function JourneyHub({
                     </div>
 
                     <div className="space-y-2">
-                      {SUGGESTED_USERS.map((user, index) => (
+                      {suggestedUsers.map((suggestedUser, index) => {
+                        const isFollowing = followingIds.has(suggestedUser.uid);
+                        return (
                         <motion.div
-                          key={user.id}
+                          key={suggestedUser.uid}
                           initial={{ opacity: 0, y: 12 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.3, delay: index * 0.08 }}
@@ -899,41 +1049,46 @@ export default function JourneyHub({
                         >
                           {/* Avatar */}
                           <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
-                            {user.photoUrl ? (
-                              <img src={user.photoUrl} alt={user.name} className="w-full h-full rounded-full object-cover" />
+                            {suggestedUser.photoURL ? (
+                              <img src={suggestedUser.photoURL} alt={suggestedUser.displayName} className="w-full h-full rounded-full object-cover" />
                             ) : (
                               <span className="text-slate-600 text-lg font-bold">
-                                {user.name.charAt(0).toUpperCase()}
+                                {suggestedUser.displayName.charAt(0).toUpperCase()}
                               </span>
                             )}
                           </div>
 
                           {/* Info */}
                           <div className="flex-1 min-w-0">
-                            <p className="text-slate-900 text-sm font-bold truncate">{user.name}</p>
+                            <p className="text-slate-900 text-sm font-bold truncate">{suggestedUser.displayName}</p>
                             <div className="flex items-center gap-1.5 mt-0.5">
                               <MapPin className="w-3 h-3 text-slate-300 shrink-0" strokeWidth={2} />
                               <p className="text-slate-400 text-xs truncate">
-                                {user.location} · {user.placesCount} places
+                                {suggestedUser.stats?.placesCount || 0} places
                               </p>
                             </div>
                           </div>
 
                           {/* Follow button */}
                           <button
-                            onClick={() => {
-                              // TODO: backend follow logic
-                              console.log('Follow:', user.id);
-                            }}
-                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-500 active:scale-95 transition-all shrink-0"
+                            onClick={() => handleFollowToggle(suggestedUser.uid)}
+                            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl active:scale-95 transition-all shrink-0 ${
+                              isFollowing
+                                ? 'bg-slate-200 text-slate-600'
+                                : 'bg-blue-500 text-white'
+                            }`}
                           >
-                            <UserPlus className="w-4 h-4 text-white" strokeWidth={2} />
-                            <span className="text-white text-xs font-semibold">Follow</span>
+                            <UserPlus className="w-4 h-4" strokeWidth={2} />
+                            <span className="text-xs font-semibold">
+                              {isFollowing ? 'Following' : 'Follow'}
+                            </span>
                           </button>
                         </motion.div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
+                  )}
                 </div>
               )}
               {activeNav === 'explore' && (
@@ -1341,9 +1496,11 @@ export default function JourneyHub({
                     </div>
 
                     <div className="space-y-2 mb-6">
-                      {SUGGESTED_USERS.map((user, index) => (
+                      {suggestedUsers.map((suggestedUser, index) => {
+                        const isFollowing = followingIds.has(suggestedUser.uid);
+                        return (
                         <motion.div
-                          key={user.id}
+                          key={suggestedUser.uid}
                           initial={{ opacity: 0, x: -12 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.25, delay: index * 0.06 }}
@@ -1351,54 +1508,119 @@ export default function JourneyHub({
                         >
                           {/* Avatar */}
                           <div className="w-12 h-12 rounded-full bg-slate-300 flex items-center justify-center shrink-0">
-                            {user.photoUrl ? (
-                              <img src={user.photoUrl} alt={user.name} className="w-full h-full rounded-full object-cover" />
+                            {suggestedUser.photoURL ? (
+                              <img src={suggestedUser.photoURL} alt={suggestedUser.displayName} className="w-full h-full rounded-full object-cover" />
                             ) : (
                               <span className="text-slate-600 text-lg font-bold">
-                                {user.name.charAt(0).toUpperCase()}
+                                {suggestedUser.displayName.charAt(0).toUpperCase()}
                               </span>
                             )}
                           </div>
 
                           {/* Info */}
                           <div className="flex-1 min-w-0">
-                            <p className="text-slate-900 text-sm font-bold truncate">{user.name}</p>
+                            <p className="text-slate-900 text-sm font-bold truncate">{suggestedUser.displayName}</p>
                             <div className="flex items-center gap-1.5 mt-0.5">
                               <MapPin className="w-3 h-3 text-slate-300 shrink-0" strokeWidth={2} />
                               <p className="text-slate-400 text-xs truncate">
-                                {user.location} · {user.placesCount} places
+                                {suggestedUser.stats?.placesCount || 0} places
                               </p>
                             </div>
                           </div>
 
                           {/* Follow button */}
                           <button
-                            onClick={() => {
-                              // TODO: backend follow logic
-                              console.log('Follow:', user.id);
-                            }}
-                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-500 active:scale-95 transition-all shrink-0"
+                            onClick={() => handleFollowToggle(suggestedUser.uid)}
+                            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl active:scale-95 transition-all shrink-0 ${
+                              isFollowing
+                                ? 'bg-slate-200 text-slate-600'
+                                : 'bg-blue-500 text-white'
+                            }`}
                           >
-                            <UserPlus className="w-4 h-4 text-white" strokeWidth={2} />
-                            <span className="text-white text-xs font-semibold">Follow</span>
+                            <UserPlus className="w-4 h-4" strokeWidth={2} />
+                            <span className="text-xs font-semibold">
+                              {isFollowing ? 'Following' : 'Follow'}
+                            </span>
                           </button>
                         </motion.div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </>
                 )}
 
                 {/* Search Results */}
                 {searchQuery && (
-                  <div className="flex flex-col items-center justify-center py-16 text-center">
-                    <Search className="w-12 h-12 text-slate-200 mb-3" strokeWidth={1.5} />
-                    <p className="text-slate-400 text-sm">
-                      Search results will appear here
-                    </p>
-                    <p className="text-slate-300 text-xs mt-1">
-                      (Backend integration coming soon)
-                    </p>
-                  </div>
+                  <>
+                    {loadingSearch && (
+                      <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mb-3" />
+                        <p className="text-slate-400 text-sm">Searching...</p>
+                      </div>
+                    )}
+
+                    {!loadingSearch && searchResults.length === 0 && (
+                      <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <Search className="w-12 h-12 text-slate-200 mb-3" strokeWidth={1.5} />
+                        <p className="text-slate-400 text-sm">No users found</p>
+                        <p className="text-slate-300 text-xs mt-1">Try a different search term</p>
+                      </div>
+                    )}
+
+                    {!loadingSearch && searchResults.length > 0 && (
+                      <div className="space-y-2">
+                        {searchResults.map((resultUser, index) => {
+                          const isFollowing = followingIds.has(resultUser.uid);
+                          return (
+                          <motion.div
+                            key={resultUser.uid}
+                            initial={{ opacity: 0, x: -12 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.25, delay: index * 0.06 }}
+                            className="flex items-center gap-3 bg-slate-50 rounded-2xl px-4 py-3"
+                          >
+                            {/* Avatar */}
+                            <div className="w-12 h-12 rounded-full bg-slate-300 flex items-center justify-center shrink-0">
+                              {resultUser.photoURL ? (
+                                <img src={resultUser.photoURL} alt={resultUser.displayName} className="w-full h-full rounded-full object-cover" />
+                              ) : (
+                                <span className="text-slate-600 text-lg font-bold">
+                                  {resultUser.displayName.charAt(0).toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Info */}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-slate-900 text-sm font-bold truncate">{resultUser.displayName}</p>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <MapPin className="w-3 h-3 text-slate-300 shrink-0" strokeWidth={2} />
+                                <p className="text-slate-400 text-xs truncate">
+                                  {resultUser.stats?.placesCount || 0} places
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Follow button */}
+                            <button
+                              onClick={() => handleFollowToggle(resultUser.uid)}
+                              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl active:scale-95 transition-all shrink-0 ${
+                                isFollowing
+                                  ? 'bg-slate-200 text-slate-600'
+                                  : 'bg-blue-500 text-white'
+                              }`}
+                            >
+                              <UserPlus className="w-4 h-4" strokeWidth={2} />
+                              <span className="text-xs font-semibold">
+                                {isFollowing ? 'Following' : 'Follow'}
+                              </span>
+                            </button>
+                          </motion.div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </motion.div>
