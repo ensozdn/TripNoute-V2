@@ -8,7 +8,7 @@ import JourneyCreator from './creator/JourneyCreator';
 import JourneyActionMenu from './JourneyActionMenu';
 import JourneyCreationModal from './JourneyCreationModal';
 import TrippoChat from '@/components/common/TrippoChat';
-import { User, Users, Globe, Bell, Plus, TrendingUp, MapPin, MoreHorizontal, Pencil, Trash2, AlertTriangle, ChevronLeft, Search, UserPlus, X, Heart, MessageCircle, Bookmark } from 'lucide-react';
+import { User, Users, Globe, Bell, Plus, TrendingUp, MapPin, MoreHorizontal, Pencil, Trash2, AlertTriangle, ChevronLeft, Search, UserPlus, X, Heart, MessageCircle, Bookmark, Share } from 'lucide-react';
 import { deduplicateCountries } from '@/utils/dataNormalizer';
 import { followService, UserProfile } from '@/services/firebase/FollowService';
 import { exploreService } from '@/services/firebase/ExploreService';
@@ -104,6 +104,11 @@ export default function JourneyHub({
   const [explorePosts, setExplorePosts] = useState<PostWithEngagement[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+
+  // Share post state
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareCaption, setShareCaption] = useState('');
+  const [sharingPost, setSharingPost] = useState(false);
 
   // ─────────────────────────────────────────────────────────────────
   // Load suggested users on mount
@@ -372,6 +377,45 @@ export default function JourneyHub({
     onPlaceDetailClose?.();
   };
 
+  const handleSharePlace = async () => {
+    if (!selectedPlaceDetail || !user) return;
+    
+    setSharingPost(true);
+    try {
+      await exploreService.createPostFromPlace(
+        {
+          placeId: selectedPlaceDetail.id,
+          caption: shareCaption || undefined
+        },
+        user.uid,
+        user.displayName || 'Anonymous',
+        user.photoURL || undefined
+      );
+      
+      // Reset modal and refresh explore feed if it's open
+      setShareModalOpen(false);
+      setShareCaption('');
+      
+      if (activeNav === 'explore') {
+        setLoadingPosts(true);
+        try {
+          const posts = await exploreService.getExploreFeed(user.uid, { limit: 20 });
+          setExplorePosts(posts);
+          setLikedPosts(new Set(posts.filter(p => p.isLikedByCurrentUser).map(p => p.id)));
+        } catch (error) {
+          console.error('Failed to refresh explore feed:', error);
+        } finally {
+          setLoadingPosts(false);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to share place:', error);
+      alert('Failed to share place. Please try again.');
+    } finally {
+      setSharingPost(false);
+    }
+  };
+
   return (
     <>
       {/* Bottom Sheet — dış wrapper transparan, rounded köşeler sadece inner white div'de */}
@@ -436,6 +480,12 @@ export default function JourneyHub({
                       {[selectedPlaceDetail.address?.city, selectedPlaceDetail.address?.country].filter(Boolean).join(', ') || 'Location saved'}
                     </p>
                   </div>
+                  <button
+                    onClick={() => setShareModalOpen(true)}
+                    className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center active:scale-90 transition-transform shrink-0"
+                  >
+                    <Share className="w-4 h-4 text-blue-500" />
+                  </button>
                   <button
                     onClick={() => {
                       closePlaceView();
@@ -1431,6 +1481,92 @@ export default function JourneyHub({
           setCreatorOpen(true);
         }}
       />
+
+      {/* ── Share Place Modal ── */}
+      <AnimatePresence>
+        {shareModalOpen && selectedPlaceDetail && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShareModalOpen(false)}
+              className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4"
+            >
+              {/* Modal */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white rounded-2xl max-w-md w-full p-6"
+              >
+                <div className="text-center mb-4">
+                  <h2 className="text-xl font-bold text-slate-900">Share Place</h2>
+                  <p className="text-slate-500 text-sm mt-1">Share "{selectedPlaceDetail.title}" to your Explore feed</p>
+                </div>
+
+                {/* Place preview */}
+                <div className="bg-slate-50 rounded-xl p-3 mb-4">
+                  <div className="flex items-center gap-3">
+                    {selectedPlaceDetail.photos?.[0]?.url ? (
+                      <img
+                        src={selectedPlaceDetail.photos[0].url}
+                        alt={selectedPlaceDetail.title}
+                        className="w-12 h-12 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                        <MapPin className="w-6 h-6 text-blue-500" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-slate-900 truncate">{selectedPlaceDetail.title}</h3>
+                      <p className="text-slate-500 text-xs truncate">
+                        {[selectedPlaceDetail.address?.city, selectedPlaceDetail.address?.country].filter(Boolean).join(', ')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Caption input */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Caption (optional)
+                  </label>
+                  <textarea
+                    value={shareCaption}
+                    onChange={(e) => setShareCaption(e.target.value)}
+                    placeholder="Share your experience..."
+                    rows={3}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    maxLength={500}
+                  />
+                  <p className="text-slate-400 text-xs mt-1">{shareCaption.length}/500</p>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShareModalOpen(false)}
+                    className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl font-semibold text-slate-700 active:scale-95 transition-transform"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSharePlace}
+                    disabled={sharingPost}
+                    className="flex-1 px-4 py-2.5 bg-blue-500 text-white rounded-xl font-semibold active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {sharingPost ? 'Sharing...' : 'Share'}
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* ── Delete confirmation modal ── */}
       <AnimatePresence>
