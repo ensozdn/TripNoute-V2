@@ -16,7 +16,6 @@ import { exploreService } from '@/services/firebase/ExploreService';
 import { useAuth } from '@/contexts/AuthContext';
 import { NotificationsList } from '@/components/notifications/NotificationsList';
 import { NotificationBadge } from '@/components/notifications/NotificationBadge';
-import { NotificationDebug } from '@/components/notifications/NotificationDebug';
 type NavTab = 'me' | 'activity' | 'explore' | 'notifications';
 type SheetState = 'peek' | 'middle' | 'full';
 
@@ -376,9 +375,6 @@ export default function JourneyHub({
 
   return (
     <>
-      {/* Debug Panel (temporary) */}
-      <NotificationDebug />
-      
       {/* Bottom Sheet — dış wrapper transparan, rounded köşeler sadece inner white div'de */}
       {/* Yükseklik 100dvh + 24px (rounded-t-3xl radius): sheet tam yukarı çekilse bile
           üst köşeler harita üzerinde float eder, status bar bölgesi beyaz kalmaz. */}
