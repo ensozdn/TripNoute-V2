@@ -37,21 +37,18 @@ service cloud.firestore {
     
     // Follows collection - Social features
     match /follows/{followId} {
-      // User can read follows where they are the follower or following
-      allow read: if request.auth != null && 
-        (resource.data.followerId == request.auth.uid || 
-         resource.data.followingId == request.auth.uid);
+      // User can read/list follows (for queries and individual reads)
+      allow read, list: if request.auth != null;
       
       // User can create a follow document where they are the follower
       allow create: if request.auth != null && 
-        request.resource.data.followerId == request.auth.uid;
+        request.resource.data.followerId == request.auth.uid &&
+        request.resource.data.followingId != null &&
+        request.resource.data.createdAt != null;
       
       // User can delete a follow document where they are the follower
       allow delete: if request.auth != null && 
         resource.data.followerId == request.auth.uid;
-      
-      // Allow reading all follows for querying (needed for getSuggestedUsers)
-      allow list: if request.auth != null;
     }
     
     // Default deny all other collections
