@@ -8,9 +8,11 @@ import JourneyCreator from './creator/JourneyCreator';
 import JourneyActionMenu from './JourneyActionMenu';
 import JourneyCreationModal from './JourneyCreationModal';
 import TrippoChat from '@/components/common/TrippoChat';
-import { User, Users, Globe, Bell, Plus, TrendingUp, MapPin, MoreHorizontal, Pencil, Trash2, AlertTriangle, ChevronLeft, Search, UserPlus, X } from 'lucide-react';
+import { User, Users, Globe, Bell, Plus, TrendingUp, MapPin, MoreHorizontal, Pencil, Trash2, AlertTriangle, ChevronLeft, Search, UserPlus, X, Heart, MessageCircle, Bookmark } from 'lucide-react';
 import { deduplicateCountries } from '@/utils/dataNormalizer';
 import { followService, UserProfile } from '@/services/firebase/FollowService';
+import { exploreService } from '@/services/firebase/ExploreService';
+import { PostWithEngagement } from '@/types/explore';
 import { useAuth } from '@/contexts/AuthContext';
 type NavTab = 'me' | 'activity' | 'explore' | 'notifications';
 type SheetState = 'peek' | 'middle' | 'full';
@@ -50,14 +52,6 @@ const NAV_ITEMS: { id: NavTab; label: string; icon: React.ReactNode }[] = [
   { id: 'activity',      label: 'Activity',      icon: <Users className="w-5 h-5" /> },
   { id: 'explore',       label: 'Explore',       icon: <Globe className="w-5 h-5" /> },
   { id: 'notifications', label: 'Notifications', icon: <Bell className="w-5 h-5" /> },
-];
-
-// Mock trending destinations (backend'den gelecek)
-const TRENDING_DESTINATIONS = [
-  { id: '1', name: 'Tokyo', country: 'Japan', travelers: 1248, imageUrl: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=300&fit=crop', flag: '🇯🇵' },
-  { id: '2', name: 'Paris', country: 'France', travelers: 2156, imageUrl: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400&h=300&fit=crop', flag: '🇫🇷' },
-  { id: '3', name: 'Bali', country: 'Indonesia', travelers: 987, imageUrl: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=400&h=300&fit=crop', flag: '🇮🇩' },
-  { id: '4', name: 'New York', country: 'USA', travelers: 1876, imageUrl: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=400&h=300&fit=crop', flag: '🇺🇸' },
 ];
 
 // Mock notifications (backend'den gelecek)
@@ -105,6 +99,11 @@ export default function JourneyHub({
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
   const { user } = useAuth();
+
+  // Explore tab state
+  const [explorePosts, setExplorePosts] = useState<PostWithEngagement[]>([]);
+  const [loadingPosts, setLoadingPosts] = useState(false);
+  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
 
   // ─────────────────────────────────────────────────────────────────
   // Load suggested users on mount
@@ -183,6 +182,61 @@ export default function JourneyHub({
       }
     } catch (error) {
       console.error('Follow toggle failed:', error);
+    }
+  };
+
+  // ─────────────────────────────────────────────────────────────────
+  // Load explore feed when tab opens
+  // ─────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (activeNav !== 'explore' || !user?.uid) return;
+    
+    const loadFeed = async () => {
+      setLoadingPosts(true);
+      try {
+        const posts = await exploreService.getExploreFeed(user.uid, { limit: 20 });
+        setExplorePosts(posts);
+        setLikedPosts(new Set(posts.filter(p => p.isLikedByCurrentUser).map(p => p.id)));
+      } catch (error) {
+        console.error('Failed to load explore feed:', error);
+      } finally {
+        setLoadingPosts(false);
+      }
+    };
+    
+    loadFeed();
+  }, [activeNav, user?.uid]);
+
+  // ─────────────────────────────────────────────────────────────────
+  // Like/Unlike handler
+  // ─────────────────────────────────────────────────────────────────
+  const handleLikeToggle = async (postId: string) => {
+    if (!user?.uid || !user.displayName) return;
+    
+    try {
+      const isCurrentlyLiked = likedPosts.has(postId);
+      
+      if (isCurrentlyLiked) {
+        await exploreService.unlikePost(postId, user.uid);
+        setLikedPosts(prev => {
+          const next = new Set(prev);
+          next.delete(postId);
+          return next;
+        });
+        // Update local count
+        setExplorePosts(prev => prev.map(p => 
+          p.id === postId ? { ...p, likesCount: p.likesCount - 1, isLikedByCurrentUser: false } : p
+        ));
+      } else {
+        await exploreService.likePost(postId, user.uid, user.displayName, user.photoURL || undefined);
+        setLikedPosts(prev => new Set(prev).add(postId));
+        // Update local count
+        setExplorePosts(prev => prev.map(p => 
+          p.id === postId ? { ...p, likesCount: p.likesCount + 1, isLikedByCurrentUser: true } : p
+        ));
+      }
+    } catch (error) {
+      console.error('Like toggle failed:', error);
     }
   };
 
@@ -1096,56 +1150,141 @@ export default function JourneyHub({
                   {/* Header */}
                   <div className="px-4 mb-5">
                     <h2 className="text-slate-900 text-xl font-bold mb-1">Explore</h2>
-                    <p className="text-slate-400 text-sm">Discover trending destinations around the world</p>
+                    <p className="text-slate-400 text-sm">Discover what travelers are sharing around the world</p>
                   </div>
 
-                  {/* Trending Destinations */}
-                  <div className="px-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-1 h-4 rounded-full bg-blue-500" />
-                      <h3 className="text-slate-900 text-sm font-bold">Trending Now</h3>
+                  {/* Loading state */}
+                  {loadingPosts && (
+                    <div className="flex flex-col items-center justify-center py-16">
+                      <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mb-3" />
+                      <p className="text-slate-400 text-sm">Loading posts...</p>
                     </div>
+                  )}
 
-                    <div className="space-y-3">
-                      {TRENDING_DESTINATIONS.map((dest, index) => (
+                  {/* Empty state */}
+                  {!loadingPosts && explorePosts.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                      <Globe className="w-16 h-16 text-slate-200 mb-4" strokeWidth={1.5} />
+                      <h3 className="text-slate-700 text-lg font-bold mb-2">No posts yet</h3>
+                      <p className="text-slate-400 text-sm leading-relaxed max-w-xs">
+                        Start following travelers or share your own places to see content here.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Posts feed */}
+                  {!loadingPosts && explorePosts.length > 0 && (
+                    <div className="space-y-4">
+                      {explorePosts.map((post, index) => {
+                        const isLiked = likedPosts.has(post.id);
+                        return (
                         <motion.div
-                          key={dest.id}
+                          key={post.id}
                           initial={{ opacity: 0, y: 12 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.3, delay: index * 0.08 }}
-                          className="relative rounded-2xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform shadow-sm shadow-black/10"
-                          style={{ height: 140 }}
+                          transition={{ duration: 0.3, delay: index * 0.05 }}
+                          className="bg-white rounded-2xl shadow-sm shadow-black/5 overflow-hidden"
                         >
-                          {/* Background image */}
-                          <div className="absolute inset-0">
-                            <img
-                              src={dest.imageUrl}
-                              alt={dest.name}
-                              className="w-full h-full object-cover"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+                          {/* User header */}
+                          <div className="flex items-center gap-3 px-4 py-3">
+                            <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
+                              {post.userPhotoUrl ? (
+                                <img src={post.userPhotoUrl} alt={post.userName} className="w-full h-full rounded-full object-cover" />
+                              ) : (
+                                <span className="text-slate-600 text-sm font-bold">
+                                  {post.userName.charAt(0).toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-slate-900 text-sm font-bold truncate">{post.userName}</p>
+                              {post.location && (
+                                <p className="text-slate-400 text-xs truncate">
+                                  {post.location.city ? `${post.location.city}, ` : ''}{post.location.country}
+                                </p>
+                              )}
+                            </div>
+                            <MoreHorizontal className="w-5 h-5 text-slate-400" strokeWidth={2} />
                           </div>
 
-                          {/* Content */}
-                          <div className="relative z-10 h-full flex flex-col justify-end p-4">
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <h3 className="text-white text-xl font-bold">{dest.name}</h3>
-                                  <span className="text-white text-lg">{dest.flag}</span>
-                                </div>
-                                <p className="text-white/70 text-xs">{dest.country}</p>
-                              </div>
-                              <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1">
-                                <Users className="w-3 h-3 text-white" strokeWidth={2} />
-                                <span className="text-white text-xs font-semibold">{dest.travelers.toLocaleString()}</span>
-                              </div>
+                          {/* Post image */}
+                          {post.photoUrls.length > 0 && (
+                            <div className="relative w-full aspect-square bg-slate-100">
+                              <img
+                                src={post.photoUrls[0]}
+                                alt={post.title}
+                                className="w-full h-full object-cover"
+                              />
                             </div>
+                          )}
+
+                          {/* Action bar */}
+                          <div className="flex items-center gap-4 px-4 py-3">
+                            <button
+                              onClick={() => handleLikeToggle(post.id)}
+                              className="flex items-center gap-1.5 active:scale-90 transition-transform"
+                            >
+                              <Heart
+                                className={`w-6 h-6 ${isLiked ? 'fill-red-500 text-red-500' : 'text-slate-700'}`}
+                                strokeWidth={2}
+                              />
+                            </button>
+                            <button className="flex items-center gap-1.5 active:scale-90 transition-transform">
+                              <MessageCircle className="w-6 h-6 text-slate-700" strokeWidth={2} />
+                            </button>
+                            <button className="flex items-center gap-1.5 active:scale-90 transition-transform ml-auto">
+                              <Bookmark className="w-6 h-6 text-slate-700" strokeWidth={2} />
+                            </button>
+                          </div>
+
+                          {/* Likes count */}
+                          {post.likesCount > 0 && (
+                            <div className="px-4 pb-2">
+                              <p className="text-slate-900 text-sm font-semibold">
+                                {post.likesCount.toLocaleString()} {post.likesCount === 1 ? 'like' : 'likes'}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Caption */}
+                          <div className="px-4 pb-3">
+                            <p className="text-slate-900 text-sm">
+                              <span className="font-bold">{post.userName}</span>
+                              {' '}
+                              <span className="text-slate-700">
+                                {post.caption || post.title}
+                              </span>
+                            </p>
+                            {post.caption && post.description && (
+                              <p className="text-slate-500 text-sm mt-1 line-clamp-2">
+                                {post.description}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Comments preview */}
+                          {post.commentsCount > 0 && (
+                            <div className="px-4 pb-3">
+                              <button className="text-slate-400 text-sm hover:text-slate-600">
+                                View all {post.commentsCount} comments
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Timestamp */}
+                          <div className="px-4 pb-3">
+                            <p className="text-slate-400 text-xs uppercase">
+                              {new Date(post.createdAt.seconds * 1000).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                              })}
+                            </p>
                           </div>
                         </motion.div>
-                      ))}
+                        );
+                      })}
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
               {activeNav === 'notifications' && (

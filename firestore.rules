@@ -51,6 +51,42 @@ service cloud.firestore {
         resource.data.followerId == request.auth.uid;
     }
     
+    // Posts collection - Explore feed content
+    match /posts/{postId} {
+      // Anyone authenticated can read public posts
+      allow read, list: if request.auth != null && resource.data.isPublic == true;
+      
+      // User can create posts
+      allow create: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.isPublic == true;
+      
+      // User can update/delete their own posts
+      allow update, delete: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+    }
+    
+    // Likes collection - Post engagement
+    match /likes/{likeId} {
+      // Anyone can read likes
+      allow read, list: if request.auth != null;
+      
+      // User can create like where they are the liker
+      allow create: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid;
+      
+      // User can delete their own likes
+      allow delete: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+    }
+    
+    // Saves collection - Bookmarks
+    match /saves/{saveId} {
+      // User can read/create/delete their own saves
+      allow read, create, delete: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid;
+    }
+    
     // Default deny all other collections
     match /{document=**} {
       allow read, write: if false;
