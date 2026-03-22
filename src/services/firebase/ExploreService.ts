@@ -26,6 +26,7 @@ import {
   PostWithEngagement,
 } from '@/types/explore';
 import { notificationService } from './NotificationService';
+import { pushNotificationService } from './PushNotificationService';
 
 /**
  * ExploreService - Handles explore feed, posts, likes, and comments
@@ -300,6 +301,21 @@ export class ExploreService {
         post.title || 'post',
         post.photoUrls?.[0]
       );
+
+      // Send push notification
+      try {
+        await pushNotificationService.sendLikeNotification(
+          post.userId,        // recipientId
+          userName,           // senderName
+          post.title || 'post', // postTitle
+          post.photoUrls?.[0], // postPhotoUrl
+          postId              // postId
+        );
+        console.log('✅ Push notification sent for like');
+      } catch (error) {
+        console.error('Failed to send push notification:', error);
+        // Don't fail the whole operation if push fails
+      }
     }
   }
 

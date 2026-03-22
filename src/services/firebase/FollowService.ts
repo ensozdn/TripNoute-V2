@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { notificationService } from './NotificationService';
+import { pushNotificationService } from './PushNotificationService';
 
 export interface UserProfile {
   uid: string;
@@ -75,6 +76,20 @@ export class FollowService {
       followerProfile.photoURL || undefined,
       followingId
     );
+
+    // Send push notification
+    try {
+      await pushNotificationService.sendFollowNotification(
+        followingId,
+        followerProfile.displayName || 'Someone',
+        followerProfile.photoURL || undefined,
+        followerId
+      );
+      console.log('✅ Push notification sent for follow');
+    } catch (error) {
+      console.error('Failed to send push notification:', error);
+      // Don't fail the whole operation if push fails
+    }
   }
 
   /**
