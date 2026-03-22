@@ -26,7 +26,6 @@ import {
   PostWithEngagement,
 } from '@/types/explore';
 import { notificationService } from './NotificationService';
-import { pushNotificationService } from './PushNotificationService';
 
 /**
  * ExploreService - Handles explore feed, posts, likes, and comments
@@ -302,16 +301,21 @@ export class ExploreService {
         post.photoUrls?.[0]
       );
 
-      // Send push notification
+      // Send push notification via API
       try {
-        await pushNotificationService.sendLikeNotification(
-          post.userId,        // recipientId
-          userName,           // senderName
-          post.title || 'post', // postTitle
-          post.photoUrls?.[0], // postPhotoUrl
-          postId              // postId
-        );
-        console.log('✅ Push notification sent for like');
+        await fetch('/api/notifications/send-push', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'like',
+            recipientId: post.userId,
+            senderName: userName,
+            postTitle: post.title || 'post',
+            postPhotoUrl: post.photoUrls?.[0],
+            postId: postId,
+          }),
+        });
+        console.log('✅ Push notification request sent for like');
       } catch (error) {
         console.error('Failed to send push notification:', error);
         // Don't fail the whole operation if push fails
