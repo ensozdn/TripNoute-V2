@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '../../../lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { getAdminFirestore } from '../../../lib/firebaseAdmin';
+import { FieldValue } from 'firebase-admin/firestore';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,25 +12,24 @@ export async function POST(request: NextRequest) {
 
     console.log('🔔 Creating test notifications for:', userId);
 
+    const db = getAdminFirestore();
     const notifications: Array<{ type: string; id: string }> = [];
 
     // 1. Follow notification
-    const followData = {
+    const follow = await db.collection('notifications').add({
       recipientId: userId,
       senderId: 'test-user-1',
       senderName: 'Ali Yılmaz',
       senderPhotoUrl: 'https://i.pravatar.cc/150?img=1',
       type: 'follow',
       isRead: false,
-      createdAt: serverTimestamp(),
-    };
-    console.log('Creating follow notification with data:', followData);
-    const follow = await addDoc(collection(db, 'notifications'), followData);
+      createdAt: FieldValue.serverTimestamp(),
+    });
     notifications.push({ type: 'follow', id: follow.id });
     console.log('✅ Follow notification created:', follow.id);
 
     // 2. Like notification
-    const like = await addDoc(collection(db, 'notifications'), {
+    const like = await db.collection('notifications').add({
       recipientId: userId,
       senderId: 'test-user-2',
       senderName: 'Ayşe Demir',
@@ -40,12 +39,12 @@ export async function POST(request: NextRequest) {
       text: 'Amazing view from Cappadocia!',
       photoUrl: 'https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?w=400',
       isRead: false,
-      createdAt: serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     });
     notifications.push({ type: 'like', id: like.id });
 
     // 3. Comment notification
-    const comment = await addDoc(collection(db, 'notifications'), {
+    const comment = await db.collection('notifications').add({
       recipientId: userId,
       senderId: 'test-user-3',
       senderName: 'Mehmet Can',
@@ -56,12 +55,12 @@ export async function POST(request: NextRequest) {
       text: 'I was there last summer! Great spot 🌊',
       photoUrl: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=400',
       isRead: false,
-      createdAt: serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     });
     notifications.push({ type: 'comment', id: comment.id });
 
     // 4. Trip start (read)
-    const trip = await addDoc(collection(db, 'notifications'), {
+    const trip = await db.collection('notifications').add({
       recipientId: userId,
       senderId: 'test-user-4',
       senderName: 'Zeynep Aydın',
@@ -71,12 +70,12 @@ export async function POST(request: NextRequest) {
       text: 'Balkan Road Trip',
       photoUrl: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400',
       isRead: true,
-      createdAt: serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     });
     notifications.push({ type: 'trip_start', id: trip.id });
 
     // 5. Milestone (read)
-    const milestone = await addDoc(collection(db, 'notifications'), {
+    const milestone = await db.collection('notifications').add({
       recipientId: userId,
       senderId: 'test-user-5',
       senderName: 'Burak Özkan',
@@ -87,7 +86,7 @@ export async function POST(request: NextRequest) {
       text: 'Reached the summit of Mount Olympus!',
       photoUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400',
       isRead: true,
-      createdAt: serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     });
     notifications.push({ type: 'milestone', id: milestone.id });
 
