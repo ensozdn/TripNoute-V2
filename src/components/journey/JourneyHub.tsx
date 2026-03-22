@@ -16,6 +16,7 @@ import { exploreService } from '@/services/firebase/ExploreService';
 import { useAuth } from '@/contexts/AuthContext';
 import { NotificationsList } from '@/components/notifications/NotificationsList';
 import { NotificationBadge } from '@/components/notifications/NotificationBadge';
+import { NotificationPermissionPrompt } from '@/components/notifications/NotificationPermissionPrompt';
 type NavTab = 'me' | 'activity' | 'explore' | 'notifications';
 type SheetState = 'peek' | 'middle' | 'full';
 
@@ -1767,6 +1768,9 @@ export default function JourneyHub({
           }
         />
       )}
+
+      {/* Notification Permission Prompt */}
+      <NotificationPermissionPrompt />
     </>
   );
 }

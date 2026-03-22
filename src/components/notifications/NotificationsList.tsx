@@ -23,10 +23,7 @@ export function NotificationsList({ userId }: NotificationsListProps) {
   const loadNotifications = async () => {
     try {
       setLoading(true)
-      console.log('🔔 Loading notifications for userId:', userId)
       const data = await notificationService.getNotifications(userId, 50)
-      console.log('🔔 Notifications loaded:', data.length, 'items')
-      console.log('🔔 Data:', data)
       setNotifications(data)
     } catch (error) {
       console.error('Failed to load notifications:', error)
