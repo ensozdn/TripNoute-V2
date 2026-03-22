@@ -6,8 +6,11 @@ let app: admin.app.App | null = null;
 export function getFirebaseAdmin() {
   if (!app) {
     try {
-      // Initialize Firebase Admin SDK
-      const serviceAccount = require('../../serviceAccountKey.json');
+      // Initialize Firebase Admin SDK with environment variables
+      // For Vercel, add these as environment variables in dashboard
+      const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT
+        ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
+        : require('../../serviceAccountKey.json'); // Fallback for local dev
       
       app = admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),

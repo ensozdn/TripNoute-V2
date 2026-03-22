@@ -17,7 +17,7 @@ export function NotificationPermission({ userId, onClose }: NotificationPermissi
   useEffect(() => {
     // Check if notifications are supported
     if (!fcmTokenService.isSupported()) {
-      return
+      return undefined
     }
 
     // Check current permission status
@@ -32,6 +32,8 @@ export function NotificationPermission({ userId, onClose }: NotificationPermissi
       
       return () => clearTimeout(timer)
     }
+    
+    return undefined
   }, [])
 
   const handleAllow = async () => {
