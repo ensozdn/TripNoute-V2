@@ -78,6 +78,9 @@ export class FollowService {
 
     // Send push notification via API
     try {
+      // Use followId as deduplication key to prevent duplicate notifications
+      const notificationId = `follow_${followId}_${Date.now()}`;
+      
       await fetch('/api/notifications/send-push', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -87,6 +90,7 @@ export class FollowService {
           senderName: followerProfile.displayName || 'Someone',
           senderPhotoUrl: followerProfile.photoURL || undefined,
           senderId: followerId,
+          notificationId, // Unique ID to prevent duplicates
         }),
       });
       console.log('✅ Push notification request sent for follow');
