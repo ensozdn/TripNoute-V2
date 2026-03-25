@@ -121,18 +121,8 @@ export class FCMTokenService {
       // Show in-app notification or update UI
       callback(payload);
 
-      // Show browser notification even when app is in foreground
-      if ('Notification' in window && Notification.permission === 'granted') {
-        const notificationTitle = payload.notification?.title || 'TripNoute';
-        const notificationOptions = {
-          body: payload.notification?.body || 'You have a new notification',
-          icon: '/tripnoute-logo.png',
-          badge: '/icons/icon-96x96.png',
-          data: payload.data,
-        };
-
-        new Notification(notificationTitle, notificationOptions);
-      }
+      // Note: We don't manually show notification in foreground
+      // Service Worker will handle it automatically to avoid duplicates
     });
   }
 
