@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { databaseService } from '@/lib/database';
 import { getMapboxService } from '@/services/maps/MapboxService';
 import { journeyDatabaseService } from '@/services/firebase/JourneyDatabaseService';
+import { fcmTokenService } from '@/services/firebase/FCMTokenService';
 import { Place } from '@/types';
 import { Trip } from '@/types/trip';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -59,6 +60,31 @@ export default function DashboardPage() {
       }
     };
     loadData();
+  }, [user]);
+
+  // Setup push notifications
+  useEffect(() => {
+    const setupNotifications = async () => {
+      if (user) {
+        try {
+          console.log('🔔 Setting up push notifications...');
+          const token = await fcmTokenService.requestPermissionAndGetToken(user.uid);
+          if (token) {
+            console.log('✅ Push notifications enabled');
+            // Setup foreground message listener
+            fcmTokenService.setupForegroundMessageListener((payload) => {
+              console.log('📨 Foreground message:', payload);
+              // You can show a toast notification here
+            });
+          } else {
+            console.log('⚠️ Push notifications not available');
+          }
+        } catch (error) {
+          console.error('❌ Error setting up notifications:', error);
+        }
+      }
+    };
+    setupNotifications();
   }, [user]);
 
   // No-op: map ready callback no longer needed since we don't auto-render journeys.
