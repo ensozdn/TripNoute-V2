@@ -13,6 +13,12 @@ service cloud.firestore {
       
       // Allow user creation during registration
       allow create: if request.auth != null && request.auth.uid == userId;
+      
+      // FCM Tokens subcollection - Push notifications
+      match /fcmTokens/{tokenId} {
+        // User can read/write their own FCM tokens
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
     }
     
     // Places collection - Users can only access their own places
