@@ -117,7 +117,7 @@ export class PushNotificationService {
   ): Promise<void> {
     await this.sendToUser({
       userId: recipientId,
-      title: '👤 New Follower',
+      title: 'New Follower',
       body: `${senderName} started following you`,
       icon: senderPhotoUrl,
       data: {
@@ -140,7 +140,7 @@ export class PushNotificationService {
   ): Promise<void> {
     await this.sendToUser({
       userId: recipientId,
-      title: '❤️ New Like',
+      title: 'New Like',
       body: `${senderName} liked your post: ${postTitle}`,
       icon: postPhotoUrl,
       data: {
@@ -162,7 +162,7 @@ export class PushNotificationService {
   ): Promise<void> {
     await this.sendToUser({
       userId: recipientId,
-      title: '💬 New Comment',
+      title: 'New Comment',
       body: `${senderName}: ${commentText}`,
       data: {
         type: 'comment',
