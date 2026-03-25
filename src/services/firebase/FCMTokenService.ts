@@ -1,5 +1,5 @@
 import { getToken, onMessage, Messaging } from 'firebase/messaging';
-import { doc, setDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, collection, serverTimestamp, getDocs, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 export class FCMTokenService {
@@ -90,6 +90,25 @@ export class FCMTokenService {
    */
   private async saveTokenToFirestore(userId: string, token: string): Promise<void> {
     try {
+      // First, clean up old tokens from this device (same userAgent)
+      const tokensRef = collection(db, 'users', userId, 'fcmTokens');
+      const tokensSnapshot = await getDocs(tokensRef);
+      
+      const currentUserAgent = navigator.userAgent;
+      const cleanupPromises: Promise<void>[] = [];
+      
+      tokensSnapshot.forEach((tokenDoc) => {
+        const data = tokenDoc.data();
+        // Remove if it's an old token from the same device
+        if (data.userAgent === currentUserAgent && tokenDoc.id !== token) {
+          console.log('🗑️ Removing old token from same device');
+          cleanupPromises.push(deleteDoc(tokenDoc.ref));
+        }
+      });
+      
+      await Promise.all(cleanupPromises);
+      
+      // Save the new token
       const tokenRef = doc(collection(db, 'users', userId, 'fcmTokens'), token);
       
       await setDoc(tokenRef, {
