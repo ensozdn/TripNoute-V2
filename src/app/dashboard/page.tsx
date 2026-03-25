@@ -67,20 +67,20 @@ export default function DashboardPage() {
     const setupNotifications = async () => {
       if (user) {
         try {
-          console.log('🔔 Setting up push notifications...');
+          console.log('[Notifications] Setting up push notifications...');
           const token = await fcmTokenService.requestPermissionAndGetToken(user.uid);
           if (token) {
-            console.log('✅ Push notifications enabled');
+            console.log('[Notifications] Push notifications enabled');
             // Setup foreground message listener
             fcmTokenService.setupForegroundMessageListener((payload) => {
-              console.log('📨 Foreground message:', payload);
+              console.log('[Notifications] Foreground message:', payload);
               // You can show a toast notification here
             });
           } else {
-            console.log('⚠️ Push notifications not available');
+            console.log('[Notifications] Push notifications not available');
           }
         } catch (error) {
-          console.error('❌ Error setting up notifications:', error);
+          console.error('[Notifications] Error setting up notifications:', error);
         }
       }
     };
