@@ -303,6 +303,9 @@ export class ExploreService {
 
       // Send push notification via API
       try {
+        // FIXED: Use stable likeId for deduplication
+        const notificationId = `like_${likeId}`;
+        
         await fetch('/api/notifications/send-push', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -313,11 +316,12 @@ export class ExploreService {
             postTitle: post.title || 'post',
             postPhotoUrl: post.photoUrls?.[0],
             postId: postId,
+            notificationId, // Stable ID for deduplication
           }),
         });
-        console.log('✅ Push notification request sent for like');
+        console.log('✅ [ExploreService] Push notification request sent for like');
       } catch (error) {
-        console.error('Failed to send push notification:', error);
+        console.error('❌ [ExploreService] Failed to send push notification:', error);
         // Don't fail the whole operation if push fails
       }
     }

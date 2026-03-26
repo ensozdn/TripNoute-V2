@@ -44,15 +44,16 @@ export class PushNotificationService {
         notification: {
           title: payload.title,
           body: payload.body,
-          imageUrl: payload.icon,
+          icon: payload.icon || '/tripnoute-logo.png', // FIXED: Move icon here
         },
         data: payload.data || {},
         webpush: {
           notification: {
-            icon: payload.icon || '/tripnoute-logo.png',
             badge: '/icons/icon-96x96.png',
             requireInteraction: false,
             vibrate: [200, 100, 200],
+            tag: payload.data?.notificationId || 'default', // CRITICAL: Set tag for deduplication
+            renotify: false, // Don't vibrate again for same tag
           },
           fcmOptions: {
             link: '/dashboard',
@@ -113,8 +114,18 @@ export class PushNotificationService {
     recipientId: string,
     senderName: string,
     senderPhotoUrl?: string,
-    senderId?: string
+    senderId?: string,
+    notificationId?: string
   ): Promise<void> {
+    // FIXED: Use provided notificationId for deduplication
+    const stableId = notificationId || `follow_${senderId}_${recipientId}`;
+    
+    console.log(`📤 [PushService] Sending follow notification:`, {
+      recipientId,
+      senderName,
+      notificationId: stableId
+    });
+    
     await this.sendToUser({
       userId: recipientId,
       title: 'New Follower',
@@ -123,7 +134,7 @@ export class PushNotificationService {
       data: {
         type: 'follow',
         senderId: senderId || '',
-        notificationId: `follow_${Date.now()}`,
+        notificationId: stableId, // Stable ID for deduplication
       },
     });
   }
@@ -136,8 +147,12 @@ export class PushNotificationService {
     senderName: string,
     postTitle: string,
     postPhotoUrl?: string,
-    postId?: string
+    postId?: string,
+    notificationId?: string
   ): Promise<void> {
+    // FIXED: Use stable ID for deduplication
+    const stableId = notificationId || `like_${postId}_${Date.now()}`;
+    
     await this.sendToUser({
       userId: recipientId,
       title: 'New Like',
@@ -146,7 +161,7 @@ export class PushNotificationService {
       data: {
         type: 'like',
         postId: postId || '',
-        notificationId: `like_${Date.now()}`,
+        notificationId: stableId,
       },
     });
   }
@@ -158,8 +173,12 @@ export class PushNotificationService {
     recipientId: string,
     senderName: string,
     commentText: string,
-    postId?: string
+    postId?: string,
+    notificationId?: string
   ): Promise<void> {
+    // FIXED: Use stable ID for deduplication
+    const stableId = notificationId || `comment_${postId}_${Date.now()}`;
+    
     await this.sendToUser({
       userId: recipientId,
       title: 'New Comment',
@@ -167,7 +186,7 @@ export class PushNotificationService {
       data: {
         type: 'comment',
         postId: postId || '',
-        notificationId: `comment_${Date.now()}`,
+        notificationId: stableId,
       },
     });
   }

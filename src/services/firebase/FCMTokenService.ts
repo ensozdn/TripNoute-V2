@@ -136,13 +136,15 @@ export class FCMTokenService {
     }
 
     onMessage(this.messaging, (payload) => {
-      console.log('🔔 Foreground message received:', payload);
+      console.log('🔔 [Foreground] Message received:', payload);
       
-      // Show in-app notification or update UI
+      // IMPORTANT: Don't show notification manually in foreground
+      // Service Worker will handle it automatically
+      // Just update UI state if needed
       callback(payload);
-
-      // Note: We don't manually show notification in foreground
-      // Service Worker will handle it automatically to avoid duplicates
+      
+      // Note: Browser will show notification automatically via Service Worker
+      // We only use callback for in-app UI updates (badge count, etc.)
     });
   }
 

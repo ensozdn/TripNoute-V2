@@ -101,6 +101,7 @@ export default function JourneyHub({
   const [shareTripModalOpen, setShareTripModalOpen] = useState(false);
   const [shareCaption, setShareCaption] = useState('');
   const [sharingPost, setSharingPost] = useState(false);
+  const [followingInProgress, setFollowingInProgress] = useState<Set<string>>(new Set());
 
   // ─────────────────────────────────────────────────────────────────
   // Load suggested users on mount
@@ -172,7 +173,16 @@ export default function JourneyHub({
   // ─────────────────────────────────────────────────────────────────
   const handleFollowToggle = async (targetUserId: string) => {
     if (!user?.uid) return;
+    
+    // FIXED: Prevent duplicate follow requests
+    if (followingInProgress.has(targetUserId)) {
+      console.log('⚠️ Follow request already in progress for:', targetUserId);
+      return;
+    }
+    
     try {
+      setFollowingInProgress(prev => new Set(prev).add(targetUserId));
+      
       const isCurrentlyFollowing = followingIds.has(targetUserId);
       if (isCurrentlyFollowing) {
         await followService.unfollowUser(user.uid, targetUserId);
@@ -187,6 +197,12 @@ export default function JourneyHub({
       }
     } catch (error) {
       console.error('Follow toggle failed:', error);
+    } finally {
+      setFollowingInProgress(prev => {
+        const next = new Set(prev);
+        next.delete(targetUserId);
+        return next;
+      });
     }
   };
 

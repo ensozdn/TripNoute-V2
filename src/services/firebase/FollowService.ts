@@ -78,10 +78,14 @@ export class FollowService {
 
     // Send push notification via API
     try {
-      // Use followId as deduplication key to prevent duplicate notifications
-      const notificationId = `follow_${followId}_${Date.now()}`;
+      // FIXED: Use stable followId as deduplication key (without timestamp)
+      const notificationId = `follow_${followId}`;
       
-      console.log('🔔 [DEBUG] Calling push notification API...', { recipientId: followingId, notificationId });
+      console.log('🔔 [FollowService] Sending push notification...', { 
+        recipientId: followingId, 
+        senderId: followerId,
+        notificationId 
+      });
       
       await fetch('/api/notifications/send-push', {
         method: 'POST',
@@ -92,14 +96,13 @@ export class FollowService {
           senderName: followerProfile.displayName || 'Someone',
           senderPhotoUrl: followerProfile.photoURL || undefined,
           senderId: followerId,
-          notificationId, // Unique ID to prevent duplicates
+          notificationId, // Stable ID for deduplication
         }),
       });
       
-      console.log('🔔 [DEBUG] Push notification API call completed');
-      console.log('✅ Push notification request sent for follow');
+      console.log('✅ [FollowService] Push notification request completed');
     } catch (error) {
-      console.error('Failed to send push notification:', error);
+      console.error('❌ [FollowService] Failed to send push notification:', error);
       // Don't fail the whole operation if push fails
     }
   }

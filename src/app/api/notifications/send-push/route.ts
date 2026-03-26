@@ -3,7 +3,7 @@ import { pushNotificationService } from '../../../../services/firebase/PushNotif
 
 export async function POST(request: NextRequest) {
   try {
-    const { type, recipientId, senderName, senderPhotoUrl, senderId, postTitle, postPhotoUrl, postId, commentText } = await request.json();
+    const { type, recipientId, senderName, senderPhotoUrl, senderId, postTitle, postPhotoUrl, postId, commentText, notificationId } = await request.json();
 
     if (!type || !recipientId) {
       return NextResponse.json(
@@ -12,39 +12,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`📤 [DEBUG] Sending ${type} push notification to user: ${recipientId}`);
+    console.log(`📤 [API] Received ${type} push notification request:`, {
+      recipientId,
+      senderId,
+      notificationId
+    });
 
     let result;
 
     switch (type) {
       case 'follow':
-        console.log('📤 [DEBUG] Calling pushNotificationService.sendFollowNotification...');
+        console.log('📤 [API] Calling pushNotificationService.sendFollowNotification...');
         await pushNotificationService.sendFollowNotification(
           recipientId,
           senderName,
           senderPhotoUrl,
-          senderId
+          senderId,
+          notificationId // Pass notificationId for deduplication
         );
         result = { message: 'Follow notification sent' };
         break;
 
       case 'like':
+        console.log('📤 [API] Calling pushNotificationService.sendLikeNotification...');
         await pushNotificationService.sendLikeNotification(
           recipientId,
           senderName,
           postTitle,
           postPhotoUrl,
-          postId
+          postId,
+          notificationId // Pass notificationId for deduplication
         );
         result = { message: 'Like notification sent' };
         break;
 
       case 'comment':
+        console.log('📤 [API] Calling pushNotificationService.sendCommentNotification...');
         await pushNotificationService.sendCommentNotification(
           recipientId,
           senderName,
           commentText,
-          postId
+          postId,
+          notificationId // Pass notificationId for deduplication
         );
         result = { message: 'Comment notification sent' };
         break;

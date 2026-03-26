@@ -19,18 +19,24 @@ const messaging = firebase.messaging();
 
 // Handle background messages
 messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Received background message ', payload);
+  console.log('[SW] Received background message:', payload);
+  
+  // FIXED: Use stable tag for deduplication
+  const notificationTag = payload.data?.notificationId || `notif_${Date.now()}`;
 
   const notificationTitle = payload.notification?.title || 'TripNoute';
   const notificationOptions = {
     body: payload.notification?.body || 'You have a new notification',
-    icon: '/tripnoute-logo.png',
+    icon: payload.notification?.icon || '/tripnoute-logo.png',
     badge: '/icons/icon-96x96.png',
-    tag: payload.data?.notificationId || 'default',
+    tag: notificationTag, // CRITICAL: Same tag = replace old notification
     data: payload.data,
     requireInteraction: false,
-    vibrate: [200, 100, 200]
+    vibrate: [200, 100, 200],
+    renotify: false, // Don't vibrate again if same tag
   };
+
+  console.log('[SW] Showing notification with tag:', notificationTag);
 
   return self.registration.showNotification(notificationTitle, notificationOptions);
 });
