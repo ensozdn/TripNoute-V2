@@ -37,7 +37,28 @@ export class PushNotificationService {
       }
 
       const tokens = tokensSnapshot.docs.map((doc) => doc.data().token);
-      console.log(`📤 Sending push notification to ${tokens.length} device(s)`);
+      console.log(`📤 [PushService] Found ${tokens.length} token(s) for user ${payload.userId}:`, 
+        tokens.map(t => t.substring(0, 20) + '...')
+      );
+
+      // CRITICAL: Check for duplicate tokens (should not happen, but just in case)
+      const uniqueTokens = [...new Set(tokens)];
+      if (uniqueTokens.length < tokens.length) {
+        console.warn(`⚠️ [PushService] Found ${tokens.length - uniqueTokens.length} duplicate token(s), using unique set`);
+      }
+
+      // CRITICAL: FCM data payload must have ALL STRING VALUES
+      // Convert all data values to strings
+      const dataPayload: Record<string, string> = {};
+      if (payload.data) {
+        Object.keys(payload.data).forEach(key => {
+          dataPayload[key] = String(payload.data![key]);
+        });
+      }
+      // Add icon to data payload (Service Worker will use it)
+      dataPayload.icon = payload.icon || '/tripnoute-logo.png';
+
+      console.log(`📤 [PushService] Data payload:`, dataPayload);
 
       // Prepare the message
       const message = {
@@ -45,12 +66,7 @@ export class PushNotificationService {
           title: payload.title,
           body: payload.body,
         },
-        data: {
-          ...(payload.data || {}),
-          // Include icon and other metadata in data payload
-          // Service Worker will use these to construct the notification
-          icon: payload.icon || '/tripnoute-logo.png',
-        },
+        data: dataPayload, // All strings!
         webpush: {
           fcmOptions: {
             link: '/dashboard',
@@ -58,17 +74,20 @@ export class PushNotificationService {
         },
       };
 
-      // Send to multiple tokens
-      const promises = tokens.map(async (token) => {
+      // Send to multiple tokens (use unique tokens only)
+      const promises = uniqueTokens.map(async (token, index) => {
         try {
+          console.log(`📤 [PushService] Sending to token ${index + 1}/${uniqueTokens.length}: ${token.substring(0, 20)}...`);
+          
           await messaging.send({
             ...message,
             token,
           });
-          console.log(`✅ Sent notification to token: ${token.substring(0, 20)}...`);
+          
+          console.log(`✅ [PushService] Successfully sent to token ${index + 1}`);
           return { success: true };
         } catch (error: any) {
-          console.error(`❌ Failed to send to token ${token.substring(0, 20)}:`, error.code, error.message);
+          console.error(`❌ [PushService] Failed to send to token ${token.substring(0, 20)}:`, error.code, error.message);
           
           // Remove invalid tokens
           if (

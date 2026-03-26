@@ -17,6 +17,20 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// Track recently shown notifications to prevent duplicates
+const recentNotifications = new Map(); // tag -> timestamp
+const DUPLICATE_WINDOW_MS = 3000; // 3 seconds
+
+// Clean up old entries periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [tag, timestamp] of recentNotifications.entries()) {
+    if (now - timestamp > DUPLICATE_WINDOW_MS) {
+      recentNotifications.delete(tag);
+    }
+  }
+}, 5000);
+
 // Handle background messages
 messaging.onBackgroundMessage((payload) => {
   console.log('[SW] Received background message:', payload);
@@ -25,6 +39,20 @@ messaging.onBackgroundMessage((payload) => {
   const notificationData = payload.data || {};
   const notificationTag = notificationData.notificationId || `notif_${Date.now()}`;
   const icon = notificationData.icon || '/tripnoute-logo.png';
+
+  // CRITICAL: Check if we already showed this notification recently
+  const now = Date.now();
+  const lastShown = recentNotifications.get(notificationTag);
+  
+  if (lastShown && (now - lastShown < DUPLICATE_WINDOW_MS)) {
+    console.warn(`[SW] ⚠️ DUPLICATE DETECTED! Skipping notification with tag: ${notificationTag}`);
+    console.warn(`[SW] Last shown ${now - lastShown}ms ago`);
+    return; // Skip duplicate
+  }
+  
+  // Mark as shown
+  recentNotifications.set(notificationTag, now);
+  console.log(`[SW] ✅ First time showing tag: ${notificationTag}`);
 
   const notificationTitle = payload.notification?.title || 'TripNoute';
   const notificationOptions = {
