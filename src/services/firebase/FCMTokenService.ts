@@ -53,9 +53,27 @@ export class FCMTokenService {
         throw new Error('Messaging not initialized');
       }
 
-      // Register service worker
-      const registration = await navigator.serviceWorker.register('/sw.js');
-      console.log('✅ Service Worker registered:', registration);
+      // Register service worker with error handling
+      let registration;
+      try {
+        console.log('🔄 [FCM] Attempting to register Service Worker...');
+        registration = await navigator.serviceWorker.register('/sw.js');
+        console.log('✅ [FCM] Service Worker registered successfully:', registration);
+        console.log('✅ [FCM] SW scope:', registration.scope);
+        console.log('✅ [FCM] SW state:', registration.installing?.state || registration.waiting?.state || registration.active?.state);
+      } catch (swError: any) {
+        console.error('❌ [FCM] Service Worker registration failed:', swError);
+        
+        // Try fallback to simple SW for testing
+        console.log('🔄 [FCM] Trying fallback SW...');
+        try {
+          registration = await navigator.serviceWorker.register('/sw-test.js');
+          console.log('✅ [FCM] Fallback SW registered:', registration);
+        } catch (fallbackError) {
+          console.error('❌ [FCM] Fallback SW also failed:', fallbackError);
+          throw new Error(`Service Worker registration failed: ${swError.message || swError}`);
+        }
+      }
 
       // Get FCM token
       const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
