@@ -17,20 +17,65 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Handle background messages
+// =============================================================================
+// DUPLICATE NOTIFICATION PROTECTION
+// =============================================================================
+// Track recently shown notifications to prevent duplicates
+const recentNotifications = new Map(); // tag -> timestamp
+const DUPLICATE_WINDOW_MS = 3000; // 3 seconds
+
+// Clean up old entries periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [tag, timestamp] of recentNotifications.entries()) {
+    if (now - timestamp > DUPLICATE_WINDOW_MS) {
+      recentNotifications.delete(tag);
+    }
+  }
+}, 5000);
+
+// =============================================================================
+// HANDLE BACKGROUND PUSH NOTIFICATIONS
+// =============================================================================
 messaging.onBackgroundMessage((payload) => {
-  console.log('[sw.js] Received background message', payload);
+  console.log('[SW] Received background message:', payload);
+  
+  // Extract data from payload
+  const notificationData = payload.data || {};
+  const notificationTag = notificationData.notificationId || `notif_${Date.now()}`;
+  const icon = notificationData.icon || '/tripnoute-logo.png';
+
+  // CRITICAL: Check if we already showed this notification recently
+  const now = Date.now();
+  const lastShown = recentNotifications.get(notificationTag);
+  
+  if (lastShown && (now - lastShown < DUPLICATE_WINDOW_MS)) {
+    console.warn(`[SW] ⚠️ DUPLICATE DETECTED! Skipping notification with tag: ${notificationTag}`);
+    console.warn(`[SW] Last shown ${now - lastShown}ms ago`);
+    return; // Skip duplicate
+  }
+  
+  // Mark as shown
+  recentNotifications.set(notificationTag, now);
+  console.log(`[SW] ✅ First time showing tag: ${notificationTag}`);
 
   const notificationTitle = payload.notification?.title || 'TripNoute';
   const notificationOptions = {
     body: payload.notification?.body || 'You have a new notification',
-    icon: '/tripnoute-logo.png',
+    icon: icon, // Get icon from data payload
     badge: '/icons/icon-96x96.png',
-    tag: payload.data?.notificationId || 'default',
-    data: payload.data,
+    tag: notificationTag, // CRITICAL: Same tag = replace old notification
+    data: notificationData,
     requireInteraction: false,
-    vibrate: [200, 100, 200]
+    vibrate: [200, 100, 200],
+    renotify: false, // Don't vibrate again if same tag
   };
+
+  console.log('[SW] Showing notification:', {
+    title: notificationTitle,
+    tag: notificationTag,
+    icon: icon
+  });
 
   return self.registration.showNotification(notificationTitle, notificationOptions);
 });
@@ -38,7 +83,7 @@ messaging.onBackgroundMessage((payload) => {
 // =============================================================================
 // PWA CACHE
 // =============================================================================
-const CACHE_NAME = 'tripnoute-v3';
+const CACHE_NAME = 'tripnoute-v4-notification-fix'; // UPDATED to force SW update
 
 // Assets to cache on install (sadece ikonlar ve manifest)
 const PRECACHE_ASSETS = [
@@ -144,7 +189,7 @@ self.addEventListener('fetch', (event) => {
 // NOTIFICATION CLICK HANDLER
 // =============================================================================
 self.addEventListener('notificationclick', (event) => {
-  console.log('[sw.js] Notification click received.');
+  console.log('[SW] Notification click received:', event.notification);
 
   event.notification.close();
 
@@ -159,6 +204,8 @@ self.addEventListener('notificationclick', (event) => {
   } else if (data?.type === 'comment' && data?.postId) {
     urlToOpen = `/post/${data.postId}`;
   }
+
+  console.log('[SW] Opening URL:', urlToOpen);
 
   // Open or focus the app
   event.waitUntil(
