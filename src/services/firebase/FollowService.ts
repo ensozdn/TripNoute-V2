@@ -81,6 +81,8 @@ export class FollowService {
       // Use followId as deduplication key to prevent duplicate notifications
       const notificationId = `follow_${followId}_${Date.now()}`;
       
+      console.log('🔔 [DEBUG] Calling push notification API...', { recipientId: followingId, notificationId });
+      
       await fetch('/api/notifications/send-push', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -93,6 +95,8 @@ export class FollowService {
           notificationId, // Unique ID to prevent duplicates
         }),
       });
+      
+      console.log('🔔 [DEBUG] Push notification API call completed');
       console.log('✅ Push notification request sent for follow');
     } catch (error) {
       console.error('Failed to send push notification:', error);

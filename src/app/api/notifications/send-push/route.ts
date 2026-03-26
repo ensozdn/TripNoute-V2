@@ -12,12 +12,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`📤 Sending ${type} push notification to user: ${recipientId}`);
+    console.log(`📤 [DEBUG] Sending ${type} push notification to user: ${recipientId}`);
 
     let result;
 
     switch (type) {
       case 'follow':
+        console.log('📤 [DEBUG] Calling pushNotificationService.sendFollowNotification...');
         await pushNotificationService.sendFollowNotification(
           recipientId,
           senderName,
