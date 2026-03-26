@@ -90,18 +90,19 @@ export class FCMTokenService {
    */
   private async saveTokenToFirestore(userId: string, token: string): Promise<void> {
     try {
-      // First, clean up old tokens from this device (same userAgent)
+      // First, clean up old tokens from this device
       const tokensRef = collection(db, 'users', userId, 'fcmTokens');
       const tokensSnapshot = await getDocs(tokensRef);
       
-      const currentUserAgent = navigator.userAgent;
+      const currentPlatform = navigator.platform;
       const cleanupPromises: Promise<void>[] = [];
       
       tokensSnapshot.forEach((tokenDoc) => {
         const data = tokenDoc.data();
-        // Remove if it's an old token from the same device
-        if (data.userAgent === currentUserAgent && tokenDoc.id !== token) {
-          console.log('🗑️ Removing old token from same device');
+        // Remove if it's an old token from the same platform (device type)
+        // Keep only the newest token per platform
+        if (data.platform === currentPlatform && tokenDoc.id !== token) {
+          console.log(`🗑️ Removing old token from same platform (${currentPlatform})`);
           cleanupPromises.push(deleteDoc(tokenDoc.ref));
         }
       });
