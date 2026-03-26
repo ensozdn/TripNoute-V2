@@ -44,17 +44,14 @@ export class PushNotificationService {
         notification: {
           title: payload.title,
           body: payload.body,
-          icon: payload.icon || '/tripnoute-logo.png', // FIXED: Move icon here
         },
-        data: payload.data || {},
+        data: {
+          ...(payload.data || {}),
+          // Include icon and other metadata in data payload
+          // Service Worker will use these to construct the notification
+          icon: payload.icon || '/tripnoute-logo.png',
+        },
         webpush: {
-          notification: {
-            badge: '/icons/icon-96x96.png',
-            requireInteraction: false,
-            vibrate: [200, 100, 200],
-            tag: payload.data?.notificationId || 'default', // CRITICAL: Set tag for deduplication
-            renotify: false, // Don't vibrate again for same tag
-          },
           fcmOptions: {
             link: '/dashboard',
           },
@@ -68,9 +65,10 @@ export class PushNotificationService {
             ...message,
             token,
           });
+          console.log(`✅ Sent notification to token: ${token.substring(0, 20)}...`);
           return { success: true };
         } catch (error: any) {
-          console.error(`❌ Failed to send to token ${token.substring(0, 20)}:`, error.code);
+          console.error(`❌ Failed to send to token ${token.substring(0, 20)}:`, error.code, error.message);
           
           // Remove invalid tokens
           if (

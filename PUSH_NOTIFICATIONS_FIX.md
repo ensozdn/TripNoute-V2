@@ -1,10 +1,11 @@
-# 🔔 Push Notifications - Duplicate Fix
+# 🔔 Push Notifications - Duplicate Fix (UPDATED)
 
 **Problem:** Follow işleminde 2 kere bildirim geliyordu.
+**Update:** İlk fix'te yanlışlıkla bildirimleri tamamen bozduk - şimdi düzeltildi!
 
 ## 🐛 Root Cause Analysis
 
-### 1. **Notification ID Problemi**
+### 1. **Notification ID Problemi** ✅ FIXED
 ```typescript
 // ❌ BEFORE: Her request'te yeni ID
 notificationId: `follow_${Date.now()}`
@@ -15,7 +16,37 @@ notificationId: `follow_${followerId}_${followingId}`
 
 **Neden:** Service Worker'daki `tag` parametresi deduplication için kullanılıyor. Eğer `tag` her seferinde farklıysa, aynı bildirim 2 kez gösterilir.
 
-### 2. **Service Worker Tag Configuration**
+### 2. **Icon Property Location** ⚠️ CRITICAL FIX
+```javascript
+// ❌ FIRST ATTEMPT (WRONG): Icon in notification object
+notification: {
+  title: '...',
+  body: '...',
+  icon: '...'  // ❌ Admin SDK doesn't support this!
+}
+// Result: Notification fails silently, no error thrown
+
+// ✅ CORRECT: Icon in data payload
+notification: {
+  title: '...',
+  body: '...',
+},
+data: {
+  icon: '...',  // ✅ Service Worker reads from here
+  notificationId: '...',
+  type: '...'
+}
+
+// Service Worker then uses it:
+const icon = payload.data?.icon || '/tripnoute-logo.png';
+self.registration.showNotification(title, { icon, ... });
+```
+
+**Neden Önemli:** 
+- Firebase Admin SDK `notification.icon` property'sini desteklemiyor
+- Yanlış property kullanınca notification **sessizce başarısız oluyor**
+- Error message bile vermiyor, sadece hiç notification gitmiyor
+- Icon'u `data` payload'ında göndermek gerekiyor
 ```javascript
 // ❌ BEFORE: Icon yanlış yerde, tag eksik
 notification: {
