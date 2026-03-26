@@ -55,18 +55,20 @@ export class PushNotificationService {
           dataPayload[key] = String(payload.data![key]);
         });
       }
-      // Add icon to data payload (Service Worker will use it)
+      
+      // Add notification content to data payload
+      // CRITICAL: We put title/body in data (not notification) to prevent auto-display
+      dataPayload.title = payload.title;
+      dataPayload.body = payload.body;
       dataPayload.icon = payload.icon || '/tripnoute-logo.png';
 
       console.log(`📤 [PushService] Data payload:`, dataPayload);
 
       // Prepare the message
+      // CRITICAL: NO notification object! Only data payload!
+      // This prevents FCM from auto-showing notification (avoiding duplicates)
       const message = {
-        notification: {
-          title: payload.title,
-          body: payload.body,
-        },
-        data: dataPayload, // All strings!
+        data: dataPayload, // Service Worker will construct notification from this
         webpush: {
           fcmOptions: {
             link: '/dashboard',

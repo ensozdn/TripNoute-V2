@@ -40,9 +40,12 @@ setInterval(() => {
 messaging.onBackgroundMessage((payload) => {
   console.log('[SW] Received background message:', payload);
   
-  // Extract data from payload
+  // CRITICAL: Extract ALL data from payload.data (not payload.notification)
+  // We send everything in data to avoid FCM auto-displaying notifications
   const notificationData = payload.data || {};
   const notificationTag = notificationData.notificationId || `notif_${Date.now()}`;
+  const notificationTitle = notificationData.title || 'TripNoute';
+  const notificationBody = notificationData.body || 'You have a new notification';
   const icon = notificationData.icon || '/tripnoute-logo.png';
 
   // CRITICAL: Check if we already showed this notification recently
@@ -59,10 +62,9 @@ messaging.onBackgroundMessage((payload) => {
   recentNotifications.set(notificationTag, now);
   console.log(`[SW] ✅ First time showing tag: ${notificationTag}`);
 
-  const notificationTitle = payload.notification?.title || 'TripNoute';
   const notificationOptions = {
-    body: payload.notification?.body || 'You have a new notification',
-    icon: icon, // Get icon from data payload
+    body: notificationBody, // From data payload
+    icon: icon, // From data payload
     badge: '/icons/icon-96x96.png',
     tag: notificationTag, // CRITICAL: Same tag = replace old notification
     data: notificationData,
@@ -73,6 +75,7 @@ messaging.onBackgroundMessage((payload) => {
 
   console.log('[SW] Showing notification:', {
     title: notificationTitle,
+    body: notificationBody,
     tag: notificationTag,
     icon: icon
   });
@@ -83,7 +86,7 @@ messaging.onBackgroundMessage((payload) => {
 // =============================================================================
 // PWA CACHE
 // =============================================================================
-const CACHE_NAME = 'tripnoute-v4-notification-fix'; // UPDATED to force SW update
+const CACHE_NAME = 'tripnoute-v5-data-only-fix'; // UPDATED: data-only payload fix
 
 // Assets to cache on install (sadece ikonlar ve manifest)
 const PRECACHE_ASSETS = [
