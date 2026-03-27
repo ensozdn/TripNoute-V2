@@ -209,6 +209,31 @@ export class PushNotificationService {
       },
     });
   }
+
+  /**
+   * Send mention notification
+   */
+  async sendMentionNotification(
+    recipientId: string,
+    senderName: string,
+    mentionText: string,
+    postId?: string,
+    notificationId?: string
+  ): Promise<void> {
+    // FIXED: Use stable ID for deduplication
+    const stableId = notificationId || `mention_${postId}_${Date.now()}`;
+    
+    await this.sendToUser({
+      userId: recipientId,
+      title: 'New Mention',
+      body: `${senderName} mentioned you: ${mentionText}`,
+      data: {
+        type: 'mention',
+        postId: postId || '',
+        notificationId: stableId,
+      },
+    });
+  }
 }
 
 export const pushNotificationService = new PushNotificationService();

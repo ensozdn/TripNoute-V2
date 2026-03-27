@@ -157,6 +157,62 @@ export class NotificationService {
     return notificationRef.id;
   }
 
+  async createCommentNotification(
+    senderId: string,
+    senderName: string,
+    senderPhotoUrl: string | undefined,
+    recipientId: string,
+    postId: string,
+    commentText: string,
+    postPhotoUrl?: string
+  ): Promise<string> {
+    if (senderId === recipientId) return '';
+
+    const notificationRef = doc(this.notificationsCollection);
+    await setDoc(notificationRef, {
+      recipientId,
+      senderId,
+      senderName,
+      senderPhotoUrl,
+      type: 'comment',
+      postId,
+      text: commentText,
+      photoUrl: postPhotoUrl,
+      isRead: false,
+      createdAt: serverTimestamp(),
+    });
+
+    return notificationRef.id;
+  }
+
+  async createMentionNotification(
+    senderId: string,
+    senderName: string,
+    senderPhotoUrl: string | undefined,
+    recipientId: string,
+    postId: string,
+    mentionText: string,
+    postPhotoUrl?: string
+  ): Promise<string> {
+    if (senderId === recipientId) return '';
+
+    const notificationRef = doc(this.notificationsCollection);
+    await setDoc(notificationRef, {
+      recipientId,
+      senderId,
+      senderName,
+      senderPhotoUrl,
+      type: 'mention',
+      postId,
+      text: mentionText,
+      photoUrl: postPhotoUrl,
+      isRead: false,
+      createdAt: serverTimestamp(),
+    });
+
+    return notificationRef.id;
+  }
+
   async markAsRead(notificationId: string): Promise<void> {
     const notificationRef = doc(this.notificationsCollection, notificationId);
     await updateDoc(notificationRef, { isRead: true });

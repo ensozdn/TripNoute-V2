@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Heart, UserPlus, MessageCircle, X } from 'lucide-react'
+import { Heart, UserPlus, MessageCircle, X, AtSign } from 'lucide-react'
 import { Notification } from '@/types/notification'
 import { formatDistanceToNow } from 'date-fns'
 import { useRouter } from 'next/navigation'
@@ -23,6 +23,7 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
       case 'follow': return <UserPlus className="w-4 h-4 text-white" />
       case 'like': return <Heart className="w-4 h-4 fill-white text-white" />
       case 'comment': return <MessageCircle className="w-4 h-4 text-white" />
+      case 'mention': return <AtSign className="w-4 h-4 text-white" />
       default: return <UserPlus className="w-4 h-4 text-white" />
     }
   }
@@ -32,6 +33,7 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
       case 'follow': return 'bg-blue-500'
       case 'like': return 'bg-rose-500'
       case 'comment': return 'bg-green-500'
+      case 'mention': return 'bg-purple-500'
       default: return 'bg-slate-500'
     }
   }
@@ -41,6 +43,7 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
       case 'follow': return 'started following you'
       case 'like': return 'liked your post'
       case 'comment': return 'commented on your post'
+      case 'mention': return 'mentioned you'
       default: return 'interacted with you'
     }
   }
