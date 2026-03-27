@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Bell, Check, Loader2 } from 'lucide-react'
 import { Notification } from '@/types/notification'
@@ -29,7 +29,6 @@ export function NotificationsList({ userId }: NotificationsListProps) {
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null)
-  const observerTarget = useRef(null)
 
   useEffect(() => {
     // Real-time listener için unsubscribe fonksiyonu
