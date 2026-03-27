@@ -12,6 +12,9 @@ import {
   serverTimestamp,
   onSnapshot,
   Unsubscribe,
+  startAfter,
+  DocumentSnapshot,
+  QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Notification } from '@/types/notification';
@@ -88,6 +91,54 @@ export class NotificationService {
     } catch (error) {
       console.error('Error fetching notifications:', error);
       return [];
+    }
+  }
+
+  /**
+   * Get notifications with pagination support
+   * Returns notifications and the last document for next page
+   */
+  async getNotificationsPaginated(
+    userId: string,
+    limitCount = 20,
+    lastDoc?: QueryDocumentSnapshot
+  ): Promise<{ notifications: Notification[]; lastDoc: QueryDocumentSnapshot | null; hasMore: boolean }> {
+    try {
+      let q = query(
+        this.notificationsCollection,
+        where('recipientId', '==', userId),
+        orderBy('createdAt', 'desc'),
+        firestoreLimit(limitCount)
+      );
+
+      // Add pagination cursor if provided
+      if (lastDoc) {
+        q = query(
+          this.notificationsCollection,
+          where('recipientId', '==', userId),
+          orderBy('createdAt', 'desc'),
+          startAfter(lastDoc),
+          firestoreLimit(limitCount)
+        );
+      }
+
+      const snapshot = await getDocs(q);
+      const notifications = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Notification[];
+
+      const lastVisible = snapshot.docs[snapshot.docs.length - 1];
+      const hasMore = snapshot.docs.length === limitCount;
+
+      return {
+        notifications,
+        lastDoc: lastVisible || null,
+        hasMore,
+      };
+    } catch (error) {
+      console.error('Error fetching paginated notifications:', error);
+      return { notifications: [], lastDoc: null, hasMore: false };
     }
   }
 

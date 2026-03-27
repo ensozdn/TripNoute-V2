@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Bell, Check } from 'lucide-react'
+import { Bell, Check, Loader2 } from 'lucide-react'
 import { Notification } from '@/types/notification'
 import { notificationService } from '@/services/firebase/NotificationService'
 import { NotificationItem } from './NotificationItem'
@@ -10,6 +10,7 @@ import {
   isToday, 
   isThisWeek 
 } from 'date-fns'
+import { QueryDocumentSnapshot } from 'firebase/firestore'
 
 interface NotificationsListProps {
   userId: string
@@ -25,6 +26,10 @@ export function NotificationsList({ userId }: NotificationsListProps) {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
   const [marking, setMarking] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+  const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null)
+  const observerTarget = useRef(null)
 
   useEffect(() => {
     // Real-time listener için unsubscribe fonksiyonu
@@ -37,7 +42,8 @@ export function NotificationsList({ userId }: NotificationsListProps) {
       (error) => {
         console.error('Failed to load notifications:', error)
         setLoading(false)
-      }
+      },
+      20 // Initial load: 20 notifications
     )
 
     // Cleanup: Component unmount olduğunda listener'ı kaldır
@@ -85,6 +91,31 @@ export function NotificationsList({ userId }: NotificationsListProps) {
     setNotifications(prev =>
       prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n)
     )
+  }
+
+  const loadMoreNotifications = async () => {
+    if (loadingMore || !hasMore) return
+
+    setLoadingMore(true)
+    try {
+      const result = await notificationService.getNotificationsPaginated(
+        userId,
+        20,
+        lastDoc || undefined
+      )
+
+      if (result.notifications.length > 0) {
+        setNotifications(prev => [...prev, ...result.notifications])
+        setLastDoc(result.lastDoc)
+        setHasMore(result.hasMore)
+      } else {
+        setHasMore(false)
+      }
+    } catch (error) {
+      console.error('Failed to load more notifications:', error)
+    } finally {
+      setLoadingMore(false)
+    }
   }
 
   if (loading) {
@@ -213,6 +244,35 @@ export function NotificationsList({ userId }: NotificationsListProps) {
                 />
               </motion.div>
             ))}
+          </div>
+        )}
+
+        {/* Load More Button */}
+        {hasMore && notifications.length > 0 && (
+          <div className="flex justify-center py-6">
+            <button
+              onClick={loadMoreNotifications}
+              disabled={loadingMore}
+              className="flex items-center gap-2 px-6 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loadingMore ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                'Load More'
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* No More Notifications */}
+        {!hasMore && notifications.length > 0 && (
+          <div className="flex justify-center py-6">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              No more notifications
+            </p>
           </div>
         )}
       </div>
