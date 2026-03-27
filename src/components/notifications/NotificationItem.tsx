@@ -58,15 +58,27 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
     }
   }
 
+  /* TODO: Uncomment when Profile/Post pages are ready
   const handleActionClick = async (e: React.MouseEvent, action: string) => {
     e.stopPropagation() // Prevent main click handler
     
+    // Mark as read first
+    if (!notification.isRead) {
+      await notificationService.markAsRead(notification.id)
+      onMarkAsRead?.()
+    }
+    
+    // TODO: Redirect to actual pages when they're ready
+    // For now, redirect to dashboard
     if (action === 'viewProfile') {
-      router.push(`/profile/${notification.senderId}`)
+      // router.push(`/profile/${notification.senderId}`)
+      router.push('/dashboard')
     } else if (action === 'viewPost' && notification.postId) {
-      router.push(`/post/${notification.postId}`)
+      // router.push(`/post/${notification.postId}`)
+      router.push('/dashboard')
     }
   }
+  */
 
   const handleClick = async () => {
     if (marking) return
@@ -78,19 +90,22 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
         onMarkAsRead?.()
       }
 
-      // Navigate based on notification type
+      // TODO: Navigate to actual pages when they're ready
+      // For now, all notifications redirect to dashboard
+      router.push('/dashboard')
+      
+      /* Future implementation when pages are ready:
       if (notification.type === 'follow') {
         router.push(`/profile/${notification.senderId}`)
       } else if (notification.type === 'like' && notification.postId) {
         router.push(`/post/${notification.postId}`)
       } else if (notification.type === 'comment' && notification.postId) {
-        // Navigate to post with comment highlight
         const commentHash = notification.commentId ? `#comment-${notification.commentId}` : ''
         router.push(`/post/${notification.postId}${commentHash}`)
       } else {
-        // Fallback to dashboard for unknown types
         router.push('/dashboard')
       }
+      */
     } catch (error) {
       console.error('Error handling notification click:', error)
     } finally {
@@ -152,7 +167,7 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
             
             <p className="mt-1 text-xs text-slate-500">{timeAgo}</p>
 
-            {/* Action Buttons */}
+            {/* TODO: Action Buttons - Uncomment when Profile/Post pages are ready
             <div className="mt-2 flex items-center gap-2">
               {notification.type === 'follow' && (
                 <button
@@ -172,6 +187,7 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
                 </button>
               )}
             </div>
+            */}
           </div>
 
           {notification.photoUrl && (
