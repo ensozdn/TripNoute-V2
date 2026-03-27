@@ -13,7 +13,6 @@ import {
   onSnapshot,
   Unsubscribe,
   startAfter,
-  DocumentSnapshot,
   QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
