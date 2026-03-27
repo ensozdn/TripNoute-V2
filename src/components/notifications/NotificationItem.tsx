@@ -202,9 +202,9 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
       <button
         onClick={handleDelete}
         disabled={deleting}
-        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-red-100 dark:hover:bg-red-900/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+        className="absolute top-2 right-2 w-7 h-7 rounded-full bg-slate-100/80 dark:bg-slate-700/80 hover:bg-red-100 dark:hover:bg-red-900/20 flex items-center justify-center transition-all backdrop-blur-sm"
       >
-        <X className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 group-hover:text-red-500" />
+        <X className="w-4 h-4 text-slate-500 dark:text-slate-400 hover:text-red-500" />
       </button>
     </motion.div>
   )
