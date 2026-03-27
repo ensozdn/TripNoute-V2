@@ -51,16 +51,19 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
         onMarkAsRead?.()
       }
 
-      // For now, all notifications redirect to dashboard
-      // TODO: Add profile and post detail pages
-      router.push('/dashboard')
-      
-      // Future implementation:
-      // if (notification.type === 'follow') {
-      //   router.push(`/profile/${notification.senderId}`)
-      // } else if (notification.type === 'like' && notification.postId) {
-      //   router.push(`/post/${notification.postId}`)
-      // }
+      // Navigate based on notification type
+      if (notification.type === 'follow') {
+        router.push(`/profile/${notification.senderId}`)
+      } else if (notification.type === 'like' && notification.postId) {
+        router.push(`/post/${notification.postId}`)
+      } else if (notification.type === 'comment' && notification.postId) {
+        // Navigate to post with comment highlight
+        const commentHash = notification.commentId ? `#comment-${notification.commentId}` : ''
+        router.push(`/post/${notification.postId}${commentHash}`)
+      } else {
+        // Fallback to dashboard for unknown types
+        router.push('/dashboard')
+      }
     } catch (error) {
       console.error('Error handling notification click:', error)
     } finally {

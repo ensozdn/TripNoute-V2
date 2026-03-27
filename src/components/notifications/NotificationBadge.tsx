@@ -12,14 +12,15 @@ export function NotificationBadge({ userId }: NotificationBadgeProps) {
   const [unreadCount, setUnreadCount] = useState(0)
 
   useEffect(() => {
-    const loadCount = async () => {
-      const count = await notificationService.getUnreadCount(userId)
-      setUnreadCount(count)
-    }
+    // Real-time listener for unread count
+    const unsubscribe = notificationService.subscribeToUnreadCount(
+      userId,
+      (count) => {
+        setUnreadCount(count)
+      }
+    )
 
-    loadCount()
-    const interval = setInterval(loadCount, 30000)
-    return () => clearInterval(interval)
+    return () => unsubscribe()
   }, [userId])
 
   if (unreadCount === 0) return null

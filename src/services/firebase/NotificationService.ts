@@ -10,12 +10,66 @@ import {
   updateDoc,
   deleteDoc,
   serverTimestamp,
+  onSnapshot,
+  Unsubscribe,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Notification } from '@/types/notification';
 
 export class NotificationService {
   private notificationsCollection = collection(db, 'notifications');
+
+  /**
+   * Real-time listener for notifications
+   * Returns unsubscribe function to stop listening
+   */
+  subscribeToNotifications(
+    userId: string,
+    onUpdate: (notifications: Notification[]) => void,
+    onError?: (error: Error) => void,
+    limitCount = 50
+  ): Unsubscribe {
+    const q = query(
+      this.notificationsCollection,
+      where('recipientId', '==', userId),
+      orderBy('createdAt', 'desc'),
+      firestoreLimit(limitCount)
+    );
+
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        const notifications = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Notification[];
+        onUpdate(notifications);
+      },
+      (error) => {
+        console.error('Error in notification listener:', error);
+        onError?.(error as Error);
+      }
+    );
+  }
+
+  /**
+   * Real-time listener for unread count
+   * Returns unsubscribe function to stop listening
+   */
+  subscribeToUnreadCount(
+    userId: string,
+    onUpdate: (count: number) => void
+  ): Unsubscribe {
+    const q = query(
+      this.notificationsCollection,
+      where('recipientId', '==', userId),
+      where('isRead', '==', false)
+    );
+
+    return onSnapshot(q, (snapshot) => {
+      onUpdate(snapshot.size);
+    });
+  }
 
   async getNotifications(userId: string, limitCount = 50): Promise<Notification[]> {
     try {

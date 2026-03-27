@@ -17,20 +17,22 @@ export function NotificationsList({ userId }: NotificationsListProps) {
   const [marking, setMarking] = useState(false)
 
   useEffect(() => {
-    loadNotifications()
-  }, [userId])
+    // Real-time listener için unsubscribe fonksiyonu
+    const unsubscribe = notificationService.subscribeToNotifications(
+      userId,
+      (updatedNotifications) => {
+        setNotifications(updatedNotifications)
+        setLoading(false)
+      },
+      (error) => {
+        console.error('Failed to load notifications:', error)
+        setLoading(false)
+      }
+    )
 
-  const loadNotifications = async () => {
-    try {
-      setLoading(true)
-      const data = await notificationService.getNotifications(userId, 50)
-      setNotifications(data)
-    } catch (error) {
-      console.error('Failed to load notifications:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+    // Cleanup: Component unmount olduğunda listener'ı kaldır
+    return () => unsubscribe()
+  }, [userId])
 
   const handleMarkAllRead = async () => {
     if (marking) return
