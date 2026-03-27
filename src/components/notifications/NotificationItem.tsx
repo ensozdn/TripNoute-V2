@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Heart, UserPlus } from 'lucide-react'
+import { Heart, UserPlus, MessageCircle, X } from 'lucide-react'
 import { Notification } from '@/types/notification'
 import { formatDistanceToNow } from 'date-fns'
 import { useRouter } from 'next/navigation'
@@ -16,11 +16,13 @@ interface NotificationItemProps {
 export function NotificationItem({ notification, onMarkAsRead }: NotificationItemProps) {
   const router = useRouter()
   const [marking, setMarking] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const getIcon = () => {
     switch (notification.type) {
       case 'follow': return <UserPlus className="w-4 h-4 text-white" />
       case 'like': return <Heart className="w-4 h-4 fill-white text-white" />
+      case 'comment': return <MessageCircle className="w-4 h-4 text-white" />
       default: return <UserPlus className="w-4 h-4 text-white" />
     }
   }
@@ -29,6 +31,7 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
     switch (notification.type) {
       case 'follow': return 'bg-blue-500'
       case 'like': return 'bg-rose-500'
+      case 'comment': return 'bg-green-500'
       default: return 'bg-slate-500'
     }
   }
@@ -37,7 +40,31 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
     switch (notification.type) {
       case 'follow': return 'started following you'
       case 'like': return 'liked your post'
+      case 'comment': return 'commented on your post'
       default: return 'interacted with you'
+    }
+  }
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent navigation
+    if (deleting) return
+    
+    setDeleting(true)
+    try {
+      await notificationService.deleteNotification(notification.id)
+    } catch (error) {
+      console.error('Error deleting notification:', error)
+      setDeleting(false)
+    }
+  }
+
+  const handleActionClick = async (e: React.MouseEvent, action: string) => {
+    e.stopPropagation() // Prevent main click handler
+    
+    if (action === 'viewProfile') {
+      router.push(`/profile/${notification.senderId}`)
+    } else if (action === 'viewPost' && notification.postId) {
+      router.push(`/post/${notification.postId}`)
     }
   }
 
@@ -81,7 +108,7 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
       animate={{ opacity: 1, y: 0 }}
       onClick={handleClick}
       className={`
-        relative flex items-start gap-3 p-4 cursor-pointer
+        group relative flex items-start gap-3 p-4 cursor-pointer
         transition-colors duration-200
         hover:bg-slate-50 dark:hover:bg-slate-800/50
         ${!notification.isRead ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}
@@ -124,6 +151,27 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
             )}
             
             <p className="mt-1 text-xs text-slate-500">{timeAgo}</p>
+
+            {/* Action Buttons */}
+            <div className="mt-2 flex items-center gap-2">
+              {notification.type === 'follow' && (
+                <button
+                  onClick={(e) => handleActionClick(e, 'viewProfile')}
+                  className="px-3 py-1.5 text-xs font-medium bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                >
+                  View Profile
+                </button>
+              )}
+              
+              {(notification.type === 'like' || notification.type === 'comment') && notification.postId && (
+                <button
+                  onClick={(e) => handleActionClick(e, 'viewPost')}
+                  className="px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-lg transition-colors"
+                >
+                  View Post
+                </button>
+              )}
+            </div>
           </div>
 
           {notification.photoUrl && (
@@ -133,6 +181,15 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
           )}
         </div>
       </div>
+
+      {/* Delete Button */}
+      <button
+        onClick={handleDelete}
+        disabled={deleting}
+        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-red-100 dark:hover:bg-red-900/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+      >
+        <X className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 group-hover:text-red-500" />
+      </button>
     </motion.div>
   )
 }
