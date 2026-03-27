@@ -6,9 +6,19 @@ import { Bell, Check } from 'lucide-react'
 import { Notification } from '@/types/notification'
 import { notificationService } from '@/services/firebase/NotificationService'
 import { NotificationItem } from './NotificationItem'
+import { 
+  isToday, 
+  isThisWeek 
+} from 'date-fns'
 
 interface NotificationsListProps {
   userId: string
+}
+
+interface GroupedNotifications {
+  today: Notification[]
+  thisWeek: Notification[]
+  earlier: Notification[]
 }
 
 export function NotificationsList({ userId }: NotificationsListProps) {
@@ -33,6 +43,29 @@ export function NotificationsList({ userId }: NotificationsListProps) {
     // Cleanup: Component unmount olduğunda listener'ı kaldır
     return () => unsubscribe()
   }, [userId])
+
+  // Group notifications by time
+  const groupedNotifications: GroupedNotifications = notifications.reduce(
+    (groups, notification) => {
+      const notificationDate = (notification.createdAt as any)?.toDate()
+      
+      if (!notificationDate) {
+        groups.earlier.push(notification)
+        return groups
+      }
+
+      if (isToday(notificationDate)) {
+        groups.today.push(notification)
+      } else if (isThisWeek(notificationDate, { weekStartsOn: 1 })) {
+        groups.thisWeek.push(notification)
+      } else {
+        groups.earlier.push(notification)
+      }
+
+      return groups
+    },
+    { today: [], thisWeek: [], earlier: [] } as GroupedNotifications
+  )
 
   const handleMarkAllRead = async () => {
     if (marking) return
@@ -111,19 +144,77 @@ export function NotificationsList({ userId }: NotificationsListProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {notifications.map((notification, index) => (
-          <motion.div
-            key={notification.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
-          >
-            <NotificationItem
-              notification={notification}
-              onMarkAsRead={() => handleMarkAsRead(notification.id)}
-            />
-          </motion.div>
-        ))}
+        {/* Today Section */}
+        {groupedNotifications.today.length > 0 && (
+          <div className="mb-6">
+            <div className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm px-4 py-2 z-10">
+              <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Today
+              </h3>
+            </div>
+            {groupedNotifications.today.map((notification, index) => (
+              <motion.div
+                key={notification.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.03 }}
+              >
+                <NotificationItem
+                  notification={notification}
+                  onMarkAsRead={() => handleMarkAsRead(notification.id)}
+                />
+              </motion.div>
+            ))}
+          </div>
+        )}
+
+        {/* This Week Section */}
+        {groupedNotifications.thisWeek.length > 0 && (
+          <div className="mb-6">
+            <div className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm px-4 py-2 z-10">
+              <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                This Week
+              </h3>
+            </div>
+            {groupedNotifications.thisWeek.map((notification, index) => (
+              <motion.div
+                key={notification.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.03 }}
+              >
+                <NotificationItem
+                  notification={notification}
+                  onMarkAsRead={() => handleMarkAsRead(notification.id)}
+                />
+              </motion.div>
+            ))}
+          </div>
+        )}
+
+        {/* Earlier Section */}
+        {groupedNotifications.earlier.length > 0 && (
+          <div className="mb-6">
+            <div className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm px-4 py-2 z-10">
+              <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Earlier
+              </h3>
+            </div>
+            {groupedNotifications.earlier.map((notification, index) => (
+              <motion.div
+                key={notification.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.03 }}
+              >
+                <NotificationItem
+                  notification={notification}
+                  onMarkAsRead={() => handleMarkAsRead(notification.id)}
+                />
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
